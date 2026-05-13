@@ -6,12 +6,10 @@
     <title>Login | Bendahara NBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Firebase (GANTI DENGAN PUNYA ANDA)
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -21,9 +19,15 @@
             appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            window.db = db;
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase init error:", error);
+            alert("Gagal inisialisasi Firebase: " + error.message);
+        }
     </script>
     <style>
         * { font-family: 'Inter', sans-serif; }
@@ -90,7 +94,6 @@
 <body class="flex items-center justify-center p-4">
 
 <div class="w-full max-w-md">
-    <!-- Logo & Brand -->
     <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur rounded-2xl shadow-lg mb-4">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,15 +104,12 @@
         <p class="text-white/80 mt-1">Aplikasi Keuangan Konsumsi</p>
     </div>
 
-    <!-- Main Card -->
     <div class="glass-card p-6 md:p-8">
-        <!-- Tab Navigation -->
         <div class="flex border-b border-gray-200 mb-6">
             <button id="tabLoginBtn" class="flex-1 py-3 text-center font-medium transition-all duration-200 tab-active">Login</button>
             <button id="tabChangePwdBtn" class="flex-1 py-3 text-center font-medium transition-all duration-200 tab-inactive">Ubah Password</button>
         </div>
 
-        <!-- Panel Login -->
         <div id="loginPanel">
             <form id="loginForm">
                 <div class="mb-5">
@@ -124,7 +124,6 @@
             <div id="loginError" class="mt-4 text-red-600 text-sm text-center hidden">❌ Password salah, coba lagi.</div>
         </div>
 
-        <!-- Panel Ubah Password (Password Default tetap bendahara01) -->
         <div id="changePwdPanel" class="hidden">
             <form id="changePasswordForm">
                 <div class="mb-4">
@@ -144,50 +143,37 @@
             <div id="changeMsg" class="mt-4 text-sm text-center hidden"></div>
         </div>
     </div>
-    <p class="text-center text-white/70 text-xs mt-6">© 2026 Bendahara NBS • Sistem Keuangan Pesantren</p>
+    <p class="text-center text-white/70 text-xs mt-6">© 2026 Bendahara NBS</p>
 </div>
 
 <script>
-    // CONSTANT PASSWORD DEFAULT (tidak berubah)
     const DEFAULT_PASSWORD = "bendahara01";
 
-    // Helper toggle password
     window.togglePassword = function(id) {
         const input = document.getElementById(id);
         if (input.type === 'password') input.type = 'text';
         else input.type = 'password';
     };
 
-    // Firestore functions
     async function getStoredLoginPassword() {
-        try {
-            const docRef = doc(window.db, "settings", "admin");
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                return docSnap.data().loginPassword;
-            } else {
-                // First time: set default login password = bendahara01
-                await setDoc(docRef, { loginPassword: DEFAULT_PASSWORD });
-                return DEFAULT_PASSWORD;
-            }
-        } catch (error) {
-            console.error("Error getting login password:", error);
-            return null;
+        if (!window.db) throw new Error("Firestore belum siap");
+        const docRef = doc(window.db, "settings", "admin");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data().loginPassword;
+        } else {
+            await setDoc(docRef, { loginPassword: DEFAULT_PASSWORD });
+            return DEFAULT_PASSWORD;
         }
     }
 
     async function updateLoginPassword(newPassword) {
-        try {
-            const docRef = doc(window.db, "settings", "admin");
-            await setDoc(docRef, { loginPassword: newPassword }, { merge: true });
-            return true;
-        } catch (error) {
-            console.error("Error updating login password:", error);
-            return false;
-        }
+        if (!window.db) throw new Error("Firestore belum siap");
+        const docRef = doc(window.db, "settings", "admin");
+        await setDoc(docRef, { loginPassword: newPassword }, { merge: true });
+        return true;
     }
 
-    // DOM elements
     const tabLogin = document.getElementById('tabLoginBtn');
     const tabChange = document.getElementById('tabChangePwdBtn');
     const loginPanel = document.getElementById('loginPanel');
@@ -199,7 +185,6 @@
     const loginBtn = document.getElementById('loginBtn');
     const changePwdBtn = document.getElementById('changePwdBtn');
 
-    // Tab switching
     tabLogin.addEventListener('click', () => {
         tabLogin.classList.add('tab-active');
         tabLogin.classList.remove('tab-inactive');
@@ -222,27 +207,29 @@
         changeMsg.classList.add('hidden');
     });
 
-    // Login handler
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const entered = document.getElementById('loginPassword').value;
         loginBtn.innerHTML = '<span class="loading"></span> Memeriksa...';
         loginBtn.disabled = true;
-
-        const storedLoginPwd = await getStoredLoginPassword();
-        loginBtn.innerHTML = 'Login';
-        loginBtn.disabled = false;
-
-        if (storedLoginPwd && entered === storedLoginPwd) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            window.location.href = 'dashboard.html';
-        } else {
-            loginError.classList.remove('hidden');
-            setTimeout(() => loginError.classList.add('hidden'), 2000);
+        try {
+            const stored = await getStoredLoginPassword();
+            if (entered === stored) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                window.location.href = 'dashboard.html';
+            } else {
+                loginError.classList.remove('hidden');
+                setTimeout(() => loginError.classList.add('hidden'), 2000);
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            alert("Error koneksi Firestore: " + err.message);
+        } finally {
+            loginBtn.innerHTML = 'Login';
+            loginBtn.disabled = false;
         }
     });
 
-    // Change password handler (verifikasi dengan DEFAULT_PASSWORD tetap)
     changeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const defaultInput = document.getElementById('defaultPassword').value;
@@ -252,62 +239,39 @@
         changePwdBtn.innerHTML = '<span class="loading"></span> Menyimpan...';
         changePwdBtn.disabled = true;
 
-        // Validasi: defaultInput harus sama dengan DEFAULT_PASSWORD ("bendahara01")
-        if (defaultInput !== DEFAULT_PASSWORD) {
-            changeMsg.textContent = `❌ Password default salah! Harus "${DEFAULT_PASSWORD}".`;
-            changeMsg.classList.remove('hidden', 'text-green-600');
-            changeMsg.classList.add('text-red-600');
-            changePwdBtn.innerHTML = 'Simpan Password Baru';
-            changePwdBtn.disabled = false;
-            setTimeout(() => changeMsg.classList.add('hidden'), 3000);
-            return;
-        }
-        if (newPwd.length < 6) {
-            changeMsg.textContent = '❌ Password baru minimal 6 karakter';
-            changeMsg.classList.remove('hidden', 'text-green-600');
-            changeMsg.classList.add('text-red-600');
-            changePwdBtn.innerHTML = 'Simpan Password Baru';
-            changePwdBtn.disabled = false;
-            setTimeout(() => changeMsg.classList.add('hidden'), 2500);
-            return;
-        }
-        if (newPwd !== confirmPwd) {
-            changeMsg.textContent = '❌ Konfirmasi password baru tidak cocok';
-            changeMsg.classList.remove('hidden', 'text-green-600');
-            changeMsg.classList.add('text-red-600');
-            changePwdBtn.innerHTML = 'Simpan Password Baru';
-            changePwdBtn.disabled = false;
-            setTimeout(() => changeMsg.classList.add('hidden'), 2500);
-            return;
-        }
-
-        // Update login password di Firestore
-        const success = await updateLoginPassword(newPwd);
-        changePwdBtn.innerHTML = 'Simpan Password Baru';
-        changePwdBtn.disabled = false;
-
-        if (success) {
+        try {
+            if (defaultInput !== DEFAULT_PASSWORD) {
+                throw new Error(`Password default harus "${DEFAULT_PASSWORD}"`);
+            }
+            if (newPwd.length < 6) {
+                throw new Error('Password baru minimal 6 karakter');
+            }
+            if (newPwd !== confirmPwd) {
+                throw new Error('Konfirmasi password baru tidak cocok');
+            }
+            await updateLoginPassword(newPwd);
             changeMsg.textContent = '✅ Password login berhasil diubah! Silakan login dengan password baru.';
             changeMsg.classList.remove('hidden', 'text-red-600');
             changeMsg.classList.add('text-green-600');
-            // Reset form
             document.getElementById('defaultPassword').value = '';
             document.getElementById('newPassword').value = '';
             document.getElementById('confirmPassword').value = '';
-            // Kembali ke tab login setelah 2 detik
             setTimeout(() => {
                 tabLogin.click();
                 changeMsg.classList.add('hidden');
             }, 2000);
-        } else {
-            changeMsg.textContent = '❌ Gagal menyimpan password. Cek koneksi Firestore.';
+        } catch (err) {
+            console.error("Change password error:", err);
+            changeMsg.textContent = '❌ ' + err.message;
             changeMsg.classList.remove('hidden', 'text-green-600');
             changeMsg.classList.add('text-red-600');
             setTimeout(() => changeMsg.classList.add('hidden'), 3000);
+        } finally {
+            changePwdBtn.innerHTML = 'Simpan Password Baru';
+            changePwdBtn.disabled = false;
         }
     });
 
-    // Redirect jika sudah login
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
         window.location.href = 'dashboard.html';
     }
