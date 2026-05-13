@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Santri | Bendahara NBS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        console.log("Firebase initialized");
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: #f3f4f6;
+        }
+        .gradient-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .tab-active {
+            border-bottom: 3px solid #667eea;
+            color: #4a5568;
+            font-weight: 600;
+            background: white;
+        }
+        .tab-inactive {
+            color: #a0aec0;
+            border-bottom: 3px solid transparent;
+            background: #f9fafb;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+            position: relative;
+        }
+        table {
+            border-collapse: collapse;
+            width: max-content;
+            min-width: 100%;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f7fafc;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+        td[contenteditable="true"] {
+            background-color: #fffaf0;
+            cursor: text;
+        }
+        td[contenteditable="true"]:focus {
+            background-color: #fef3c7;
+            outline: none;
+        }
+        .fixed-col {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 5;
+        }
+        th.fixed-col {
+            background-color: #f7fafc;
+            z-index: 15;
+        }
+        .saving-indicator {
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="gradient-nav text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="font-bold text-xl">Bendahara NBS</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="dashboard.html" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">Dashboard</a>
+                <button id="logoutBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 mb-4">
+            <button id="tabKonsumsi" class="tab-active px-6 py-3 text-sm font-medium rounded-t-lg transition">🍽️ Iuran Konsumsi</button>
+            <button id="tabPondok" class="tab-inactive px-6 py-3 text-sm font-medium rounded-t-lg transition">🏠 Iuran Pondok</button>
+        </div>
+
+        <!-- Status & Simpan -->
+        <div class="flex justify-between items-center mb-4">
+            <div id="saveStatus" class="text-sm text-gray-500 saving-indicator">✅ Data tersimpan</div>
+            <button id="saveAllBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow">💾 Simpan Semua Perubahan</button>
+        </div>
+
+        <!-- Tabel wrapper -->
+        <div class="table-container bg-white rounded-lg shadow">
+            <table id="dataTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ======================= GLOBAL VARIABLES =======================
+        let currentTab = "konsumsi"; // 'konsumsi' atau 'pondok'
+        let santriData = []; // array of { nis, nama, angkatan, iuran: { bulanKey: nominal } }
+        let bulanMapping = []; // akan diisi daftar kolom bulan (kelas 7-12)
+        let timeoutSave = null;
+        let isSaving = false;
+
+        // ======================= BULAN MAPPING =======================
+        function generateBulanMapping() {
+            const bulanSingkat = ['JUL','AGU','SEP','OKT','NOV','DES','JAN','FEB','MAR','APR','MEI','JUN'];
+            const mapping = [];
+            for (let kelas = 7; kelas <= 12; kelas++) {
+                for (let i = 0; i < bulanSingkat.length; i++) {
+                    mapping.push({
+                        key: `${kelas}_${bulanSingkat[i]}`,
+                        label: `${bulanSingkat[i]} (${kelas})`
+                    });
+                }
+            }
+            return mapping;
+        }
+
+        // ======================= LOAD DATA SANTRI DARI FIRESTORE =======================
+        async function loadSantriData() {
+            try {
+                // Ambil semua santri dari collection "santri"
+                const santriCol = collection(db, "santri");
+                const santriSnap = await getDocs(santriCol);
+                const santriMap = new Map();
+                santriSnap.forEach(doc => {
+                    const data = doc.data();
+                    santriMap.set(doc.id, {
+                        nis: doc.id,
+                        nama: data.nama,
+                        angkatan: data.angkatan,
+                        iuranKonsumsi: data.iuranKonsumsi || {},
+                        iuranPondok: data.iuranPondok || {}
+                    });
+                });
+                
+                // Jika belum ada santri, kita buat contoh (opsional, bisa ditambah via input nanti)
+                if (santriMap.size === 0) {
+                    // Contoh data dummy (bisa dihapus)
+                    const contoh = [
+                        { nis: "2526001", nama: "Ahmad Yusuf", angkatan: 2025 },
+                        { nis: "2526002", nama: "Ainun Anugrah", angkatan: 2025 }
+                    ];
+                    for (const s of contoh) {
+                        await setDoc(doc(db, "santri", s.nis), {
+                            nama: s.nama,
+                            angkatan: s.angkatan,
+                            iuranKonsumsi: {},
+                            iuranPondok: {}
+                        });
+                        santriMap.set(s.nis, {
+                            nis: s.nis,
+                            nama: s.nama,
+                            angkatan: s.angkatan,
+                            iuranKonsumsi: {},
+                            iuranPondok: {}
+                        });
+                    }
+                    console.log("Data contoh ditambahkan");
+                }
+                
+                // Konversi ke array
+                santriData = Array.from(santriMap.values()).sort((a,b) => a.nis.localeCompare(b.nis));
+                renderTable();
+            } catch (error) {
+                console.error("Gagal load santri:", error);
+                alert("Gagal memuat data santri. Cek koneksi Firebase.");
+            }
+        }
+
+        // ======================= RENDER TABLE =======================
+        function renderTable() {
+            const headerRow = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+            const bulanList = generateBulanMapping();
+            
+            // Buat header
+            let headerHtml = '<tr>';
+            headerHtml += '<th class="fixed-col">NO</th>';
+            headerHtml += '<th class="fixed-col">ANGK</th>';
+            headerHtml += '<th class="fixed-col">NIS | NAMA</th>';
+            for (let b of bulanList) {
+                headerHtml += `<th>${b.label}</th>`;
+            }
+            headerHtml += '<th class="fixed-col">JUMLAH</th>';
+            headerHtml += '</tr>';
+            headerRow.innerHTML = headerHtml;
+            
+            // Buat body
+            let bodyHtml = '';
+            santriData.forEach((santri, idx) => {
+                const rowNum = idx+1;
+                const iuran = (currentTab === 'konsumsi') ? santri.iuranKonsumsi : santri.iuranPondok;
+                bodyHtml += '<tr>';
+                bodyHtml += `<td class="fixed-col bg-white">${rowNum}</td>`;
+                bodyHtml += `<td class="fixed-col bg-white">${santri.angkatan || ''}</td>`;
+                bodyHtml += `<td class="fixed-col bg-white">${santri.nis} | ${santri.nama}</td>`;
+                
+                let total = 0;
+                for (let b of bulanList) {
+                    const nilai = iuran[b.key] || 0;
+                    total += nilai;
+                    // Format tampilan dengan titik ribuan
+                    const displayValue = nilai ? nilai.toLocaleString('id-ID') : '';
+                    bodyHtml += `<td contenteditable="true" data-nis="${santri.nis}" data-bulan="${b.key}" data-jenis="${currentTab}" class="editable-cell">${displayValue}</td>`;
+                }
+                bodyHtml += `<td class="fixed-col bg-white font-bold">${total.toLocaleString('id-ID')}</td>`;
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+            
+            // Attach event listeners ke setiap sel editable
+            attachCellEvents();
+        }
+        
+        // ======================= EVENT EDIT SEL =======================
+        function attachCellEvents() {
+            const cells = document.querySelectorAll('.editable-cell');
+            cells.forEach(cell => {
+                // Hapus listener lama untuk menghindari duplikasi
+                cell.removeEventListener('blur', handleCellBlur);
+                cell.addEventListener('blur', handleCellBlur);
+                // Event untuk format input saat mengetik (agar user bisa mengetik angka tanpa titik)
+                cell.removeEventListener('keydown', handleCellKeydown);
+                cell.addEventListener('keydown', handleCellKeydown);
+            });
+        }
+        
+        function handleCellKeydown(e) {
+            // Izinkan angka, backspace, delete, panah, tab, enter
+            const key = e.key;
+            if (key === 'Enter') {
+                e.preventDefault();
+                e.target.blur();
+                return;
+            }
+            if (!/^[0-9]$/.test(key) && key !== 'Backspace' && key !== 'Delete' && key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Tab' && key !== 'Home' && key !== 'End') {
+                e.preventDefault();
+            }
+        }
+        
+        async function handleCellBlur(e) {
+            const cell = e.target;
+            const rawValue = cell.innerText.replace(/\./g, '').trim();
+            let numeric = parseInt(rawValue, 10);
+            if (isNaN(numeric)) numeric = 0;
+            // Format ulang tampilan
+            cell.innerText = numeric ? numeric.toLocaleString('id-ID') : '';
+            
+            const nis = cell.getAttribute('data-nis');
+            const bulanKey = cell.getAttribute('data-bulan');
+            const jenis = cell.getAttribute('data-jenis');
+            if (!nis || !bulanKey) return;
+            
+            // Update data lokal
+            const santri = santriData.find(s => s.nis === nis);
+            if (!santri) return;
+            if (jenis === 'konsumsi') {
+                if (!santri.iuranKonsumsi) santri.iuranKonsumsi = {};
+                santri.iuranKonsumsi[bulanKey] = numeric;
+            } else {
+                if (!santri.iuranPondok) santri.iuranPondok = {};
+                santri.iuranPondok[bulanKey] = numeric;
+            }
+            
+            // Update total pada baris
+            updateTotalRow(nis);
+            
+            // Simpan ke Firestore dengan debounce
+            if (timeoutSave) clearTimeout(timeoutSave);
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.innerHTML = '💾 Menyimpan...';
+            statusDiv.classList.remove('text-green-600');
+            statusDiv.classList.add('text-yellow-600');
+            timeoutSave = setTimeout(async () => {
+                await saveSantriToFirestore(nis, santri);
+                statusDiv.innerHTML = '✅ Data tersimpan';
+                statusDiv.classList.remove('text-yellow-600');
+                statusDiv.classList.add('text-green-600');
+                setTimeout(() => {
+                    if (document.getElementById('saveStatus')) statusDiv.innerHTML = '✅ Data tersimpan';
+                }, 1500);
+            }, 800);
+        }
+        
+        function updateTotalRow(nis) {
+            const rows = document.querySelectorAll('#tableBody tr');
+            for (let row of rows) {
+                const firstCell = row.querySelector('td.fixed-col');
+                if (!firstCell) continue;
+                const nisCell = row.querySelector('td.fixed-col:nth-child(3)');
+                if (nisCell && nisCell.innerText.includes(nis)) {
+                    const cells = row.querySelectorAll('.editable-cell');
+                    let total = 0;
+                    cells.forEach(cell => {
+                        const val = cell.innerText.replace(/\./g, '');
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num)) total += num;
+                    });
+                    const totalCell = row.querySelector('td.fixed-col:last-child');
+                    if (totalCell) totalCell.innerText = total.toLocaleString('id-ID');
+                    break;
+                }
+            }
+        }
+        
+        async function saveSantriToFirestore(nis, santri) {
+            try {
+                const santriRef = doc(db, "santri", nis);
+                const dataToSave = {
+                    nama: santri.nama,
+                    angkatan: santri.angkatan,
+                    iuranKonsumsi: santri.iuranKonsumsi || {},
+                    iuranPondok: santri.iuranPondok || {}
+                };
+                await setDoc(santriRef, dataToSave, { merge: true });
+                console.log(`Data santri ${nis} tersimpan`);
+            } catch (error) {
+                console.error("Gagal simpan:", error);
+                const statusDiv = document.getElementById('saveStatus');
+                statusDiv.innerHTML = '❌ Gagal menyimpan!';
+                statusDiv.classList.add('text-red-600');
+                setTimeout(() => {
+                    if (document.getElementById('saveStatus')) statusDiv.innerHTML = '✅ Data tersimpan';
+                }, 2000);
+            }
+        }
+        
+        async function saveAllChanges() {
+            if (isSaving) return;
+            isSaving = true;
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.innerHTML = '💾 Menyimpan semua data...';
+            statusDiv.classList.remove('text-green-600');
+            statusDiv.classList.add('text-yellow-600');
+            
+            // Simpan setiap santri yang ada di data lokal
+            const promises = santriData.map(santri => saveSantriToFirestore(santri.nis, santri));
+            await Promise.all(promises);
+            statusDiv.innerHTML = '✅ Semua data tersimpan';
+            statusDiv.classList.remove('text-yellow-600');
+            statusDiv.classList.add('text-green-600');
+            setTimeout(() => {
+                if (document.getElementById('saveStatus')) statusDiv.innerHTML = '✅ Data tersimpan';
+            }, 2000);
+            isSaving = false;
+        }
+        
+        // ======================= SWITCH TAB =======================
+        function switchTab(tab) {
+            currentTab = tab;
+            // Update tampilan tab button
+            const btnKonsumsi = document.getElementById('tabKonsumsi');
+            const btnPondok = document.getElementById('tabPondok');
+            if (tab === 'konsumsi') {
+                btnKonsumsi.classList.add('tab-active');
+                btnKonsumsi.classList.remove('tab-inactive');
+                btnPondok.classList.add('tab-inactive');
+                btnPondok.classList.remove('tab-active');
+            } else {
+                btnPondok.classList.add('tab-active');
+                btnPondok.classList.remove('tab-inactive');
+                btnKonsumsi.classList.add('tab-inactive');
+                btnKonsumsi.classList.remove('tab-active');
+            }
+            renderTable();
+        }
+        
+        // ======================= INIT & PROTECTION =======================
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Cek login
+            if (!sessionStorage.getItem('isLoggedIn')) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Setup logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                sessionStorage.removeItem('isLoggedIn');
+                window.location.href = 'index.html';
+            });
+            
+            // Tab listeners
+            document.getElementById('tabKonsumsi').addEventListener('click', () => switchTab('konsumsi'));
+            document.getElementById('tabPondok').addEventListener('click', () => switchTab('pondok'));
+            
+            // Tombol simpan semua
+            document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
+            
+            // Load data santri
+            await loadSantriData();
+        });
+    </script>
+</body>
+</html>
