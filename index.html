@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Bendahara NBS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Konfigurasi Firebase (GANTI DENGAN PUNYA ANDA)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Simpan db ke window agar bisa diakses dari fungsi non-module
+        window.db = db;
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #4a5568;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: #2d3748;
+            transform: translateY(-1px);
+        }
+        .input-field {
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        .tab-active {
+            border-bottom: 3px solid #667eea;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            color: #a0aec0;
+            border-bottom: 3px solid transparent;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+<div class="w-full max-w-md">
+    <!-- Logo & Brand -->
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur rounded-2xl shadow-lg mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-white">Bendahara NBS</h1>
+        <p class="text-white/80 mt-1">Aplikasi Keuangan Konsumsi</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-card p-6 md:p-8">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button id="tabLoginBtn" class="flex-1 py-3 text-center font-medium transition-all duration-200 tab-active">Login</button>
+            <button id="tabChangePwdBtn" class="flex-1 py-3 text-center font-medium transition-all duration-200 tab-inactive">Ubah Password</button>
+        </div>
+
+        <!-- Panel Login -->
+        <div id="loginPanel">
+            <form id="loginForm">
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                    <div class="relative">
+                        <input type="password" id="loginPassword" class="input-field w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white" placeholder="Masukkan password" autocomplete="off">
+                        <span class="absolute right-3 top-3 text-gray-400 cursor-pointer" onclick="togglePassword('loginPassword')">👁️</span>
+                    </div>
+                </div>
+                <button type="submit" id="loginBtn" class="btn-primary w-full text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center">Login</button>
+            </form>
+            <div id="loginError" class="mt-4 text-red-600 text-sm text-center hidden">❌ Password salah, coba lagi.</div>
+        </div>
+
+        <!-- Panel Ubah Password -->
+        <div id="changePwdPanel" class="hidden">
+            <form id="changePasswordForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Password Default (saat ini)</label>
+                    <input type="password" id="defaultPassword" class="input-field w-full px-4 py-3 rounded-xl bg-gray-50" placeholder="Masukkan password yang sedang aktif">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Password Baru (min. 6 karakter)</label>
+                    <input type="password" id="newPassword" class="input-field w-full px-4 py-3 rounded-xl bg-gray-50" placeholder="Password baru">
+                </div>
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Konfirmasi Password Baru</label>
+                    <input type="password" id="confirmPassword" class="input-field w-full px-4 py-3 rounded-xl bg-gray-50" placeholder="Ulangi password baru">
+                </div>
+                <button type="submit" id="changePwdBtn" class="btn-secondary w-full text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center">Simpan Password Baru</button>
+            </form>
+            <div id="changeMsg" class="mt-4 text-sm text-center hidden"></div>
+        </div>
+    </div>
+    <p class="text-center text-white/70 text-xs mt-6">© 2026 Bendahara NBS • Sistem Keuangan Pesantren</p>
+</div>
+
+<script>
+    // Helper toggle password
+    window.togglePassword = function(id) {
+        const input = document.getElementById(id);
+        if (input.type === 'password') input.type = 'text';
+        else input.type = 'password';
+    };
+
+    // Inisialisasi Firestore (sudah di-set dari module)
+    // Kita buat fungsi untuk mengambil password dari Firestore
+    async function getPasswordFromFirestore() {
+        try {
+            const docRef = doc(window.db, "settings", "admin");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data().password;
+            } else {
+                // Jika belum ada, buat default 'bendahara01'
+                await setDoc(docRef, { password: "bendahara01" });
+                return "bendahara01";
+            }
+        } catch (error) {
+            console.error("Error getting password:", error);
+            return null;
+        }
+    }
+
+    async function updatePasswordInFirestore(newPassword) {
+        try {
+            const docRef = doc(window.db, "settings", "admin");
+            await setDoc(docRef, { password: newPassword });
+            return true;
+        } catch (error) {
+            console.error("Error updating password:", error);
+            return false;
+        }
+    }
+
+    // Elemen DOM
+    const tabLogin = document.getElementById('tabLoginBtn');
+    const tabChange = document.getElementById('tabChangePwdBtn');
+    const loginPanel = document.getElementById('loginPanel');
+    const changePanel = document.getElementById('changePwdPanel');
+    const loginForm = document.getElementById('loginForm');
+    const changeForm = document.getElementById('changePasswordForm');
+    const loginError = document.getElementById('loginError');
+    const changeMsg = document.getElementById('changeMsg');
+    const loginBtn = document.getElementById('loginBtn');
+    const changePwdBtn = document.getElementById('changePwdBtn');
+
+    // Tab switching
+    tabLogin.addEventListener('click', () => {
+        tabLogin.classList.add('tab-active');
+        tabLogin.classList.remove('tab-inactive');
+        tabChange.classList.add('tab-inactive');
+        tabChange.classList.remove('tab-active');
+        loginPanel.classList.remove('hidden');
+        changePanel.classList.add('hidden');
+        loginError.classList.add('hidden');
+        changeMsg.classList.add('hidden');
+    });
+
+    tabChange.addEventListener('click', () => {
+        tabChange.classList.add('tab-active');
+        tabChange.classList.remove('tab-inactive');
+        tabLogin.classList.add('tab-inactive');
+        tabLogin.classList.remove('tab-active');
+        changePanel.classList.remove('hidden');
+        loginPanel.classList.add('hidden');
+        loginError.classList.add('hidden');
+        changeMsg.classList.add('hidden');
+    });
+
+    // Login handler
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const enteredPassword = document.getElementById('loginPassword').value;
+        // Tampilkan loading
+        loginBtn.innerHTML = '<span class="loading"></span> Memeriksa...';
+        loginBtn.disabled = true;
+
+        const storedPassword = await getPasswordFromFirestore();
+        loginBtn.innerHTML = 'Login';
+        loginBtn.disabled = false;
+
+        if (storedPassword && enteredPassword === storedPassword) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            window.location.href = 'dashboard.html';
+        } else {
+            loginError.classList.remove('hidden');
+            setTimeout(() => loginError.classList.add('hidden'), 2000);
+        }
+    });
+
+    // Change password handler
+    changeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const defaultPwd = document.getElementById('defaultPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
+        const confirmPwd = document.getElementById('confirmPassword').value;
+
+        // Tampilkan loading
+        changePwdBtn.innerHTML = '<span class="loading"></span> Menyimpan...';
+        changePwdBtn.disabled = true;
+
+        const currentPassword = await getPasswordFromFirestore();
+
+        if (defaultPwd !== currentPassword) {
+            changeMsg.textContent = '❌ Password default (saat ini) salah!';
+            changeMsg.classList.remove('hidden', 'text-green-600');
+            changeMsg.classList.add('text-red-600');
+            changePwdBtn.innerHTML = 'Simpan Password Baru';
+            changePwdBtn.disabled = false;
+            setTimeout(() => changeMsg.classList.add('hidden'), 2500);
+            return;
+        }
+        if (newPwd.length < 6) {
+            changeMsg.textContent = '❌ Password baru minimal 6 karakter';
+            changeMsg.classList.remove('hidden', 'text-green-600');
+            changeMsg.classList.add('text-red-600');
+            changePwdBtn.innerHTML = 'Simpan Password Baru';
+            changePwdBtn.disabled = false;
+            setTimeout(() => changeMsg.classList.add('hidden'), 2500);
+            return;
+        }
+        if (newPwd !== confirmPwd) {
+            changeMsg.textContent = '❌ Konfirmasi password baru tidak cocok';
+            changeMsg.classList.remove('hidden', 'text-green-600');
+            changeMsg.classList.add('text-red-600');
+            changePwdBtn.innerHTML = 'Simpan Password Baru';
+            changePwdBtn.disabled = false;
+            setTimeout(() => changeMsg.classList.add('hidden'), 2500);
+            return;
+        }
+
+        // Update password di Firestore
+        const success = await updatePasswordInFirestore(newPwd);
+        changePwdBtn.innerHTML = 'Simpan Password Baru';
+        changePwdBtn.disabled = false;
+
+        if (success) {
+            changeMsg.textContent = '✅ Password berhasil diubah! Silakan login dengan password baru.';
+            changeMsg.classList.remove('hidden', 'text-red-600');
+            changeMsg.classList.add('text-green-600');
+            // Reset form
+            document.getElementById('defaultPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            // Kembali ke tab login setelah 2 detik
+            setTimeout(() => {
+                tabLogin.click();
+                changeMsg.classList.add('hidden');
+            }, 2000);
+        } else {
+            changeMsg.textContent = '❌ Gagal menyimpan password. Cek koneksi Firestore.';
+            changeMsg.classList.remove('hidden', 'text-green-600');
+            changeMsg.classList.add('text-red-600');
+            setTimeout(() => changeMsg.classList.add('hidden'), 3000);
+        }
+    });
+
+    // Cek apakah sudah login? Jika sudah, redirect ke dashboard
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        window.location.href = 'dashboard.html';
+    }
+</script>
+</body>
+</html>
