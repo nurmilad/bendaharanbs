@@ -19,7 +19,6 @@
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
         .dropdown:hover .dropdown-menu { display: block; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* Modal fade in */
         .modal-overlay { transition: opacity 0.3s ease; }
     </style>
 </head>
@@ -68,10 +67,11 @@
                             <a href="datasantri.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-users mr-2 w-5 text-emerald-500"></i> Data Santri
                             </a>
-                            <a href="submenu.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
+                            <!-- Perbaikan: tambah parameter jenis -->
+                            <a href="submenu.html?jenis=konsumsi" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-utensils mr-2 w-5 text-emerald-500"></i> Iuran Konsumsi
                             </a>
-                            <a href="submenu.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
+                            <a href="submenu.html?jenis=pondok" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-home mr-2 w-5 text-emerald-500"></i> Iuran Pondok
                             </a>
                             <hr class="my-1">
@@ -89,15 +89,17 @@
                     </button>
                 </div>
             </div>
+            <!-- Mobile menu -->
             <div id="mobileMenuPanel" class="hidden md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-2 shadow-lg">
                 <a href="datasantri.html" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-users text-emerald-600 w-5"></i> Data Santri</a>
-                <a href="submenu.html" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-utensils text-emerald-600 w-5"></i> Iuran Konsumsi</a>
-                <a href="submenu.html" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-home text-emerald-600 w-5"></i> Iuran Pondok</a>
+                <a href="submenu.html?jenis=konsumsi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-utensils text-emerald-600 w-5"></i> Iuran Konsumsi</a>
+                <a href="submenu.html?jenis=pondok" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-home text-emerald-600 w-5"></i> Iuran Pondok</a>
                 <a href="#" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600"><i class="fas fa-chart-simple mr-2"></i> Laporan</a>
             </div>
         </header>
 
         <main>
+            <!-- Hero, Statistik, Menu Utama, Konten Populer, Testimonial (sama seperti sebelumnya) -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
@@ -157,19 +159,22 @@
                         <p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- Data Santri (tetap) -->
                         <a href="datasantri.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-200 transition"><i class="fas fa-users text-3xl text-emerald-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Data Santri</h3>
                             <p class="text-gray-500 text-sm mt-2">Lihat, tambah, dan edit data santri. Terhubung dengan Firebase.</p>
                             <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Kelola Santri <i class="fas fa-arrow-right ml-1"></i></span>
                         </a>
-                        <a href="submenu.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                        <!-- Iuran Konsumsi dengan parameter -->
+                        <a href="submenu.html?jenis=konsumsi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-200 transition"><i class="fas fa-utensils text-3xl text-amber-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Iuran Konsumsi</h3>
                             <p class="text-gray-500 text-sm mt-2">Kelola iuran makan harian, input transaksi, riwayat & laporan.</p>
                             <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span>
                         </a>
-                        <a href="submenu.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                        <!-- Iuran Pondok dengan parameter -->
+                        <a href="submenu.html?jenis=pondok" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-sky-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-200 transition"><i class="fas fa-home text-3xl text-sky-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Iuran Pondok</h3>
                             <p class="text-gray-500 text-sm mt-2">Kelola iuran kebersihan, listrik, dan fasilitas pondok.</p>
@@ -180,6 +185,7 @@
                 </div>
             </section>
 
+            <!-- Konten Populer & Testimonial (sama seperti sebelumnya) -->
             <section class="py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="flex justify-between items-end flex-wrap gap-3 mb-10">
@@ -227,7 +233,7 @@
     </div>
 
     <script>
-        // Firebase Config
+        // Firebase Config (sama seperti sebelumnya)
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -252,7 +258,6 @@
             if (isLoggedIn === 'true') {
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
-                // Load data setelah login
                 loadSantriCount();
                 loadIuranStats();
                 renderTestimonials();
@@ -264,8 +269,7 @@
         }
 
         function login() {
-            const password = passwordInput.value;
-            if (password === CORRECT_PASSWORD) {
+            if (passwordInput.value === CORRECT_PASSWORD) {
                 sessionStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
@@ -281,13 +285,9 @@
             }
         }
 
-        // Event listener untuk login
         loginBtn.addEventListener('click', login);
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') login();
-        });
+        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
-        // ---------- RESTORASI FUNGSI YANG SUDAH ADA ----------
         function formatRupiah(angka) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
         }
@@ -387,7 +387,6 @@
         document.getElementById('prevBtn')?.addEventListener('click', () => { currentIdx = (currentIdx - 1 + testimonials.length) % testimonials.length; updateSliderPosition(); });
         document.getElementById('nextBtn')?.addEventListener('click', () => { currentIdx = (currentIdx + 1) % testimonials.length; updateSliderPosition(); });
 
-        // Cek status login saat halaman dimuat
         checkLoginStatus();
     </script>
 </body>
