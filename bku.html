@@ -3,53 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>BKU - Buku Kas Umum | Pondok Pesantren Nurmilad</title>
+    <title>BKU Bulanan - Pondok Pesantren Nurmilad</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Lebar kolom tetap */
         .bku-table {
-            width: 100%;
             border-collapse: collapse;
+            width: 100%;
             font-size: 0.8rem;
         }
         .bku-table th, .bku-table td {
             border: 1px solid #cbd5e1;
-            padding: 8px 6px;
+            padding: 8px;
             vertical-align: top;
         }
         .bku-table th {
             background-color: #f1f5f9;
-            font-weight: 600;
+            position: sticky;
+            top: 0;
             text-align: center;
         }
-        /* Kolom Tanggal: 120px (cukup untuk YYYY-MM-DD) */
-        .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; }
-        /* Kolom Uraian: sisa (flexible) */
-        .bku-table th:nth-child(2), .bku-table td:nth-child(2) {  }
-        /* Kolom Pemasukan: 110px (10 digit) */
-        .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; }
-        /* Kolom Pengeluaran: 110px (10 digit) */
-        .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 110px; text-align: right; }
-        /* Kolom Saldo: 160px (15 digit) */
-        .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 160px; text-align: right; }
-
-        /* Warna saldo awal */
-        .saldo-awal-row {
-            background-color: #fef9e3;
-            font-weight: 500;
+        /* Lebar kolom sesuai permintaan */
+        .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; } /* Tanggal 12 digit */
+        .bku-table th:nth-child(2), .bku-table td:nth-child(2) { min-width: 300px; } /* Uraian menyesuaikan */
+        .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; } /* Pemasukan 10 digit */
+        .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 110px; text-align: right; } /* Pengeluaran 10 digit */
+        .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 160px; text-align: right; } /* Saldo 15 digit */
+        .print-container {
+            padding: 20px;
         }
-        /* Print styling */
         @media print {
             body * {
                 visibility: hidden;
             }
-            .print-area, .print-area * {
+            .print-container, .print-container * {
                 visibility: visible;
             }
-            .print-area {
+            .print-container {
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -60,78 +52,91 @@
             .no-print {
                 display: none;
             }
-            .bku-table th, .bku-table td {
-                border: 1px solid #000;
+            button, .filter-panel {
+                display: none;
+            }
+            table {
+                font-size: 10pt;
+            }
+            th, td {
                 padding: 4px;
             }
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .saldo-awal-row {
+            background-color: #fefce8;
+        }
+        .total-row {
+            background-color: #f1f5f9;
+            font-weight: bold;
         }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <!-- Header dengan tombol back & cetak -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b no-print">
-        <div class="px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="px-4 md:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
                 <h1 class="font-bold text-gray-800 text-lg">Buku Kas Umum (BKU)</h1>
             </div>
-            <div class="flex gap-2">
-                <button id="cetakBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+            <div>
+                <button id="printBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
                     <i class="fas fa-print"></i> Cetak
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="p-4 md:p-6 max-w-7xl mx-auto no-print">
-        <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center">Memproses...</div>
+    <main class="p-4 md:p-6 max-w-7xl mx-auto">
+        <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center no-print">Memproses...</div>
 
-        <!-- Filter Bulan & Tahun -->
-        <div class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4 items-end">
+        <!-- Filter Bulan/Tahun -->
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end no-print">
             <div>
-                <label class="block text-sm font-medium mb-1">Bulan</label>
-                <select id="bulanSelect" class="border rounded-lg p-2 w-36">
-                    <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
-                    <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
-                    <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+                <label class="text-sm font-medium">Bulan</label>
+                <select id="bulanSelect" class="border rounded p-2">
+                    <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                    <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                    <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
                     <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">Tahun</label>
-                <select id="tahunSelect" class="border rounded-lg p-2 w-28"></select>
+                <label class="text-sm font-medium">Tahun</label>
+                <select id="tahunSelect" class="border rounded p-2"></select>
             </div>
-            <button id="filterBtn" class="bg-emerald-600 text-white px-5 py-2 rounded-lg">Tampilkan</button>
+            <button id="tampilkanBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Tampilkan</button>
+        </div>
+
+        <!-- Tabel BKU -->
+        <div class="bg-white rounded-xl shadow overflow-hidden print-container">
+            <div class="overflow-x-auto">
+                <table class="bku-table" id="bkuTable">
+                    <thead>
+                        <tr><th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Saldo (Rp)</th></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="5" class="text-center py-10">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
-    <!-- Area yang akan dicetak -->
-    <div class="print-area p-4 md:p-6 max-w-7xl mx-auto" id="printArea">
-        <div id="bkuContainer">
-            <!-- Loading -->
-            <div id="loadingIndicator" class="text-center py-10 text-gray-400 hidden"><i class="fas fa-spinner fa-pulse text-emerald-600"></i> Memuat data...</div>
-            <!-- Tabel BKU akan diisi JS -->
-            <div class="bg-white rounded-xl shadow overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="bku-table" id="bkuTable">
-                        <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Uraian</th>
-                                <th>Pemasukan (Rp)</th>
-                                <th>Pengeluaran (Rp)</th>
-                                <th>Saldo (Rp)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <tr><td colspan="5" class="text-center py-8">Pilih bulan dan tahun untuk menampilkan data</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="toast" class="toast hidden no-print"><i class="fas fa-check-circle text-emerald-400"></i> <span id="toastMsg"></span></div>
 
     <script>
         const firebaseConfig = {
@@ -147,10 +152,11 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
-        document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum - Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
+        document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum untuk <strong>Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}</strong>`;
+        // Back link dinamis
         document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
 
-        // Dropdown tahun (2009 - 2045)
+        // Inisialisasi dropdown tahun
         const tahunSelect = document.getElementById('tahunSelect');
         const currentYear = new Date().getFullYear();
         for (let y = 2009; y <= 2045; y++) {
@@ -161,34 +167,9 @@
             tahunSelect.appendChild(option);
         }
 
-        // Set bulan default = bulan sekarang
-        const bulanSelect = document.getElementById('bulanSelect');
-        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-        bulanSelect.value = currentMonth;
+        let allTransactions = []; // semua transaksi untuk jenis iuran ini, diurutkan ascending
 
-        let allTransactions = [];       // semua transaksi (sudah difilter jenis_iuran) diurutkan tanggal asc
-        let loading = false;
-
-        function formatRupiah(angka) {
-            if (!angka && angka !== 0) return '0';
-            let str = Math.floor(angka).toString();
-            let result = '';
-            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
-                if (j > 0 && j % 3 === 0) result = '.' + result;
-                result = str[i] + result;
-            }
-            return result;
-        }
-
-        // Konversi tanggal dari Firestore (string atau timestamp)
-        function parseTanggal(tanggalField) {
-            if (!tanggalField) return '';
-            if (typeof tanggalField === 'string') return tanggalField;
-            if (tanggalField.toDate) return tanggalField.toDate().toISOString().slice(0,10);
-            return '';
-        }
-
-        // Ambil semua transaksi (tanpa filter bulan) untuk jenis iuran tertentu, urutkan tanggal
+        // Ambil semua transaksi dari Firebase
         async function loadAllTransactions() {
             try {
                 const snap = await db.collection('transaksi')
@@ -198,101 +179,59 @@
                 const transactions = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    let tgl = parseTanggal(data.tanggal);
-                    if (!tgl) return;
+                    let tgl = data.tanggal;
+                    if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
+                    if (!tgl || tgl === 'Invalid Date') tgl = '';
+                    if (tgl === '') return;
                     transactions.push({
                         id: doc.id,
                         tanggal: tgl,
                         uraian: data.uraian || '',
                         pemasukan: data.pemasukan || 0,
-                        pengeluaran: data.pengeluaran || 0
+                        pengeluaran: data.pengeluaran || 0,
                     });
                 });
-                // Urutkan berdasarkan tanggal (ascending)
+                // Urutkan berdasarkan tanggal (sudah dari query, tapi amankan)
                 transactions.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
                 allTransactions = transactions;
+                console.log('Total transaksi dimuat:', allTransactions.length);
             } catch(err) {
                 console.error('Gagal ambil transaksi:', err);
-                showToast('Gagal memuat data transaksi', true);
+                showToast('Gagal memuat transaksi: ' + err.message, true);
                 allTransactions = [];
             }
         }
 
-        // Hitung saldo awal bulan (akumulasi transaksi sebelum tanggal pertama bulan yang dipilih)
-        function hitungSaldoAwal(transaksiSebelum) {
+        // Mendapatkan transaksi dalam rentang bulan tertentu
+        function getTransactionsInMonth(year, month) {
+            const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
+            return allTransactions.filter(t => t.tanggal >= startDate && t.tanggal <= endDate);
+        }
+
+        // Hitung saldo awal dari semua transaksi sebelum tanggal pertama bulan yang dipilih
+        function getSaldoAwal(year, month) {
+            const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
             let saldo = 0;
-            for (const tr of transaksiSebelum) {
-                saldo += (tr.pemasukan || 0) - (tr.pengeluaran || 0);
+            for (const t of allTransactions) {
+                if (t.tanggal < startDate) {
+                    saldo += (t.pemasukan - t.pengeluaran);
+                }
             }
             return saldo;
         }
 
-        // Render BKU berdasarkan bulan dan tahun
-        async function renderBKU() {
-            const tahun = parseInt(tahunSelect.value);
-            const bulan = bulanSelect.value; // '01' - '12'
-            const startDate = `${tahun}-${bulan}-01`;
-            // Hitung akhir bulan
-            const lastDay = new Date(tahun, parseInt(bulan), 0).getDate();
-            const endDate = `${tahun}-${bulan}-${String(lastDay).padStart(2,'0')}`;
-
-            const loadingDiv = document.getElementById('loadingIndicator');
-            const tbody = document.getElementById('tableBody');
-            loadingDiv.classList.remove('hidden');
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Memproses...</td></tr>';
-
-            // Pastikan allTransactions sudah terisi
-            if (allTransactions.length === 0) {
-                await loadAllTransactions();
+        // Format angka ke rupiah (tanpa Rp, hanya angka dengan titik)
+        function formatRupiah(angka) {
+            if (angka === undefined || angka === null) return '0';
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
             }
-
-            // Filter transaksi sebelum bulan ini (untuk saldo awal)
-            const transaksiSebelum = allTransactions.filter(t => t.tanggal < startDate);
-            const saldoAwal = hitungSaldoAwal(transaksiSebelum);
-
-            // Filter transaksi dalam bulan ini
-            const transaksiBulanIni = allTransactions.filter(t => t.tanggal >= startDate && t.tanggal <= endDate);
-
-            // Bangun baris tabel
-            let html = '';
-            let saldoBerjalan = saldoAwal;
-
-            // Baris saldo awal
-            html += `<tr class="saldo-awal-row">`;
-            html += `<td class="text-center">-</td>`;
-            html += `<td><strong>Saldo awal bulan</strong></td>`;
-            html += `<td class="text-right">-</td>`;
-            html += `<td class="text-right">-</td>`;
-            html += `<td class="text-right font-medium">${formatRupiah(saldoAwal)}</td>`;
-            html += `</tr>`;
-
-            if (transaksiBulanIni.length === 0) {
-                html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini</td></tr>`;
-            } else {
-                for (const tr of transaksiBulanIni) {
-                    saldoBerjalan += (tr.pemasukan - tr.pengeluaran);
-                    html += `<tr>`;
-                    html += `<td class="text-center">${tr.tanggal}</td>`;
-                    html += `<td>${escapeHtml(tr.uraian)}</td>`;
-                    html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : '-'}</td>`;
-                    html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : '-'}</td>`;
-                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
-                    html += `</tr>`;
-                }
-            }
-
-            // Baris penutup (opsional: total pemasukan/pengeluaran bulan ini)
-            const totalPemasukan = transaksiBulanIni.reduce((sum, t) => sum + t.pemasukan, 0);
-            const totalPengeluaran = transaksiBulanIni.reduce((sum, t) => sum + t.pengeluaran, 0);
-            html += `<tr style="background-color: #e6f7e6; font-weight:500;">`;
-            html += `<td colspan="2" class="text-right"><strong>Total bulan ini</strong></td>`;
-            html += `<td class="text-right"><strong>${formatRupiah(totalPemasukan)}</strong></td>`;
-            html += `<td class="text-right"><strong>${formatRupiah(totalPengeluaran)}</strong></td>`;
-            html += `<td class="text-right"><strong>${formatRupiah(saldoBerjalan)}</strong></td>`;
-            html += `</tr>`;
-
-            tbody.innerHTML = html;
-            loadingDiv.classList.add('hidden');
+            return result;
         }
 
         function escapeHtml(str) {
@@ -306,25 +245,84 @@
         }
 
         function showToast(msg, isError=false) {
-            // Toast sederhana (opsional)
-            console.log(msg);
+            const toast = document.getElementById('toast');
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // Render tabel BKU
+        function renderBKU(year, month) {
+            const transInMonth = getTransactionsInMonth(year, month);
+            const saldoAwal = getSaldoAwal(year, month);
+            let saldoBerjalan = saldoAwal;
+            const tbody = document.getElementById('tableBody');
+            
+            let html = '';
+            // Baris saldo awal
+            html += `<tr class="saldo-awal-row">`;
+            html += `<td class="text-center">-</td>`;
+            html += `<td><strong>Saldo Awal Bulan</strong></td>`;
+            html += `<td class="text-right">-</td>`;
+            html += `<td class="text-right">-</td>`;
+            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}</strong></td>`;
+            html += `</tr>`;
+            
+            if (transInMonth.length === 0) {
+                html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini</td></tr>`;
+            } else {
+                for (const tr of transInMonth) {
+                    saldoBerjalan += (tr.pemasukan - tr.pengeluaran);
+                    html += `<tr>`;
+                    html += `<td class="text-center">${tr.tanggal}</td>`;
+                    html += `<td>${escapeHtml(tr.uraian)}</td>`;
+                    html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}</td>`;
+                    html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}</td>`;
+                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
+                    html += `</tr>`;
+                }
+            }
+            
+            // Baris total pemasukan/pengeluaran bulan ini (optional) dan saldo akhir
+            const totalPemasukan = transInMonth.reduce((sum, t) => sum + t.pemasukan, 0);
+            const totalPengeluaran = transInMonth.reduce((sum, t) => sum + t.pengeluaran, 0);
+            html += `<tr class="total-row">`;
+            html += `<td colspan="2" class="text-right">Total Bulan Ini</td>`;
+            html += `<td class="text-right">${formatRupiah(totalPemasukan)}</td>`;
+            html += `<td class="text-right">${formatRupiah(totalPengeluaran)}</td>`;
+            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
+            html += `</tr>`;
+            
+            tbody.innerHTML = html;
+        }
+
+        // Event handler tampilkan
+        async function tampilkanBKU() {
+            const bulan = parseInt(document.getElementById('bulanSelect').value);
+            const tahun = parseInt(document.getElementById('tahunSelect').value);
+            // Pastikan data transaksi sudah dimuat
+            if (allTransactions.length === 0) {
+                await loadAllTransactions();
+            }
+            renderBKU(tahun, bulan);
         }
 
         // Cetak
-        function cetak() {
+        document.getElementById('printBtn').addEventListener('click', () => {
             window.print();
-        }
-
-        // Event listeners
-        document.getElementById('filterBtn').addEventListener('click', async () => {
-            await renderBKU();
         });
-        document.getElementById('cetakBtn').addEventListener('click', cetak);
 
-        // Inisialisasi: load data transaksi lalu tampilkan bulan berjalan
+        document.getElementById('tampilkanBtn').addEventListener('click', tampilkanBKU);
+
+        // Inisialisasi
         window.addEventListener('DOMContentLoaded', async () => {
             await loadAllTransactions();
-            await renderBKU();
+            // Set default bulan/tahun ke bulan saat ini
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            document.getElementById('bulanSelect').value = currentMonth;
+            tampilkanBKU();
         });
     </script>
 </body>
