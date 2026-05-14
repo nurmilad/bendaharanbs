@@ -16,7 +16,6 @@
             margin: 0;
             padding: 0;
         }
-        /* Container dengan scroll independen */
         .table-wrapper {
             position: relative;
             overflow: auto;
@@ -38,7 +37,6 @@
             background-color: white;
             vertical-align: middle;
         }
-        /* Sticky header untuk semua th */
         .excel-table thead th {
             position: sticky;
             top: 0;
@@ -47,7 +45,6 @@
             font-weight: 600;
             text-align: center;
         }
-        /* Sticky kolom NO */
         .excel-table th:first-child,
         .excel-table td:first-child {
             position: sticky;
@@ -57,7 +54,6 @@
             text-align: center;
             width: 45px;
         }
-        /* Sticky kolom ANGK */
         .excel-table th:nth-child(2),
         .excel-table td:nth-child(2) {
             position: sticky;
@@ -67,7 +63,6 @@
             text-align: center;
             width: 55px;
         }
-        /* Sticky kolom NIS | NAMA */
         .excel-table th:nth-child(3),
         .excel-table td:nth-child(3) {
             position: sticky;
@@ -76,7 +71,6 @@
             z-index: 20;
             min-width: 140px;
         }
-        /* Tambahan agar header pada kolom sticky juga memiliki background yang sama dan tidak transparan */
         .excel-table thead th:first-child,
         .excel-table thead th:nth-child(2),
         .excel-table thead th:nth-child(3) {
@@ -84,7 +78,7 @@
             z-index: 31;
         }
         .excel-input {
-            width: 65px;
+            width: 95px;
             padding: 4px 4px;
             border: 1px solid #cbd5e1;
             border-radius: 0;
@@ -158,7 +152,7 @@
             </table>
         </div>
         <p class="text-xs text-gray-400 mt-3 text-center">
-            <i class="fas fa-save"></i> Auto-save setiap perubahan | Nilai dalam ribuan (contoh: 450 = Rp 450.000)
+            <i class="fas fa-save"></i> Auto-save setiap perubahan | Masukkan angka tanpa titik (contoh: 450000) atau dengan titik (450.000)
         </p>
     </main>
 
@@ -170,8 +164,8 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4">
-                <p class="text-xs text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri. Pisahkan TAB.</p>
-                <textarea id="pasteData" rows="8" class="w-full border rounded p-2 font-mono text-xs" placeholder="Tempel 72 angka per baris..."></textarea>
+                <p class="text-xs text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri. Angka bisa dengan atau tanpa titik.</p>
+                <textarea id="pasteData" rows="8" class="w-full border rounded p-2 font-mono text-xs" placeholder="Tempel 72 angka per baris...&#10;Contoh: 450000 275000 300000"></textarea>
                 <div class="flex justify-end gap-2 mt-3">
                     <button id="cancelPasteBtn" class="px-3 py-1 border rounded text-sm">Batal</button>
                     <button id="processPasteBtn" class="px-3 py-1 bg-emerald-600 text-white rounded text-sm">Terapkan</button>
@@ -203,7 +197,7 @@
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
         const collectionName = jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok';
         document.getElementById('pageTitle').innerHTML = `Iuran Bulanan - ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
-        document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} (ribuan Rp) - Auto save`;
+        document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} - Auto save`;
 
         const bulanLabels = [];
         for (let tahun = 7; tahun <= 12; tahun++) {
@@ -236,9 +230,28 @@
             else savingDiv.classList.add('hidden');
         }
 
-        function toRibuan(nominal) {
-            if (!nominal) return '';
-            return Math.round(nominal / 1000).toString();
+        // Format angka ke format rupiah dengan titik (contoh: 450000 -> 450.000)
+        function formatRupiah(angka) {
+            if (!angka && angka !== 0) return '';
+            // Ubah ke string, pisahkan setiap 3 digit dari belakang
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
+            }
+            return result;
+        }
+
+        // Parsing input user: hapus titik, konversi ke integer
+        function parseRupiah(value) {
+            if (!value) return 0;
+            // Hilangkan semua titik
+            let cleaned = value.toString().replace(/\./g, '');
+            // Hilangkan karakter non-digit
+            cleaned = cleaned.replace(/[^0-9]/g, '');
+            let intVal = parseInt(cleaned, 10);
+            return isNaN(intVal) ? 0 : intVal;
         }
 
         function renderHeader() {
@@ -251,7 +264,7 @@
 
         function renderTable() {
             if (!santriList.length) {
-                tbody.innerHTML = `<tr><td colspan="${3+totalBulan}" class="text-center py-8 text-gray-400">Belum ada data santri. Silakan tambah di Data Santri.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${3+totalBulan}" class="text-center py-8 text-gray-400">Belum ada data santri. Silakan tambah di Data Santri.‹td></tr>`;
                 return;
             }
             let html = '';
@@ -262,7 +275,7 @@
                 html += `<td class="whitespace-nowrap">${santri.nis} | ${santri.nama}</td>`;
                 for (let b = 0; b < totalBulan; b++) {
                     let val = santri.iuranData?.[b] || 0;
-                    let display = toRibuan(val);
+                    let display = formatRupiah(val);
                     html += `<td class="p-0 text-center"><input type="text" class="excel-input" data-row="${idx}" data-col="${b}" value="${display}" placeholder="0"></td>`;
                 }
                 html += `</tr>`;
@@ -278,12 +291,12 @@
             const inp = e.target;
             const row = parseInt(inp.dataset.row);
             const col = parseInt(inp.dataset.col);
-            let raw = inp.value.trim();
-            if (raw === '') raw = '0';
-            let ribuan = parseInt(raw);
-            if (isNaN(ribuan)) ribuan = 0;
-            const nominal = ribuan * 1000;
-            santriList[row].iuranData[col] = nominal;
+            let rawValue = inp.value.trim();
+            // Parse input (hapus titik) menjadi integer penuh
+            let nominalPenuh = parseRupiah(rawValue);
+            santriList[row].iuranData[col] = nominalPenuh;
+            // Tampilkan kembali dengan format rupiah (biar rapi)
+            inp.value = formatRupiah(nominalPenuh);
             if (saveTimeout) clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => autoSave(), 700);
         }
@@ -358,7 +371,7 @@
             }
         }
 
-        // Paste Excel
+        // Paste Excel: angka bisa dengan atau tanpa titik
         const pasteModal = document.getElementById('pasteModal');
         const pasteData = document.getElementById('pasteData');
         function openPaste() { pasteData.value = ''; pasteModal.classList.remove('hidden'); }
@@ -375,9 +388,8 @@
                 const parts = line.split(/\s+/);
                 if (parts.length >= totalBulan && rowIdx < santriList.length) {
                     for (let b=0; b<totalBulan; b++) {
-                        let val = parseInt(parts[b]);
-                        if (isNaN(val)) val = 0;
-                        santriList[rowIdx].iuranData[b] = val * 1000;
+                        let val = parseRupiah(parts[b]);
+                        santriList[rowIdx].iuranData[b] = val;
                     }
                     rowIdx++;
                     success++;
