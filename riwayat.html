@@ -113,10 +113,10 @@
         // Back link dinamis
         document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
 
-        let allTransactions = [];     // semua transaksi dari Firebase (tanpa filter)
+        let allTransactions = [];
         let filteredTransactions = [];
-        let santriList = [];          // untuk validasi
-        let iuranMap = new Map();     // mapping santriId -> array iuran 72 bulan
+        let santriList = [];
+        let iuranMap = new Map();
 
         let saveTimeout = null;
         let isSaving = false;
@@ -130,7 +130,6 @@
         const filterBtn = document.getElementById('filterBtn');
         const resetFilterBtn = document.getElementById('resetFilterBtn');
 
-        // Helper format rupiah
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
             let str = Math.floor(angka).toString();
@@ -147,7 +146,6 @@
             return parseInt(cleaned) || 0;
         }
 
-        // Memuat data santri dan iuran untuk validasi
         async function loadMasterData() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -169,20 +167,34 @@
             } catch(err) { console.error(err); showToast('Gagal memuat data santri', true); }
         }
 
-        // Memuat transaksi dari Firebase
         async function loadTransactions() {
             try {
-                const snap = await db.collection('transaksi')
-                    .where('jenis_iuran', '==', jenis)
-                    .orderBy('tanggal', 'asc')
-                    .get();
+                // Coba query dengan filter jenis_iuran
+                let snap;
+                try {
+                    snap = await db.collection('transaksi')
+                        .where('jenis_iuran', '==', jenis)
+                        .orderBy('tanggal', 'asc')
+                        .get();
+                } catch(e) {
+                    // Jika gagal (misal karena index belum dibuat), ambil semua tanpa filter
+                    console.warn('Query filtered gagal, ambil semua transaksi');
+                    snap = await db.collection('transaksi').orderBy('tanggal', 'asc').get();
+                }
                 const transactions = [];
                 snap.forEach(doc => {
                     const data = doc.data();
+                    // Konversi tanggal jika timestamp
+                    let tgl = data.tanggal;
+                    if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
+                    if (!tgl || tgl === 'Invalid Date') tgl = '';
+                    // Jika data tidak memiliki jenis_iuran, kita asumsikan milik jenis yang sedang dipilih (agar tetap muncul)
+                    const dataJenis = data.jenis_iuran || jenis;
+                    if (dataJenis !== jenis) return; // filter manual jika query tidak support
                     transactions.push({
                         id: doc.id,
-                        tanggal: data.tanggal,
-                        uraian: data.uraian,
+                        tanggal: tgl,
+                        uraian: data.uraian || '',
                         pemasukan: data.pemasukan || 0,
                         pengeluaran: data.pengeluaran || 0,
                         keterangan: data.keterangan || '',
@@ -192,15 +204,13 @@
                 });
                 allTransactions = transactions;
                 applyFilter();
-                // Scroll ke bawah (row terakhir)
                 setTimeout(() => {
                     const container = document.querySelector('.table-container');
                     if (container) container.scrollTop = container.scrollHeight;
                 }, 100);
-            } catch(err) { showToast('Gagal memuat transaksi', true); }
+            } catch(err) { showToast('Gagal memuat transaksi: ' + err.message, true); }
         }
 
-        // Filter berdasarkan range tanggal
         function applyFilter() {
             let filtered = [...allTransactions];
             const dari = filterDari.value;
@@ -212,9 +222,7 @@
             updateTotal();
         }
 
-        // Validasi apakah uraian pembayaran santri valid
         function validateSantriUraian(uraian, transaksiId = null, currentSantriId = null, currentBulanIdx = null) {
-            // Cek pola: "Pembayaran Santri: NIS | NAMA - BULAN (KELAS)"
             const regex = /^Pembayaran Santri:\s*(\S+)\s*\|\s*([^-]+)\s*-\s*(\w+)\s*\((\d+)\)$/;
             const match = uraian.match(regex);
             if (!match) return { valid: false, error: 'Format tidak sesuai' };
@@ -224,11 +232,9 @@
             const kelas = parseInt(match[4]);
             if (isNaN(kelas) || kelas < 7 || kelas > 12) return { valid: false, error: 'Kelas tidak valid' };
 
-            // Cari santri dengan NIS dan NAMA cocok
             const santri = santriList.find(s => s.nis === nis && s.nama === nama);
             if (!santri) return { valid: false, error: `Santri dengan NIS ${nis} dan nama ${nama} tidak ditemukan` };
 
-            // Konversi bulan singkat ke indeks (0-11)
             const bulanMap = { JUL:0, AGU:1, SEP:2, OKT:3, NOV:4, DES:5, JAN:6, FEB:7, MAR:8, APR:9, MEI:10, JUN:11 };
             const monthIdx = bulanMap[bulanSingkat.toUpperCase()];
             if (monthIdx === undefined) return { valid: false, error: `Bulan ${bulanSingkat} tidak dikenal` };
@@ -237,16 +243,14 @@
             const bulanIdx = startIdx + monthIdx;
             const iuranData = iuranMap.get(santri.id);
             const nominalIuran = iuranData ? iuranData[bulanIdx] : 0;
-            if (nominalIuran === 0) return { valid: false, error: `Iuran untuk ${bulanSingkat} (kelas ${kelas}) belum ditetapkan atau tidak ada` };
+            if (nominalIuran === 0) return { valid: false, error: `Iuran untuk ${bulanSingkat} (kelas ${kelas}) belum ditetapkan` };
 
-            // Cek double payment (kecuali jika transaksi ini adalah dirinya sendiri saat edit)
             const existingTrans = allTransactions.filter(t => t.id !== transaksiId && t.santriId === santri.id && t.bulanIdx === bulanIdx);
             if (existingTrans.length > 0) return { valid: false, error: `Sudah ada pembayaran untuk ${bulanSingkat} (kelas ${kelas}) atas nama ${nama}` };
 
             return { valid: true, santriId: santri.id, bulanIdx, nominal: nominalIuran };
         }
 
-        // Render tabel dengan data yang sudah difilter
         function renderTable() {
             if (!tbody) return;
             if (filteredTransactions.length === 0) {
@@ -257,7 +261,6 @@
             filteredTransactions.forEach((tr, idx) => {
                 let isValid = true;
                 let errorMsg = '';
-                // Validasi khusus untuk uraian pembayaran santri
                 if (tr.uraian.startsWith('Pembayaran Santri:')) {
                     const result = validateSantriUraian(tr.uraian, tr.id, tr.santriId, tr.bulanIdx);
                     if (!result.valid) {
@@ -277,7 +280,6 @@
             });
             tbody.innerHTML = html;
 
-            // Attach event listeners
             document.querySelectorAll('.editable-input').forEach(input => {
                 input.removeEventListener('change', handleEdit);
                 input.addEventListener('change', handleEdit);
@@ -317,49 +319,34 @@
             if (field === 'pemasukan' || field === 'pengeluaran') {
                 newValue = parseRupiah(newValue);
             }
-            // Cari transaksi asli
             const transIndex = allTransactions.findIndex(t => t.id === docId);
             if (transIndex === -1) return;
-            const oldTrans = allTransactions[transIndex];
-            let updated = { ...oldTrans, [field]: newValue };
+            let updated = { ...allTransactions[transIndex], [field]: newValue };
             if (field === 'tanggal') updated.tanggal = newValue;
             if (field === 'uraian') updated.uraian = newValue;
             if (field === 'pemasukan') updated.pemasukan = newValue;
             if (field === 'pengeluaran') updated.pengeluaran = newValue;
             if (field === 'keterangan') updated.keterangan = newValue;
 
-            // Validasi ulang untuk uraian pembayaran santri
-            let isValid = true;
-            let errorMsg = '';
             let newSantriId = updated.santriId;
             let newBulanIdx = updated.bulanIdx;
             if (updated.uraian.startsWith('Pembayaran Santri:')) {
                 const result = validateSantriUraian(updated.uraian, docId, updated.santriId, updated.bulanIdx);
                 if (!result.valid) {
-                    isValid = false;
-                    errorMsg = result.error;
+                    // tetap simpan tapi invalid
                 } else {
                     newSantriId = result.santriId;
                     newBulanIdx = result.bulanIdx;
-                    // Jika valid, pastikan nominal pemasukan sesuai dengan iuran (optional)
-                    if (updated.pemasukan !== result.nominal && updated.pemasukan !== 0) {
-                        // Boleh override, tapi beri peringatan? Kita biarkan user mengubah nominal
-                    }
                 }
             }
             updated.santriId = newSantriId;
             updated.bulanIdx = newBulanIdx;
 
-            // Update di array allTransactions
             allTransactions[transIndex] = updated;
-            // Update juga di filteredTransactions jika ada
             const filteredIndex = filteredTransactions.findIndex(t => t.id === docId);
             if (filteredIndex !== -1) filteredTransactions[filteredIndex] = updated;
 
-            // Re-render baris agar status validasi muncul
-            renderTable(); // re-render full akan mengganti semua input, tapi event listeners sudah di-attach ulang
-
-            // Auto save ke Firebase
+            renderTable();
             triggerAutoSave();
         }
 
@@ -369,7 +356,6 @@
             if (!confirm('Hapus transaksi ini?')) return;
             try {
                 await db.collection('transaksi').doc(docId).delete();
-                // Hapus dari array
                 allTransactions = allTransactions.filter(t => t.id !== docId);
                 filteredTransactions = filteredTransactions.filter(t => t.id !== docId);
                 renderTable();
@@ -405,7 +391,7 @@
                     batch.set(docRef, data, { merge: true });
                 }
                 await batch.commit();
-                showToast('Semua perubahan tersimpan');
+                showToast('Perubahan tersimpan');
             } catch(err) { showToast('Gagal simpan: '+err.message, true); }
             finally { isSaving = false; showSaving(false); }
         }
@@ -434,7 +420,7 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // ========== IMPORT MULTI ==========
+        // IMPORT MULTI
         const importModal = document.getElementById('importModal');
         const importData = document.getElementById('importData');
         function openImport() { importData.value = ''; importModal.classList.remove('hidden'); }
@@ -452,7 +438,6 @@
                 const parts = line.split(/\s+/);
                 if (parts.length < 4) { errors.push(`Baris tidak lengkap: ${line.substring(0,50)}`); continue; }
                 let tanggal = parts[0];
-                // Gabungkan sisa sampai 3 kolom terakhir (uraian bisa mengandung spasi)
                 let uraian = parts.slice(1, -2).join(' ');
                 let pemasukanRaw = parts[parts.length-2];
                 let pengeluaranRaw = parts[parts.length-1];
@@ -460,7 +445,6 @@
                 let pengeluaran = parseRupiah(pengeluaranRaw);
                 if (!tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) { errors.push(`Tanggal tidak valid: ${tanggal}`); continue; }
                 let santriId = null, bulanIdx = null;
-                // Validasi jika uraian pembayaran santri
                 if (uraian.startsWith('Pembayaran Santri:')) {
                     const result = validateSantriUraian(uraian);
                     if (!result.valid) {
@@ -469,7 +453,7 @@
                     }
                     santriId = result.santriId;
                     bulanIdx = result.bulanIdx;
-                    pemasukan = result.nominal; // override nominal sesuai iuran
+                    pemasukan = result.nominal;
                 } else {
                     if (pemasukan === 0 && pengeluaran === 0) { errors.push(`Nominal tidak valid: ${line}`); continue; }
                 }
@@ -485,7 +469,6 @@
                 return;
             }
             if (newTransactions.length === 0) { showToast('Tidak ada transaksi valid', true); closeImport(); return; }
-            // Simpan ke Firebase
             try {
                 const batch = db.batch();
                 for (const tr of newTransactions) {
@@ -505,13 +488,11 @@
                 }
                 await batch.commit();
                 showToast(`${newTransactions.length} transaksi berhasil diimport`);
-                // Refresh data
                 await loadTransactions();
                 closeImport();
             } catch(err) { showToast('Gagal import: '+err.message, true); }
         }
 
-        // Event listeners
         filterBtn.addEventListener('click', applyFilter);
         resetFilterBtn.addEventListener('click', () => { filterDari.value = ''; filterSampai.value = ''; applyFilter(); });
         document.getElementById('importExcelBtn').addEventListener('click', openImport);
@@ -520,7 +501,6 @@
         document.getElementById('processImportBtn').addEventListener('click', processImport);
         importModal.addEventListener('click', (e) => { if (e.target === importModal) closeImport(); });
 
-        // Inisialisasi
         window.addEventListener('DOMContentLoaded', async () => {
             await loadMasterData();
             await loadTransactions();
