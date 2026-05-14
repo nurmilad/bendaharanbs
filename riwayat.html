@@ -15,10 +15,20 @@
         .riwayat-table { border-collapse: collapse; width: 100%; min-width: 800px; }
         .riwayat-table th, .riwayat-table td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: middle; }
         .riwayat-table th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
+        /* Atur lebar kolom */
+        .riwayat-table th:nth-child(1), .riwayat-table td:nth-child(1) { width: 110px; } /* Tanggal */
+        .riwayat-table th:nth-child(2), .riwayat-table td:nth-child(2) { min-width: 400px; } /* Uraian */
+        .riwayat-table th:nth-child(3), .riwayat-table td:nth-child(3) { width: 130px; } /* Pemasukan */
+        .riwayat-table th:nth-child(4), .riwayat-table td:nth-child(4) { width: 130px; } /* Pengeluaran */
+        .riwayat-table th:nth-child(5), .riwayat-table td:nth-child(5) { min-width: 150px; } /* Keterangan */
+        .riwayat-table th:nth-child(6), .riwayat-table td:nth-child(6) { width: 60px; } /* Aksi */
+        
         .editable-input, .editable-select { width: 100%; border: none; background: transparent; padding: 4px; }
         .editable-input:focus, .editable-select:focus { outline: none; background: #fefce8; border-radius: 4px; }
+        .disabled-input { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
         .saving-indicator { position: fixed; bottom: 20px; left: 20px; background: #10b981; color: white; padding: 4px 12px; font-size: 0.7rem; z-index: 999; border-radius: 16px; }
+        .refresh-btn { background: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -29,7 +39,10 @@
                 <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
                 <h1 class="font-bold text-gray-800 text-lg">Riwayat Transaksi</h1>
             </div>
-            <div>
+            <div class="flex gap-2">
+                <button id="refreshDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
                 <button id="importExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
                     <i class="fas fa-file-import"></i> Import Multi
                 </button>
@@ -116,7 +129,7 @@
         let allTransactions = [];
         let filteredTransactions = [];
         let santriList = [];
-        let iuranMap = new Map();
+        let iuranMap = new Map(); // key: santriId, value: array 72 bulan
 
         let saveTimeout = null;
         let isSaving = false;
@@ -129,6 +142,7 @@
         const filterSampai = document.getElementById('filterSampai');
         const filterBtn = document.getElementById('filterBtn');
         const resetFilterBtn = document.getElementById('resetFilterBtn');
+        const refreshDataBtn = document.getElementById('refreshDataBtn');
 
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
@@ -167,9 +181,15 @@
             } catch(err) { console.error(err); showToast('Gagal memuat data santri', true); }
         }
 
+        // Mendapatkan nominal iuran berdasarkan santriId dan bulanIdx
+        function getIuranNominal(santriId, bulanIdx) {
+            if (!santriId || bulanIdx === null || bulanIdx === undefined) return 0;
+            const iuranData = iuranMap.get(santriId);
+            return iuranData ? iuranData[bulanIdx] : 0;
+        }
+
         async function loadTransactions() {
             try {
-                // Coba query dengan filter jenis_iuran
                 let snap;
                 try {
                     snap = await db.collection('transaksi')
@@ -177,20 +197,17 @@
                         .orderBy('tanggal', 'asc')
                         .get();
                 } catch(e) {
-                    // Jika gagal (misal karena index belum dibuat), ambil semua tanpa filter
                     console.warn('Query filtered gagal, ambil semua transaksi');
                     snap = await db.collection('transaksi').orderBy('tanggal', 'asc').get();
                 }
                 const transactions = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    // Konversi tanggal jika timestamp
                     let tgl = data.tanggal;
                     if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
                     if (!tgl || tgl === 'Invalid Date') tgl = '';
-                    // Jika data tidak memiliki jenis_iuran, kita asumsikan milik jenis yang sedang dipilih (agar tetap muncul)
                     const dataJenis = data.jenis_iuran || jenis;
-                    if (dataJenis !== jenis) return; // filter manual jika query tidak support
+                    if (dataJenis !== jenis) return;
                     transactions.push({
                         id: doc.id,
                         tanggal: tgl,
@@ -231,37 +248,45 @@
             const bulanSingkat = match[3].trim();
             const kelas = parseInt(match[4]);
             if (isNaN(kelas) || kelas < 7 || kelas > 12) return { valid: false, error: 'Kelas tidak valid' };
-
             const santri = santriList.find(s => s.nis === nis && s.nama === nama);
             if (!santri) return { valid: false, error: `Santri dengan NIS ${nis} dan nama ${nama} tidak ditemukan` };
-
             const bulanMap = { JUL:0, AGU:1, SEP:2, OKT:3, NOV:4, DES:5, JAN:6, FEB:7, MAR:8, APR:9, MEI:10, JUN:11 };
             const monthIdx = bulanMap[bulanSingkat.toUpperCase()];
             if (monthIdx === undefined) return { valid: false, error: `Bulan ${bulanSingkat} tidak dikenal` };
-
             const startIdx = (kelas - 7) * 12;
             const bulanIdx = startIdx + monthIdx;
-            const iuranData = iuranMap.get(santri.id);
-            const nominalIuran = iuranData ? iuranData[bulanIdx] : 0;
+            const nominalIuran = getIuranNominal(santri.id, bulanIdx);
             if (nominalIuran === 0) return { valid: false, error: `Iuran untuk ${bulanSingkat} (kelas ${kelas}) belum ditetapkan` };
-
             const existingTrans = allTransactions.filter(t => t.id !== transaksiId && t.santriId === santri.id && t.bulanIdx === bulanIdx);
             if (existingTrans.length > 0) return { valid: false, error: `Sudah ada pembayaran untuk ${bulanSingkat} (kelas ${kelas}) atas nama ${nama}` };
-
             return { valid: true, santriId: santri.id, bulanIdx, nominal: nominalIuran };
         }
 
         function renderTable() {
             if (!tbody) return;
             if (filteredTransactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Tidak ada transaksi</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Tidak ada transaksi<\/td></tr>';
                 return;
             }
             let html = '';
             filteredTransactions.forEach((tr, idx) => {
                 let isValid = true;
                 let errorMsg = '';
-                if (tr.uraian.startsWith('Pembayaran Santri:')) {
+                const isSantriPayment = tr.uraian.startsWith('Pembayaran Santri:');
+                let actualPemasukan = tr.pemasukan;
+                // Jika pembayaran santri, ambil nominal dari iuranMap (pastikan sinkron)
+                if (isSantriPayment && tr.santriId && tr.bulanIdx !== null) {
+                    const currentNominal = getIuranNominal(tr.santriId, tr.bulanIdx);
+                    if (currentNominal !== tr.pemasukan) {
+                        actualPemasukan = currentNominal;
+                        // Sinkronkan di array allTransactions agar tidak double
+                        const transIdx = allTransactions.findIndex(t => t.id === tr.id);
+                        if (transIdx !== -1) allTransactions[transIdx].pemasukan = currentNominal;
+                        tr.pemasukan = currentNominal;
+                    }
+                    actualPemasukan = currentNominal;
+                }
+                if (isSantriPayment) {
                     const result = validateSantriUraian(tr.uraian, tr.id, tr.santriId, tr.bulanIdx);
                     if (!result.valid) {
                         isValid = false;
@@ -271,8 +296,13 @@
                 const rowClass = isValid ? '' : 'invalid';
                 html += `<tr class="${rowClass}" data-id="${tr.id}" data-santri-id="${tr.santriId || ''}" data-bulan-idx="${tr.bulanIdx !== null ? tr.bulanIdx : ''}">`;
                 html += `<td><input type="date" class="editable-input" data-field="tanggal" value="${tr.tanggal}"></td>`;
-                html += `<td><input type="text" class="editable-input" data-field="uraian" value="${escapeHtml(tr.uraian)}" style="min-width:250px;"></td>`;
-                html += `<td><input type="text" class="editable-input rupiah-input" data-field="pemasukan" value="${formatRupiah(tr.pemasukan)}"></td>`;
+                html += `<td><input type="text" class="editable-input" data-field="uraian" value="${escapeHtml(tr.uraian)}" style="width:100%;"></td>`;
+                // Kolom pemasukan: jika pembayaran santri, disabled dan nilainya dari iuran
+                if (isSantriPayment) {
+                    html += `<td><input type="text" class="editable-input disabled-input" value="${formatRupiah(actualPemasukan)}" disabled></td>`;
+                } else {
+                    html += `<td><input type="text" class="editable-input rupiah-input" data-field="pemasukan" value="${formatRupiah(tr.pemasukan)}"></td>`;
+                }
                 html += `<td><input type="text" class="editable-input rupiah-input" data-field="pengeluaran" value="${formatRupiah(tr.pengeluaran)}"></td>`;
                 html += `<td><input type="text" class="editable-input" data-field="keterangan" value="${escapeHtml(tr.keterangan)}"></td>`;
                 html += `<td class="text-center"><button class="hapus-btn text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>${!isValid ? `<div class="text-red-500 text-xs">${errorMsg}</div>` : ''}</td>`;
@@ -280,11 +310,12 @@
             });
             tbody.innerHTML = html;
 
-            document.querySelectorAll('.editable-input').forEach(input => {
+            // Attach event listeners untuk kolom yang bisa diedit
+            document.querySelectorAll('.editable-input:not(.disabled-input)').forEach(input => {
                 input.removeEventListener('change', handleEdit);
                 input.addEventListener('change', handleEdit);
             });
-            document.querySelectorAll('.rupiah-input').forEach(input => {
+            document.querySelectorAll('.rupiah-input:not(.disabled-input)').forEach(input => {
                 input.removeEventListener('input', formatInputRupiah);
                 input.addEventListener('input', formatInputRupiah);
             });
@@ -328,24 +359,21 @@
             if (field === 'pengeluaran') updated.pengeluaran = newValue;
             if (field === 'keterangan') updated.keterangan = newValue;
 
-            let newSantriId = updated.santriId;
-            let newBulanIdx = updated.bulanIdx;
+            // Untuk pembayaran santri, kita tidak mengubah pemasukan dari sini, tapi bisa mengubah uraian.
+            // Jika uraian berubah, kita perlu update santriId dan bulanIdx.
             if (updated.uraian.startsWith('Pembayaran Santri:')) {
                 const result = validateSantriUraian(updated.uraian, docId, updated.santriId, updated.bulanIdx);
-                if (!result.valid) {
-                    // tetap simpan tapi invalid
+                if (result.valid) {
+                    updated.santriId = result.santriId;
+                    updated.bulanIdx = result.bulanIdx;
+                    updated.pemasukan = result.nominal; // override sesuai iuran
                 } else {
-                    newSantriId = result.santriId;
-                    newBulanIdx = result.bulanIdx;
+                    // Jika tidak valid, tetap simpan tapi nanti akan tampil merah
                 }
             }
-            updated.santriId = newSantriId;
-            updated.bulanIdx = newBulanIdx;
-
             allTransactions[transIndex] = updated;
             const filteredIndex = filteredTransactions.findIndex(t => t.id === docId);
             if (filteredIndex !== -1) filteredTransactions[filteredIndex] = updated;
-
             renderTable();
             triggerAutoSave();
         }
@@ -420,7 +448,14 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // IMPORT MULTI
+        // Refresh data (reload master dan transaksi)
+        async function refreshData() {
+            showToast('Memuat ulang data...');
+            await loadMasterData();
+            await loadTransactions();
+        }
+
+        // IMPORT MULTI (sama seperti sebelumnya)
         const importModal = document.getElementById('importModal');
         const importData = document.getElementById('importData');
         function openImport() { importData.value = ''; importModal.classList.remove('hidden'); }
@@ -488,13 +523,14 @@
                 }
                 await batch.commit();
                 showToast(`${newTransactions.length} transaksi berhasil diimport`);
-                await loadTransactions();
+                await refreshData(); // refresh setelah import
                 closeImport();
             } catch(err) { showToast('Gagal import: '+err.message, true); }
         }
 
         filterBtn.addEventListener('click', applyFilter);
         resetFilterBtn.addEventListener('click', () => { filterDari.value = ''; filterSampai.value = ''; applyFilter(); });
+        refreshDataBtn.addEventListener('click', refreshData);
         document.getElementById('importExcelBtn').addEventListener('click', openImport);
         document.getElementById('closeImportBtn').addEventListener('click', closeImport);
         document.getElementById('cancelImportBtn').addEventListener('click', closeImport);
