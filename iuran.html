@@ -152,7 +152,7 @@
             </table>
         </div>
         <p class="text-xs text-gray-400 mt-3 text-center">
-            <i class="fas fa-save"></i> Auto-save setiap perubahan | Masukkan angka tanpa titik (contoh: 450000) atau dengan titik (450.000)
+            <i class="fas fa-save"></i> Auto-save | Urutan berdasarkan NIS (ascending) | Masukkan angka tanpa titik (contoh: 450000) atau dengan titik (450.000)
         </p>
     </main>
 
@@ -164,7 +164,7 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4">
-                <p class="text-xs text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri. Angka bisa dengan atau tanpa titik.</p>
+                <p class="text-xs text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri (urutan NIS). Angka bisa dengan atau tanpa titik.</p>
                 <textarea id="pasteData" rows="8" class="w-full border rounded p-2 font-mono text-xs" placeholder="Tempel 72 angka per baris...&#10;Contoh: 450000 275000 300000"></textarea>
                 <div class="flex justify-end gap-2 mt-3">
                     <button id="cancelPasteBtn" class="px-3 py-1 border rounded text-sm">Batal</button>
@@ -197,7 +197,7 @@
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
         const collectionName = jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok';
         document.getElementById('pageTitle').innerHTML = `Iuran Bulanan - ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
-        document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} - Auto save`;
+        document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} - Auto save - Urut NIS`;
 
         const bulanLabels = [];
         for (let tahun = 7; tahun <= 12; tahun++) {
@@ -230,10 +230,8 @@
             else savingDiv.classList.add('hidden');
         }
 
-        // Format angka ke format rupiah dengan titik (contoh: 450000 -> 450.000)
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '';
-            // Ubah ke string, pisahkan setiap 3 digit dari belakang
             let str = Math.floor(angka).toString();
             let result = '';
             for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
@@ -243,12 +241,9 @@
             return result;
         }
 
-        // Parsing input user: hapus titik, konversi ke integer
         function parseRupiah(value) {
             if (!value) return 0;
-            // Hilangkan semua titik
             let cleaned = value.toString().replace(/\./g, '');
-            // Hilangkan karakter non-digit
             cleaned = cleaned.replace(/[^0-9]/g, '');
             let intVal = parseInt(cleaned, 10);
             return isNaN(intVal) ? 0 : intVal;
@@ -292,10 +287,8 @@
             const row = parseInt(inp.dataset.row);
             const col = parseInt(inp.dataset.col);
             let rawValue = inp.value.trim();
-            // Parse input (hapus titik) menjadi integer penuh
             let nominalPenuh = parseRupiah(rawValue);
             santriList[row].iuranData[col] = nominalPenuh;
-            // Tampilkan kembali dengan format rupiah (biar rapi)
             inp.value = formatRupiah(nominalPenuh);
             if (saveTimeout) clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => autoSave(), 700);
@@ -340,7 +333,12 @@
                         noUrut: d.noUrut || 0
                     });
                 });
-                santriTemp.sort((a,b) => a.noUrut - b.noUrut);
+                // Urutkan berdasarkan NIS secara numerik (ascending)
+                santriTemp.sort((a, b) => {
+                    const nisA = parseInt(a.nis) || 0;
+                    const nisB = parseInt(b.nis) || 0;
+                    return nisA - nisB;
+                });
 
                 const iuranSnap = await db.collection(collectionName).get();
                 const iuranMap = new Map();
@@ -362,7 +360,7 @@
                 }));
                 renderHeader();
                 renderTable();
-                showToast(`${santriList.length} santri dimuat`);
+                showToast(`${santriList.length} santri dimuat (urut NIS)`);
             } catch (err) {
                 console.error(err);
                 showToast('Gagal memuat data', true);
@@ -371,7 +369,7 @@
             }
         }
 
-        // Paste Excel: angka bisa dengan atau tanpa titik
+        // Paste Excel
         const pasteModal = document.getElementById('pasteModal');
         const pasteData = document.getElementById('pasteData');
         function openPaste() { pasteData.value = ''; pasteModal.classList.remove('hidden'); }
