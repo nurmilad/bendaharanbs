@@ -25,8 +25,8 @@
             top: 0;
             text-align: center;
         }
-        /* Lebar kolom sesuai permintaan */
-        .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; } /* Tanggal 12 digit */
+        /* Lebar kolom tetap */
+        .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; } /* Tanggal */
         .bku-table th:nth-child(2), .bku-table td:nth-child(2) { min-width: 300px; } /* Uraian menyesuaikan */
         .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; } /* Pemasukan 10 digit */
         .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 110px; text-align: right; } /* Pengeluaran 10 digit */
@@ -153,10 +153,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
         document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum untuk <strong>Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}</strong>`;
-        // Back link dinamis
         document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
 
-        // Inisialisasi dropdown tahun
+        // Dropdown tahun
         const tahunSelect = document.getElementById('tahunSelect');
         const currentYear = new Date().getFullYear();
         for (let y = 2009; y <= 2045; y++) {
@@ -167,9 +166,8 @@
             tahunSelect.appendChild(option);
         }
 
-        let allTransactions = []; // semua transaksi untuk jenis iuran ini, diurutkan ascending
+        let allTransactions = [];
 
-        // Ambil semua transaksi dari Firebase
         async function loadAllTransactions() {
             try {
                 const snap = await db.collection('transaksi')
@@ -181,8 +179,7 @@
                     const data = doc.data();
                     let tgl = data.tanggal;
                     if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
-                    if (!tgl || tgl === 'Invalid Date') tgl = '';
-                    if (tgl === '') return;
+                    if (!tgl || tgl === 'Invalid Date') return;
                     transactions.push({
                         id: doc.id,
                         tanggal: tgl,
@@ -191,18 +188,15 @@
                         pengeluaran: data.pengeluaran || 0,
                     });
                 });
-                // Urutkan berdasarkan tanggal (sudah dari query, tapi amankan)
                 transactions.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
                 allTransactions = transactions;
                 console.log('Total transaksi dimuat:', allTransactions.length);
             } catch(err) {
                 console.error('Gagal ambil transaksi:', err);
                 showToast('Gagal memuat transaksi: ' + err.message, true);
-                allTransactions = [];
             }
         }
 
-        // Mendapatkan transaksi dalam rentang bulan tertentu
         function getTransactionsInMonth(year, month) {
             const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
             const lastDay = new Date(year, month, 0).getDate();
@@ -210,19 +204,15 @@
             return allTransactions.filter(t => t.tanggal >= startDate && t.tanggal <= endDate);
         }
 
-        // Hitung saldo awal dari semua transaksi sebelum tanggal pertama bulan yang dipilih
         function getSaldoAwal(year, month) {
             const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
             let saldo = 0;
             for (const t of allTransactions) {
-                if (t.tanggal < startDate) {
-                    saldo += (t.pemasukan - t.pengeluaran);
-                }
+                if (t.tanggal < startDate) saldo += (t.pemasukan - t.pengeluaran);
             }
             return saldo;
         }
 
-        // Format angka ke rupiah (tanpa Rp, hanya angka dengan titik)
         function formatRupiah(angka) {
             if (angka === undefined || angka === null) return '0';
             let str = Math.floor(angka).toString();
@@ -252,23 +242,19 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // Render tabel BKU
         function renderBKU(year, month) {
             const transInMonth = getTransactionsInMonth(year, month);
             const saldoAwal = getSaldoAwal(year, month);
             let saldoBerjalan = saldoAwal;
             const tbody = document.getElementById('tableBody');
-            
             let html = '';
-            // Baris saldo awal
+
+            // Saldo awal
             html += `<tr class="saldo-awal-row">`;
-            html += `<td class="text-center">-</td>`;
-            html += `<td><strong>Saldo Awal Bulan</strong></td>`;
-            html += `<td class="text-right">-</td>`;
-            html += `<td class="text-right">-</td>`;
-            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}</strong></td>`;
-            html += `</tr>`;
-            
+            html += `<td class="text-center">-</td><td><strong>Saldo Awal Bulan</strong></td>`;
+            html += `<td class="text-right">-</td><td class="text-right">-</td>`;
+            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}</strong></td></tr>`;
+
             if (transInMonth.length === 0) {
                 html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini</td></tr>`;
             } else {
@@ -279,49 +265,36 @@
                     html += `<td>${escapeHtml(tr.uraian)}</td>`;
                     html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}</td>`;
                     html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}</td>`;
-                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
-                    html += `</tr>`;
+                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
                 }
             }
-            
-            // Baris total pemasukan/pengeluaran bulan ini (optional) dan saldo akhir
+
+            // Total bulan ini
             const totalPemasukan = transInMonth.reduce((sum, t) => sum + t.pemasukan, 0);
             const totalPengeluaran = transInMonth.reduce((sum, t) => sum + t.pengeluaran, 0);
             html += `<tr class="total-row">`;
             html += `<td colspan="2" class="text-right">Total Bulan Ini</td>`;
             html += `<td class="text-right">${formatRupiah(totalPemasukan)}</td>`;
             html += `<td class="text-right">${formatRupiah(totalPengeluaran)}</td>`;
-            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
-            html += `</tr>`;
-            
+            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
+
             tbody.innerHTML = html;
         }
 
-        // Event handler tampilkan
         async function tampilkanBKU() {
             const bulan = parseInt(document.getElementById('bulanSelect').value);
             const tahun = parseInt(document.getElementById('tahunSelect').value);
-            // Pastikan data transaksi sudah dimuat
-            if (allTransactions.length === 0) {
-                await loadAllTransactions();
-            }
+            if (allTransactions.length === 0) await loadAllTransactions();
             renderBKU(tahun, bulan);
         }
 
-        // Cetak
-        document.getElementById('printBtn').addEventListener('click', () => {
-            window.print();
-        });
-
+        document.getElementById('printBtn').addEventListener('click', () => window.print());
         document.getElementById('tampilkanBtn').addEventListener('click', tampilkanBKU);
 
-        // Inisialisasi
         window.addEventListener('DOMContentLoaded', async () => {
             await loadAllTransactions();
-            // Set default bulan/tahun ke bulan saat ini
             const now = new Date();
-            const currentMonth = now.getMonth() + 1;
-            document.getElementById('bulanSelect').value = currentMonth;
+            document.getElementById('bulanSelect').value = now.getMonth() + 1;
             tampilkanBKU();
         });
     </script>
