@@ -21,7 +21,6 @@
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b">
         <div class="px-4 md:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- Tombol back dinamis dengan id="backLink" -->
                 <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
                 <h1 class="font-bold text-gray-800 text-lg">Input Transaksi</h1>
             </div>
@@ -117,6 +116,10 @@
         let daftarTransaksi = [];
         let paidMonthsMap = new Map();
 
+        // ========== VARIABEL UNTUK DEFAULT TANGGAL BERDASAR TRANSAKSI TERAKHIR ==========
+        let lastTanggalPemasukan = getTodayDate(); // untuk form pemasukan (umum & santri)
+        let lastTanggalPengeluaran = getTodayDate(); // untuk pengeluaran
+
         // DOM elements
         const radioPemasukan = document.querySelector('input[value="pemasukan"]');
         const radioPengeluaran = document.querySelector('input[value="pengeluaran"]');
@@ -157,7 +160,13 @@
             });
         }
         function getTodayDate() { return new Date().toISOString().slice(0,10); }
-        function setDefaultDate(inputId) { document.getElementById(inputId).value = getTodayDate(); }
+        function setDatePemasukan() {
+            document.getElementById('tglUmum').value = lastTanggalPemasukan;
+            document.getElementById('tglSantri').value = lastTanggalPemasukan;
+        }
+        function setDatePengeluaran(inputElement) {
+            if (inputElement) inputElement.value = lastTanggalPengeluaran;
+        }
 
         async function loadExistingPayments() {
             try {
@@ -292,9 +301,12 @@
                     detail: { type: 'umum' }
                 });
                 showToast('Transaksi umum ditambahkan');
+                // reset form umum
                 document.getElementById('uraianUmum').value = '';
                 document.getElementById('jumlahUmum').value = '';
-                setDefaultDate('tglUmum');
+                // update last tanggal pemasukan
+                lastTanggalPemasukan = tgl;
+                setDatePemasukan(); // set field tanggal ke lastTanggalPemasukan
             } else {
                 const santriId = document.getElementById('santriSelect').value;
                 if (!santriId) { showToast('Pilih santri', true); return; }
@@ -328,11 +340,14 @@
                 }
                 if (addedCount === 0) showToast('Tidak ada bulan dengan nominal iuran > 0', true);
                 else showToast(`${addedCount} transaksi pembayaran santri ditambahkan`);
+                // reset form santri
                 document.getElementById('santriSelect').value = '';
                 document.getElementById('kelasSelect').value = '7';
                 renderBulanChecklist();
                 document.getElementById('totalSantri').value = '';
-                setDefaultDate('tglSantri');
+                // update last tanggal pemasukan
+                lastTanggalPemasukan = tgl;
+                setDatePemasukan();
             }
             await updatePaidMonthsMap();
             renderDaftarTransaksi();
@@ -342,6 +357,7 @@
         function tambahPengeluaran() {
             const rows = document.querySelectorAll('.pengeluaran-row');
             if (rows.length === 0) { showToast('Tidak ada baris pengeluaran', true); return; }
+            let lastTgl = null;
             for (let row of rows) {
                 const tgl = row.querySelector('.tgl-pengeluaran').value;
                 const uraian = row.querySelector('.uraian-pengeluaran').value.trim();
@@ -357,10 +373,13 @@
                     jenis_iuran: jenis,
                     detail: {}
                 });
+                lastTgl = tgl;
             }
+            if (lastTgl) lastTanggalPengeluaran = lastTgl;
             showToast(`${rows.length} transaksi pengeluaran ditambahkan`);
+            // Reset tabel pengeluaran: kosongkan dan tambah satu baris baru dengan tanggal lastTanggalPengeluaran
             document.getElementById('pengeluaranTable').innerHTML = '';
-            tambahBarisPengeluaranHandler();
+            tambahBarisPengeluaranHandler(true); // true artinya menggunakan lastTanggalPengeluaran
             renderDaftarTransaksi();
         }
 
@@ -420,14 +439,15 @@
                 await updatePaidMonthsMap();
                 renderDaftarTransaksi();
                 renderBulanChecklist();
+                // Reset last tanggal? Biarkan saja agar transaksi berikutnya masih bisa pakai tanggal terakhir yang disimpan.
             } catch(err) { showToast('Gagal simpan: '+err.message, true); }
         }
 
-        function tambahBarisPengeluaranHandler() {
+        function tambahBarisPengeluaranHandler(useLastDate = true) {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'pengeluaran-row grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b pb-2 mb-2';
             rowDiv.innerHTML = `
-                <div><label class="text-xs">Tanggal</label><input type="date" class="tgl-pengeluaran w-full border rounded p-1 text-sm" value="${getTodayDate()}"></div>
+                <div><label class="text-xs">Tanggal</label><input type="date" class="tgl-pengeluaran w-full border rounded p-1 text-sm" value="${useLastDate ? lastTanggalPengeluaran : getTodayDate()}"></div>
                 <div><label class="text-xs">Uraian</label><input type="text" class="uraian-pengeluaran w-full border rounded p-1 text-sm" placeholder="Belanja alat tulis"></div>
                 <div><label class="text-xs">Jumlah (Rp)</label><input type="text" class="jumlah-pengeluaran w-full border rounded p-1 text-sm rupiah-input" placeholder="0"></div>
                 <div><button class="hapusBarisPengeluaran text-red-500 text-sm"><i class="fas fa-trash"></i> Hapus</button></div>
@@ -435,22 +455,24 @@
             pengeluaranTable.appendChild(rowDiv);
             attachRupiahFormat(rowDiv.querySelector('.jumlah-pengeluaran'));
             rowDiv.querySelector('.hapusBarisPengeluaran').addEventListener('click', () => rowDiv.remove());
+            // Ketika user mengubah tanggal di baris, update lastTanggalPengeluaran? Tidak perlu otomatis, karena last diupdate saat transaksi ditambahkan.
         }
 
         function togglePanel() {
             const isPemasukan = radioPemasukan.checked;
             panelPemasukan.classList.toggle('hidden', !isPemasukan);
             panelPengeluaran.classList.toggle('hidden', isPemasukan);
-            if (!isPemasukan && pengeluaranTable.children.length === 0) tambahBarisPengeluaranHandler();
+            if (!isPemasukan && pengeluaranTable.children.length === 0) tambahBarisPengeluaranHandler(true);
         }
         function toggleFormSantri() {
             const isSantri = pembayaranSantriCheck.checked;
             formUmum.classList.toggle('hidden', isSantri);
             formSantri.classList.toggle('hidden', !isSantri);
+            // Set tanggal sesuai lastTanggalPemasukan
+            setDatePemasukan();
             if (isSantri) {
-                setDefaultDate('tglSantri');
                 renderBulanChecklist();
-            } else setDefaultDate('tglUmum');
+            }
         }
         function showToast(msg, isError=false) {
             const toast = document.getElementById('toast');
@@ -467,7 +489,7 @@
         tambahPengeluaranBtn.addEventListener('click', tambahPengeluaran);
         simpanSemuaBtn.addEventListener('click', simpanSemua);
         batalBtn.addEventListener('click', () => { if(confirm('Batalkan semua transaksi yang belum tersimpan?')) { daftarTransaksi = []; updatePaidMonthsMap().then(() => { renderDaftarTransaksi(); renderBulanChecklist(); }); } });
-        tambahBarisPengeluaran.addEventListener('click', tambahBarisPengeluaranHandler);
+        tambahBarisPengeluaran.addEventListener('click', () => tambahBarisPengeluaranHandler(true));
         document.getElementById('santriSelect').addEventListener('change', onSantriChange);
         document.getElementById('kelasSelect').addEventListener('change', onKelasChange);
         attachRupiahFormat(document.getElementById('jumlahUmum'));
@@ -475,10 +497,14 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadData();
-            setDefaultDate('tglUmum');
-            setDefaultDate('tglSantri');
+            // Inisialisasi tanggal
+            lastTanggalPemasukan = getTodayDate();
+            lastTanggalPengeluaran = getTodayDate();
+            setDatePemasukan();
             togglePanel();
             toggleFormSantri();
+            // Inisialisasi satu baris pengeluaran dengan tanggal last
+            if (pengeluaranTable.children.length === 0) tambahBarisPengeluaranHandler(true);
         });
     </script>
 </body>
