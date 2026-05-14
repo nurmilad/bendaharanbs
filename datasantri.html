@@ -12,10 +12,20 @@
         .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .table-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         input:focus { outline: none; border-color: #10b981; ring: 2px solid #10b981; }
         .toast-notif { animation: fadeInUp 0.3s ease forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .saving-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            z-index: 999;
+            border-radius: 16px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
@@ -32,16 +42,13 @@
                     </div>
                     <div>
                         <h1 class="font-bold text-gray-800 text-lg md:text-xl">Data Santri <span class="text-emerald-600">Nurmilad</span></h1>
-                        <p class="text-xs text-gray-500 hidden md:block">Kelola data santri | Copy-paste dari Excel/Spreadsheet</p>
+                        <p class="text-xs text-gray-500 hidden md:block">Kelola data santri | Auto-save setiap perubahan</p>
                     </div>
                 </div>
             </div>
             <div class="flex gap-2">
                 <button id="refreshBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 text-sm">
                     <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                <button id="simpanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 text-sm md:text-base">
-                    <i class="fas fa-save"></i> Simpan Semua
                 </button>
             </div>
         </div>
@@ -61,7 +68,7 @@
                 </button>
             </div>
             <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle"></i> Tips: Salin baris dari Excel (ANGK, NIS, NAMA) lalu klik "Tempel dari Excel"
+                <i class="fas fa-info-circle"></i> Auto-save otomatis | Data iuran santri yang dihapus ikut terhapus
             </div>
         </div>
 
@@ -90,12 +97,12 @@
             </div>
         </div>
         <div class="mt-6 text-xs text-gray-400 text-center border-t pt-4">
-            <i class="fas fa-table me-1"></i> Kolom ANGK (contoh: 2015), NIS (contoh: 2526001), NAMA (contoh: AHMAD YUSUF). Data tersimpan realtime ke Firebase.
+            <i class="fas fa-save"></i> Auto-save setiap perubahan | Kolom ANGK (contoh: 2015), NIS (contoh: 2526001), NAMA (contoh: AHMAD YUSUF)
         </div>
     </main>
 
     <!-- Modal Paste Excel -->
-    <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-all">
+    <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-2xl">
             <div class="flex justify-between items-center border-b p-5">
                 <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-table me-2 text-emerald-600"></i>Tempel Data dari Excel</h3>
@@ -117,6 +124,9 @@
         <i class="fas fa-check-circle text-emerald-400"></i>
         <span id="toastText">Pesan</span>
     </div>
+    <div id="savingIndicator" class="saving-indicator hidden">
+        <i class="fas fa-spinner fa-pulse"></i> Menyimpan...
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -130,27 +140,34 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let santriList = [];      // { angkatan, nis, nama, firebaseId? }
+        let santriList = [];
         let selectedRows = new Set();
+        let saveTimeout = null;
+        let isSaving = false;
 
         const tbody = document.getElementById('santriTableBody');
         const emptyMsg = document.getElementById('emptyMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const selectAllChk = document.getElementById('selectAllCheckbox');
-        const simpanBtn = document.getElementById('simpanBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const tambahBtn = document.getElementById('tambahBarisBtn');
         const hapusTerpilihBtn = document.getElementById('hapusTerpilihBtn');
         const pasteExcelBtn = document.getElementById('pasteExcelBtn');
+        const savingDiv = document.getElementById('savingIndicator');
+        const toastMsg = document.getElementById('toastMessage');
+        const toastText = document.getElementById('toastText');
 
         function showToast(message, isError = false) {
-            const toast = document.getElementById('toastMessage');
-            const toastText = document.getElementById('toastText');
-            const icon = toast.querySelector('i');
-            toastText.innerText = message;
+            const icon = toastMsg.querySelector('i');
             icon.className = isError ? "fas fa-exclamation-circle text-red-400" : "fas fa-check-circle text-emerald-400";
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+            toastText.innerText = message;
+            toastMsg.classList.remove('hidden');
+            setTimeout(() => toastMsg.classList.add('hidden'), 2000);
+        }
+
+        function showSaving(show) {
+            if (show) savingDiv.classList.remove('hidden');
+            else savingDiv.classList.add('hidden');
         }
 
         function renderTable() {
@@ -191,7 +208,10 @@
                 angkInput.value = santri.angkatan || '';
                 angkInput.placeholder = 'Tahun (2015)';
                 angkInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
-                angkInput.addEventListener('change', (e) => { santriList[idx].angkatan = e.target.value; });
+                angkInput.addEventListener('change', (e) => {
+                    santriList[idx].angkatan = e.target.value;
+                    triggerAutoSave();
+                });
                 angkCell.appendChild(angkInput);
                 // NIS
                 const nisCell = row.insertCell(3);
@@ -201,7 +221,10 @@
                 nisInput.value = santri.nis || '';
                 nisInput.placeholder = 'NIS (2526001)';
                 nisInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
-                nisInput.addEventListener('change', (e) => { santriList[idx].nis = e.target.value; });
+                nisInput.addEventListener('change', (e) => {
+                    santriList[idx].nis = e.target.value;
+                    triggerAutoSave();
+                });
                 nisCell.appendChild(nisInput);
                 // NAMA
                 const namaCell = row.insertCell(4);
@@ -211,7 +234,10 @@
                 namaInput.value = santri.nama || '';
                 namaInput.placeholder = 'Nama Lengkap';
                 namaInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
-                namaInput.addEventListener('change', (e) => { santriList[idx].nama = e.target.value; });
+                namaInput.addEventListener('change', (e) => {
+                    santriList[idx].nama = e.target.value;
+                    triggerAutoSave();
+                });
                 namaCell.appendChild(namaInput);
             });
             updateSelectAllState();
@@ -242,13 +268,74 @@
             renderTable();
         });
 
+        // ========== AUTO SAVE ==========
+        function triggerAutoSave() {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => autoSave(), 1000);
+        }
+
+        async function hapusIuranSantri(santriId) {
+            try {
+                await db.collection('iuran_konsumsi').doc(santriId).delete();
+                await db.collection('iuran_pondok').doc(santriId).delete();
+            } catch (err) { /* ignore */ }
+        }
+
+        async function autoSave() {
+            if (isSaving) return;
+            isSaving = true;
+            showSaving(true);
+            try {
+                // Validasi data
+                for (let i = 0; i < santriList.length; i++) {
+                    if (!santriList[i].angkatan || !santriList[i].nis || !santriList[i].nama) {
+                        showToast(`Baris ${i+1} belum lengkap, simpan dibatalkan`, true);
+                        return;
+                    }
+                }
+                // Ambil semua ID santri yang sudah ada di Firestore
+                const existingSnapshot = await db.collection('santri').get();
+                const existingIds = [];
+                existingSnapshot.forEach(doc => existingIds.push(doc.id));
+
+                // Hapus semua data santri lama dan iuran terkait
+                for (const id of existingIds) {
+                    await db.collection('santri').doc(id).delete();
+                    await hapusIuranSantri(id);
+                }
+
+                // Simpan data baru dengan noUrut
+                for (let i = 0; i < santriList.length; i++) {
+                    const data = {
+                        angkatan: santriList[i].angkatan.trim(),
+                        nis: santriList[i].nis.trim(),
+                        nama: santriList[i].nama.trim(),
+                        noUrut: i + 1,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    const docRef = await db.collection('santri').add(data);
+                    santriList[i].firebaseId = docRef.id;
+                }
+                showToast('Data tersimpan otomatis');
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal simpan: ' + err.message, true);
+            } finally {
+                isSaving = false;
+                showSaving(false);
+            }
+        }
+
+        // ========== TAMBAH BARIS ==========
         function tambahBaris() {
             santriList.push({ angkatan: '', nis: '', nama: '' });
             renderTable();
-            showToast("Baris baru ditambahkan");
+            triggerAutoSave();
+            showToast('Baris ditambahkan, auto-save...');
         }
 
-        function hapusTerpilih() {
+        // ========== HAPUS TERPILIH ==========
+        async function hapusTerpilih() {
             if (selectedRows.size === 0) {
                 showToast("Tidak ada baris yang dipilih", true);
                 return;
@@ -260,64 +347,15 @@
             santriList = newList;
             selectedRows.clear();
             renderTable();
-            showToast("Baris terpilih telah dihapus (belum tersimpan ke database)");
+            await autoSave(); // langsung simpan setelah hapus
+            showToast(`${newList.length} santri tersisa, data iuran terkait telah dihapus`);
         }
 
-        // ========== SIMPAN KE FIREBASE ==========
-        async function simpanKeFirebase() {
-            if (santriList.length === 0) {
-                showToast("Tidak ada data santri untuk disimpan", true);
-                return;
-            }
-            // Validasi
-            for (let i = 0; i < santriList.length; i++) {
-                const s = santriList[i];
-                if (!s.angkatan || !s.nis || !s.nama) {
-                    showToast(`Baris ${i+1} belum lengkap (ANGK, NIS, NAMA wajib diisi)`, true);
-                    return;
-                }
-            }
-
-            loadingIndicator.classList.remove('hidden');
-            try {
-                // 1. Hapus semua dokumen di collection 'santri'
-                const snapshot = await db.collection('santri').get();
-                const batch = db.batch();
-                snapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                console.log("Semua data lama terhapus");
-
-                // 2. Simpan data baru dengan noUrut
-                const newBatch = db.batch();
-                for (let i = 0; i < santriList.length; i++) {
-                    const data = {
-                        angkatan: santriList[i].angkatan.trim(),
-                        nis: santriList[i].nis.trim(),
-                        nama: santriList[i].nama.trim(),
-                        noUrut: i + 1,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    const docRef = db.collection('santri').doc();
-                    newBatch.set(docRef, data);
-                }
-                await newBatch.commit();
-                console.log("Data baru tersimpan");
-                showToast("Data santri berhasil disimpan!");
-                await loadDataFromFirebase(); // reload ulang
-            } catch (error) {
-                console.error("Error saving:", error);
-                showToast("Gagal menyimpan: " + error.message, true);
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        }
-
-        // ========== LOAD DATA DARI FIREBASE ==========
+        // ========== LOAD DATA ==========
         async function loadDataFromFirebase() {
             loadingIndicator.classList.remove('hidden');
             try {
-                // Tanpa orderBy dulu agar semua data terambil
-                const querySnapshot = await db.collection('santri').get();
+                const querySnapshot = await db.collection('santri').orderBy('noUrut', 'asc').get();
                 const loadedData = [];
                 querySnapshot.forEach(doc => {
                     const data = doc.data();
@@ -328,20 +366,13 @@
                         firebaseId: doc.id
                     });
                 });
-                // Urutkan berdasarkan noUrut jika ada, jika tidak urutkan berdasarkan createdAt
-                loadedData.sort((a, b) => {
-                    const aUrut = a.noUrut || 0;
-                    const bUrut = b.noUrut || 0;
-                    return aUrut - bUrut;
-                });
                 santriList = loadedData;
                 selectedRows.clear();
                 renderTable();
-                showToast(`${santriList.length} data santri dimuat dari database`);
-                console.log("Data loaded:", santriList);
+                showToast(`${santriList.length} data santri dimuat`);
             } catch (err) {
-                console.error("Load error:", err);
-                showToast("Gagal memuat data: " + err.message, true);
+                console.error(err);
+                showToast('Gagal memuat data', true);
                 santriList = [];
                 renderTable();
             } finally {
@@ -379,7 +410,8 @@
             }
             if (addedCount > 0) {
                 renderTable();
-                showToast(`${addedCount} data ditambahkan. Jangan lupa klik Simpan!`);
+                triggerAutoSave();
+                showToast(`${addedCount} data ditambahkan, auto-save...`);
                 closePasteModal();
             } else {
                 showToast("Format tidak valid. Gunakan: ANGK [TAB] NIS [TAB] NAMA", true);
@@ -387,7 +419,6 @@
         }
 
         // Event listeners
-        simpanBtn.addEventListener('click', simpanKeFirebase);
         refreshBtn.addEventListener('click', loadDataFromFirebase);
         tambahBtn.addEventListener('click', tambahBaris);
         hapusTerpilihBtn.addEventListener('click', hapusTerpilih);
