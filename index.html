@@ -4,22 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Pondok Pesantren Nurmilad | Sistem Keuangan Digital</title>
-    <!-- Tailwind CSS + Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         html { scroll-behavior: smooth; }
-        .testimonial-slider-container { position: relative; overflow: hidden; }
-        .testimonial-track { transition: transform 0.4s ease-in-out; }
+        .testimonial-slider-container { position: relative; overflow: hidden; border-radius: 1rem; }
+        .testimonial-track { transition: transform 0.6s ease-in-out; }
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
         .dropdown:hover .dropdown-menu { display: block; }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .modal-overlay { transition: opacity 0.3s ease; }
+        .fade-in { animation: fadeIn 0.8s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
@@ -67,7 +65,6 @@
                             <a href="datasantri.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-users mr-2 w-5 text-emerald-500"></i> Data Santri
                             </a>
-                            <!-- Perbaikan: tambah parameter jenis -->
                             <a href="submenu.html?jenis=konsumsi" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-utensils mr-2 w-5 text-emerald-500"></i> Iuran Konsumsi
                             </a>
@@ -75,7 +72,7 @@
                                 <i class="fas fa-home mr-2 w-5 text-emerald-500"></i> Iuran Pondok
                             </a>
                             <hr class="my-1">
-                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
+                            <a href="bku.html?jenis=konsumsi" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
                                 <i class="fas fa-chart-line mr-2 w-5"></i> Laporan Bulanan
                             </a>
                         </div>
@@ -89,17 +86,16 @@
                     </button>
                 </div>
             </div>
-            <!-- Mobile menu -->
             <div id="mobileMenuPanel" class="hidden md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-2 shadow-lg">
                 <a href="datasantri.html" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-users text-emerald-600 w-5"></i> Data Santri</a>
                 <a href="submenu.html?jenis=konsumsi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-utensils text-emerald-600 w-5"></i> Iuran Konsumsi</a>
                 <a href="submenu.html?jenis=pondok" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-home text-emerald-600 w-5"></i> Iuran Pondok</a>
-                <a href="#" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600"><i class="fas fa-chart-simple mr-2"></i> Laporan</a>
+                <a href="bku.html?jenis=konsumsi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600"><i class="fas fa-chart-simple mr-2"></i> Laporan</a>
             </div>
         </header>
 
         <main>
-            <!-- Hero, Statistik, Menu Utama, Konten Populer, Testimonial (sama seperti sebelumnya) -->
+            <!-- Hero section -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
@@ -124,6 +120,7 @@
                 </div>
             </section>
 
+            <!-- Statistik Keuangan (Saldo Akhir) -->
             <section id="statistik" class="py-12 md:py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="text-center max-w-2xl mx-auto mb-12">
@@ -131,26 +128,31 @@
                         <p class="text-gray-500 mt-2">Data realtime dari sistem bendahara (Firebase)</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Total Santri -->
                         <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover">
                             <div class="bg-emerald-100 p-3 rounded-xl"><i class="fas fa-user-graduate text-emerald-700 text-xl"></i></div>
                             <div><p class="text-gray-500 text-sm">Total Santri Aktif</p><p id="totalSantriCount" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">terdaftar</span></div>
                         </div>
+                        <!-- Iuran Konsumsi (Total Pemasukan) -->
                         <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover">
                             <div class="bg-amber-100 p-3 rounded-xl"><i class="fas fa-utensils text-amber-700 text-xl"></i></div>
                             <div><p class="text-gray-500 text-sm">Iuran Konsumsi</p><p id="totalKonsumsi" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Total pemasukan</span></div>
                         </div>
+                        <!-- Iuran Pondok (Total Pemasukan) -->
                         <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover">
                             <div class="bg-sky-100 p-3 rounded-xl"><i class="fas fa-building text-sky-700 text-xl"></i></div>
                             <div><p class="text-gray-500 text-sm">Iuran Pondok</p><p id="totalPondok" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Total pemasukan</span></div>
                         </div>
+                        <!-- Saldo Akhir (Total Pemasukan - Total Pengeluaran) -->
                         <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover">
-                            <div class="bg-purple-100 p-3 rounded-xl"><i class="fas fa-chart-simple text-purple-700 text-xl"></i></div>
-                            <div><p class="text-gray-500 text-sm">Pemasukan Bulan Ini</p><p id="bulanIniTotal" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">(Konsumsi + Pondok)</span></div>
+                            <div class="bg-purple-100 p-3 rounded-xl"><i class="fas fa-chart-line text-purple-700 text-xl"></i></div>
+                            <div><p class="text-gray-500 text-sm">Saldo Akhir</p><p id="saldoAkhir" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Total kas</span></div>
                         </div>
                     </div>
                 </div>
             </section>
 
+            <!-- 3 Menu Utama (tidak berubah) -->
             <section id="menu-utama" class="py-12 md:py-16 bg-gray-50">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="text-center max-w-2xl mx-auto mb-12">
@@ -159,21 +161,18 @@
                         <p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <!-- Data Santri (tetap) -->
                         <a href="datasantri.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-200 transition"><i class="fas fa-users text-3xl text-emerald-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Data Santri</h3>
                             <p class="text-gray-500 text-sm mt-2">Lihat, tambah, dan edit data santri. Terhubung dengan Firebase.</p>
                             <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Kelola Santri <i class="fas fa-arrow-right ml-1"></i></span>
                         </a>
-                        <!-- Iuran Konsumsi dengan parameter -->
                         <a href="submenu.html?jenis=konsumsi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-200 transition"><i class="fas fa-utensils text-3xl text-amber-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Iuran Konsumsi</h3>
                             <p class="text-gray-500 text-sm mt-2">Kelola iuran makan harian, input transaksi, riwayat & laporan.</p>
                             <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span>
                         </a>
-                        <!-- Iuran Pondok dengan parameter -->
                         <a href="submenu.html?jenis=pondok" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-sky-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-200 transition"><i class="fas fa-home text-3xl text-sky-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Iuran Pondok</h3>
@@ -185,40 +184,40 @@
                 </div>
             </section>
 
-            <!-- Konten Populer & Testimonial (sama seperti sebelumnya) -->
+            <!-- Konten Populer (dengan tautan berfungsi) -->
             <section class="py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="flex justify-between items-end flex-wrap gap-3 mb-10">
                         <div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div>
-                        <a href="#" class="text-emerald-600 hover:underline font-medium">Lihat semua <i class="fas fa-arrow-right"></i></a>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-7">
-                        <div class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition">
-                            <div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600"></i></div>
-                            <div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Iuran Konsumsi & Pondok →</span></div>
-                        </div>
-                        <div class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition">
-                            <div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600"></i></div>
-                            <div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori keuangan →</span></div>
-                        </div>
-                        <div class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition">
-                            <div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600"></i></div>
+                        <a href="bku.html?jenis=konsumsi" class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition block group">
+                            <div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600 group-hover:scale-105 transition"></i></div>
+                            <div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Lihat →</span></div>
+                        </a>
+                        <a href="riwayat.html?jenis=konsumsi" class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition block group">
+                            <div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600 group-hover:scale-105 transition"></i></div>
+                            <div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori →</span></div>
+                        </a>
+                        <a href="laporanpersantri.html?jenis=konsumsi" class="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition block group">
+                            <div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600 group-hover:scale-105 transition"></i></div>
                             <div class="p-5"><h3 class="font-bold text-lg">Laporan per Santri</h3><p class="text-gray-500 text-sm mt-1">Tagihan iuran per individu, tunggakan, dan riwayat pembayaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cetak slip →</span></div>
-                        </div>
+                        </a>
                     </div>
                 </div>
             </section>
 
+            <!-- Kata Bijak Keuangan (Slider Otomatis) -->
             <section class="py-16 bg-emerald-50/40">
                 <div class="container mx-auto px-5 md:px-8">
-                    <div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💬 Testimoni Wali Santri & Pengurus</h2><p class="text-gray-600">Aplikasi memudahkan transparansi iuran pondok</p></div>
+                    <div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💡 Kata Bijak Keuangan Berkah</h2><p class="text-gray-600">Nasihat penuh keberkahan untuk mengelola harta</p></div>
                     <div class="testimonial-slider-container max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative">
                         <div class="overflow-hidden">
-                            <div id="testimonialTrack" class="testimonial-track flex flex-nowrap"></div>
+                            <div id="wisdomTrack" class="testimonial-track flex flex-nowrap">
+                                <!-- Kata bijak akan diisi JS -->
+                            </div>
                         </div>
-                        <button id="prevBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-emerald-100 transition"><i class="fas fa-chevron-left text-emerald-600"></i></button>
-                        <button id="nextBtn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-emerald-100 transition"><i class="fas fa-chevron-right text-emerald-600"></i></button>
-                        <div class="flex justify-center gap-2 mt-6" id="testiDots"></div>
+                        <div class="flex justify-center gap-2 mt-6" id="wisdomDots"></div>
                     </div>
                 </div>
             </section>
@@ -233,7 +232,6 @@
     </div>
 
     <script>
-        // Firebase Config (sama seperti sebelumnya)
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -245,7 +243,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ---------- LOGIN FUNCTIONALITY ----------
+        // ---------- LOGIN ----------
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
@@ -254,13 +252,11 @@
         const CORRECT_PASSWORD = "270909";
 
         function checkLoginStatus() {
-            const isLoggedIn = sessionStorage.getItem('pesantren_logged_in');
-            if (isLoggedIn === 'true') {
+            if (sessionStorage.getItem('pesantren_logged_in') === 'true') {
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
-                loadSantriCount();
-                loadIuranStats();
-                renderTestimonials();
+                loadAllStats();
+                loadWisdomSlider();
                 attachMobileMenu();
             } else {
                 loginModal.style.display = 'flex';
@@ -274,9 +270,8 @@
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
                 loginError.classList.add('hidden');
-                loadSantriCount();
-                loadIuranStats();
-                renderTestimonials();
+                loadAllStats();
+                loadWisdomSlider();
                 attachMobileMenu();
             } else {
                 loginError.classList.remove('hidden');
@@ -284,108 +279,134 @@
                 passwordInput.focus();
             }
         }
-
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
+        // ---------- FORMAT RUPIAH (tanpa huruf) ----------
         function formatRupiah(angka) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-        }
-
-        async function loadSantriCount() {
-            try {
-                const snapshot = await db.collection('santri').get();
-                document.getElementById('totalSantriCount').innerText = snapshot.size;
-            } catch (error) {
-                console.warn("Gagal load santri:", error);
-                document.getElementById('totalSantriCount').innerText = "24";
+            if (!angka && angka !== 0) return '0';
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
             }
+            return result;
         }
 
-        async function loadIuranStats() {
+        // ---------- STATISTIK & SALDO AKHIR ----------
+        async function loadAllStats() {
             try {
-                const transaksiSnapshot = await db.collection('transaksi').where('tipe', 'in', ['pemasukan', 'Pemasukan']).get();
-                let konsumsiTotal = 0, pondokTotal = 0, thisMonthTotal = 0;
-                const now = new Date();
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                if (!transaksiSnapshot.empty) {
-                    transaksiSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        const nominal = data.nominal || data.jumlah || 0;
-                        const jenis = (data.jenis_iuran || data.kategori || '').toLowerCase();
-                        const tgl = data.tanggal?.toDate ? data.tanggal.toDate() : (data.tanggal ? new Date(data.tanggal) : null);
-                        if (jenis.includes('konsumsi')) konsumsiTotal += nominal;
-                        else if (jenis.includes('pondok')) pondokTotal += nominal;
-                        if (tgl && tgl >= startOfMonth) thisMonthTotal += nominal;
-                    });
-                } else {
-                    const konsumsiRef = await db.collection('iuran_konsumsi').get();
-                    konsumsiRef.forEach(doc => { konsumsiTotal += (doc.data().nominal || doc.data().jumlah || 0); });
-                    const pondokRef = await db.collection('iuran_pondok').get();
-                    pondokRef.forEach(doc => { pondokTotal += (doc.data().nominal || doc.data().jumlah || 0); });
-                    thisMonthTotal = konsumsiTotal + pondokTotal;
-                }
-                document.getElementById('totalKonsumsi').innerHTML = formatRupiah(konsumsiTotal);
-                document.getElementById('totalPondok').innerHTML = formatRupiah(pondokTotal);
-                document.getElementById('bulanIniTotal').innerHTML = formatRupiah(thisMonthTotal || (konsumsiTotal+pondokTotal));
+                // Total Santri
+                const santriSnap = await db.collection('santri').get();
+                document.getElementById('totalSantriCount').innerText = santriSnap.size;
+
+                // Ambil semua transaksi (tanpa filter jenis_iuran) untuk hitung saldo
+                const transSnap = await db.collection('transaksi').get();
+                let totalPemasukanKonsumsi = 0;
+                let totalPemasukanPondok = 0;
+                let totalPemasukan = 0;
+                let totalPengeluaran = 0;
+
+                transSnap.forEach(doc => {
+                    const data = doc.data();
+                    const jenisIuran = data.jenis_iuran || 'konsumsi';
+                    const tipe = data.tipe || (data.pemasukan > 0 ? 'pemasukan' : 'pengeluaran');
+                    const nominal = data.pemasukan || data.pengeluaran || 0;
+                    if (tipe === 'pemasukan' || tipe === 'Pemasukan') {
+                        totalPemasukan += nominal;
+                        if (jenisIuran === 'konsumsi') totalPemasukanKonsumsi += nominal;
+                        else if (jenisIuran === 'pondok') totalPemasukanPondok += nominal;
+                    } else if (tipe === 'pengeluaran' || tipe === 'Pengeluaran') {
+                        totalPengeluaran += nominal;
+                    }
+                });
+
+                document.getElementById('totalKonsumsi').innerHTML = formatRupiah(totalPemasukanKonsumsi);
+                document.getElementById('totalPondok').innerHTML = formatRupiah(totalPemasukanPondok);
+                const saldoAkhir = totalPemasukan - totalPengeluaran;
+                document.getElementById('saldoAkhir').innerHTML = formatRupiah(saldoAkhir);
             } catch (err) {
                 console.error(err);
-                document.getElementById('totalKonsumsi').innerHTML = formatRupiah(12500000);
-                document.getElementById('totalPondok').innerHTML = formatRupiah(18750000);
-                document.getElementById('bulanIniTotal').innerHTML = formatRupiah(31250000);
+                document.getElementById('totalSantriCount').innerText = "0";
+                document.getElementById('totalKonsumsi').innerHTML = "0";
+                document.getElementById('totalPondok').innerHTML = "0";
+                document.getElementById('saldoAkhir').innerHTML = "0";
             }
         }
 
-        const testimonials = [
-            { name: "Ustadz Abdul Hamid", role: "Pengurus Pondok", text: "Dengan aplikasi ini, pencatatan iuran konsumsi dan pondok jadi lebih rapi. Semua transaksi tercatat realtime dan mudah diaudit." },
-            { name: "Ibu Siti Khoiriyah", role: "Wali Santri", text: "Sekarang saya bisa memantau langsung iuran putra saya. Transparansi benar-benar terjaga, terima kasih Pondok Nurmilad." },
-            { name: "Santri Muhammad Rizki", role: "Ketua OSIS", text: "Fitur laporan per santri membantu kami mengecek tunggakan. Sistem keuangan digital ini keren!" },
-            { name: "Ustadzah Laila", role: "Bendahara", text: "Input transaksi cepat dan riwayat jelas. Laporan bulanan (BKU) dapat dihasilkan dalam hitungan detik." }
+        // ---------- KATA BIJAK OTOMATIS (tanpa tombol panah) ----------
+        const wisdomList = [
+            "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
+            "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
+            "Catat setiap pemasukan dan pengeluaran, karena itulah kunci keberkahan keuangan.",
+            "Jangan menunda membayar hutang, karena itu memberatkan diri sendiri dan orang lain.",
+            "Rezeki yang berkah adalah rezeki yang dibelanjakan di jalan Allah.",
+            "Bijak dalam berbelanja, hemat bukan berarti pelit.",
+            "Sisihkan sebagian harta untuk infak, niscaya Allah ganti dengan yang lebih baik."
         ];
-        let currentIdx = 0;
-        const track = document.getElementById('testimonialTrack');
-        const dotsContainer = document.getElementById('testiDots');
+        let currentWisdomIdx = 0;
+        let wisdomInterval;
+        const wisdomTrack = document.getElementById('wisdomTrack');
+        const wisdomDots = document.getElementById('wisdomDots');
 
-        function renderTestimonials() {
-            if (!track) return;
-            track.innerHTML = '';
-            testimonials.forEach((t) => {
+        function loadWisdomSlider() {
+            if (!wisdomTrack) return;
+            wisdomTrack.innerHTML = '';
+            wisdomDots.innerHTML = '';
+            // Buat slide
+            wisdomList.forEach((text, i) => {
                 const div = document.createElement('div');
-                div.className = 'w-full flex-shrink-0 px-2';
-                div.innerHTML = `<div class="text-center flex flex-col items-center"><i class="fas fa-quote-left text-emerald-300 text-3xl mb-4"></i><p class="text-gray-600 italic text-md md:text-lg">"${t.text}"</p><div class="mt-6"><p class="font-bold text-gray-800">${t.name}</p><p class="text-sm text-emerald-500">${t.role}</p></div></div>`;
-                track.appendChild(div);
-            });
-            updateSliderPosition();
-            createDots();
-        }
-        function updateSliderPosition() {
-            if (track) track.style.transform = `translateX(-${currentIdx * 100}%)`;
-            if (dotsContainer) {
-                const dots = dotsContainer.querySelectorAll('.dot');
-                dots.forEach((dot, i) => {
-                    if (i === currentIdx) { dot.classList.add('bg-emerald-600', 'w-6'); dot.classList.remove('bg-gray-300'); }
-                    else { dot.classList.remove('bg-emerald-600', 'w-6'); dot.classList.add('bg-gray-300'); }
-                });
-            }
-        }
-        function createDots() {
-            dotsContainer.innerHTML = '';
-            testimonials.forEach((_, i) => {
+                div.className = 'w-full flex-shrink-0 px-2 text-center';
+                div.innerHTML = `<div class="flex flex-col items-center"><i class="fas fa-quote-right text-emerald-300 text-3xl mb-4"></i><p class="text-gray-700 italic text-md md:text-lg">"${text}"</p><div class="mt-4 text-emerald-600 text-sm font-medium">— Pesantren Nurmilad —</div></div>`;
+                wisdomTrack.appendChild(div);
                 const dot = document.createElement('button');
-                dot.className = `dot h-2 rounded-full transition-all duration-200 ${i === currentIdx ? 'bg-emerald-600 w-6' : 'bg-gray-300 w-2'} mx-1`;
-                dot.addEventListener('click', () => { currentIdx = i; updateSliderPosition(); });
-                dotsContainer.appendChild(dot);
+                dot.className = `dot h-2 rounded-full transition-all duration-200 ${i === 0 ? 'bg-emerald-600 w-6' : 'bg-gray-300 w-2'} mx-1`;
+                dot.addEventListener('click', () => {
+                    currentWisdomIdx = i;
+                    updateWisdomSlider();
+                    resetWisdomInterval();
+                });
+                wisdomDots.appendChild(dot);
+            });
+            updateWisdomSlider();
+            startWisdomInterval();
+        }
+
+        function updateWisdomSlider() {
+            if (wisdomTrack) wisdomTrack.style.transform = `translateX(-${currentWisdomIdx * 100}%)`;
+            const dots = document.querySelectorAll('#wisdomDots .dot');
+            dots.forEach((dot, i) => {
+                if (i === currentWisdomIdx) {
+                    dot.classList.add('bg-emerald-600', 'w-6');
+                    dot.classList.remove('bg-gray-300', 'w-2');
+                } else {
+                    dot.classList.remove('bg-emerald-600', 'w-6');
+                    dot.classList.add('bg-gray-300', 'w-2');
+                }
             });
         }
+
+        function startWisdomInterval() {
+            if (wisdomInterval) clearInterval(wisdomInterval);
+            wisdomInterval = setInterval(() => {
+                currentWisdomIdx = (currentWisdomIdx + 1) % wisdomList.length;
+                updateWisdomSlider();
+            }, 5000);
+        }
+
+        function resetWisdomInterval() {
+            if (wisdomInterval) clearInterval(wisdomInterval);
+            startWisdomInterval();
+        }
+
         function attachMobileMenu() {
             const mobileBtn = document.getElementById('mobileMenuBtn');
             const mobilePanel = document.getElementById('mobileMenuPanel');
-            if(mobileBtn && mobilePanel) {
+            if (mobileBtn && mobilePanel) {
                 mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden');
             }
         }
-        document.getElementById('prevBtn')?.addEventListener('click', () => { currentIdx = (currentIdx - 1 + testimonials.length) % testimonials.length; updateSliderPosition(); });
-        document.getElementById('nextBtn')?.addEventListener('click', () => { currentIdx = (currentIdx + 1) % testimonials.length; updateSliderPosition(); });
 
         checkLoginStatus();
     </script>
