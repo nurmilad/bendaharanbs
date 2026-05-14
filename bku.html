@@ -41,6 +41,13 @@
             background-color: #f1f5f9;
             font-weight: 600;
         }
+
+        /* Sembunyikan header & footer cetak saat di layar */
+        .print-header, .print-footer {
+            display: none;
+        }
+
+        /* Tampilkan hanya saat print */
         @media print {
             body * {
                 visibility: hidden;
@@ -54,16 +61,31 @@
                 left: 0;
                 width: 100%;
                 margin: 0;
-                padding: 0;
+                padding: 20px;
             }
             .no-print {
                 display: none;
             }
-            button, .filter-panel {
-                display: none;
+            .print-header, .print-footer {
+                display: block;
             }
             table {
                 font-size: 10pt;
+            }
+            .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .print-footer {
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-between;
+            }
+            .ttd-line {
+                border-top: 1px solid black;
+                width: 200px;
+                margin-top: 30px;
+                text-align: center;
             }
         }
         .toast {
@@ -118,8 +140,16 @@
             <button id="tampilkanBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Tampilkan</button>
         </div>
 
-        <!-- Tabel BKU (area print) -->
+        <!-- Area Cetak (tabel + header/footer) -->
         <div class="print-area bg-white rounded-xl shadow overflow-hidden">
+            <!-- Header Cetak (hanya muncul saat print) -->
+            <div class="print-header">
+                <h2 style="font-size: 1.2rem; font-weight: bold;">BUKU KAS UMUM</h2>
+                <h3 id="printJenisIuran" style="font-size: 1rem; font-weight: 600;"></h3>
+                <p style="font-weight: 500;">PONDOK PESANTREN NURMILAD</p>
+                <p id="printBulanTahun" style="margin-top: 5px;"></p>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="bku-table" id="bkuTable">
                     <thead>
@@ -129,6 +159,15 @@
                         <tr><td colspan="5" class="text-center py-10">Memuat data...</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Footer Cetak (hanya muncul saat print) -->
+            <div class="print-footer">
+                <div>
+                    <p>Lempong, <span id="printTanggalLaporan"></span></p>
+                    <p>Bendahara</p>
+                    <div class="ttd-line"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -147,13 +186,13 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Ambil parameter jenis (konsumsi/pondok)
         const urlParams = new URLSearchParams(window.location.search);
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
-        document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum - Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
+        const jenisIuranText = jenis === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
+        document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum - ${jenisIuranText}`;
         document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
+        document.getElementById('printJenisIuran').innerText = jenisIuranText;
 
-        // Dropdown tahun (2009 - 2045)
         const tahunSelect = document.getElementById('tahunSelect');
         const currentYear = new Date().getFullYear();
         for (let y = 2009; y <= 2045; y++) {
@@ -166,18 +205,13 @@
 
         let allTransactions = [];
 
-        // Helper: konversi tanggal dari Firestore (timestamp atau string)
         function parseDate(tanggalField) {
             if (!tanggalField) return '';
             if (typeof tanggalField === 'string') return tanggalField;
-            if (tanggalField.toDate) {
-                const d = tanggalField.toDate();
-                return d.toISOString().slice(0,10);
-            }
+            if (tanggalField.toDate) return tanggalField.toDate().toISOString().slice(0,10);
             return '';
         }
 
-        // Ambil semua transaksi dari collection 'transaksi' (tanpa filter/order, kita filter manual)
         async function loadAllTransactions() {
             try {
                 const snapshot = await db.collection('transaksi').get();
@@ -187,22 +221,16 @@
                     let tgl = parseDate(data.tanggal);
                     if (!tgl) return;
                     const transJenis = data.jenis_iuran || '';
-                    // Hanya ambil transaksi dengan jenis yang sesuai (atau kosong? kita asumsikan konsumsi jika kosong)
                     if (transJenis && transJenis !== jenis) return;
-                    // Jika transaksi lama tidak punya field jenis_iuran, kita tampilkan sebagai milik konsumsi? 
-                    // Agar tidak hilang, kita ambil semua dan nanti bisa difilter manual. Tapi lebih aman ambil semua
-                    // Karena di riwayat.html juga sudah ada filter manual, kita akan ambil semua transaksi yang tidak memiliki jenis_iuran atau sesuai.
                     if (transJenis === '' || transJenis === jenis) {
                         trans.push({
                             tanggal: tgl,
                             uraian: data.uraian || '',
                             pemasukan: data.pemasukan || 0,
                             pengeluaran: data.pengeluaran || 0,
-                            jenis_iuran: transJenis || 'konsumsi' // default
                         });
                     }
                 });
-                // Urutkan berdasarkan tanggal ascending
                 trans.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
                 allTransactions = trans;
                 console.log(`Loaded ${allTransactions.length} transaksi`);
@@ -212,7 +240,6 @@
             }
         }
 
-        // Format angka ke rupiah tanpa huruf Rp
         function formatRupiah(angka) {
             if (angka === undefined || angka === null) return '0';
             let str = Math.floor(angka).toString();
@@ -224,20 +251,15 @@
             return result;
         }
 
-        // Hitung saldo kumulatif hingga batas tanggal (tidak termasuk tanggal tersebut untuk saldo awal)
         function getSaldoSebelum(batasTanggal) {
             let saldo = 0;
             for (const t of allTransactions) {
-                if (t.tanggal < batasTanggal) {
-                    saldo += (t.pemasukan - t.pengeluaran);
-                } else {
-                    break;
-                }
+                if (t.tanggal < batasTanggal) saldo += (t.pemasukan - t.pengeluaran);
+                else break;
             }
             return saldo;
         }
 
-        // Render tabel BKU
         function renderBKU(tahun, bulan) {
             const tbody = document.getElementById('tableBody');
             if (!allTransactions.length) {
@@ -249,7 +271,6 @@
             const lastDay = new Date(tahun, bulan, 0).getDate();
             const endDate = `${tahun}-${String(bulan).padStart(2,'0')}-${lastDay}`;
 
-            // Filter transaksi dalam bulan ini (berdasarkan tanggal)
             const transBulanIni = allTransactions.filter(t => t.tanggal >= startDate && t.tanggal <= endDate);
             const saldoAwal = getSaldoSebelum(startDate);
             let saldoBerjalan = saldoAwal;
@@ -271,12 +292,10 @@
                     html += `<td>${escapeHtml(tr.uraian)}</td>`;
                     html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}</td>`;
                     html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}</td>`;
-                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td>`;
-                    html += `</tr>`;
+                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
                 }
             }
 
-            // Total pemasukan/pengeluaran bulan ini
             const totalMasuk = transBulanIni.reduce((sum, t) => sum + t.pemasukan, 0);
             const totalKeluar = transBulanIni.reduce((sum, t) => sum + t.pengeluaran, 0);
             html += `<tr class="total-row">`;
@@ -286,6 +305,18 @@
             html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
 
             tbody.innerHTML = html;
+
+            // Update informasi cetak (bulan/tahun dan tanggal laporan)
+            const bulanNama = getNamaBulan(bulan);
+            document.getElementById('printBulanTahun').innerHTML = `Bulan : ${bulanNama} ${tahun}`;
+            const tglLaporan = new Date(tahun, bulan, 0); // hari terakhir bulan
+            const tglStr = `${tglLaporan.getDate()} ${getNamaBulan(tglLaporan.getMonth()+1)} ${tglLaporan.getFullYear()}`;
+            document.getElementById('printTanggalLaporan').innerText = tglStr;
+        }
+
+        function getNamaBulan(bln) {
+            const nama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            return nama[bln-1];
         }
 
         function escapeHtml(str) {
@@ -309,13 +340,10 @@
         async function tampilkan() {
             const bulan = parseInt(document.getElementById('bulanSelect').value);
             const tahun = parseInt(document.getElementById('tahunSelect').value);
-            if (allTransactions.length === 0) {
-                await loadAllTransactions();
-            }
+            if (allTransactions.length === 0) await loadAllTransactions();
             renderBKU(tahun, bulan);
         }
 
-        // Event listeners
         document.getElementById('cetakBtn').addEventListener('click', () => window.print());
         document.getElementById('tampilkanBtn').addEventListener('click', tampilkan);
 
