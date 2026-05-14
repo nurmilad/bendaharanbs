@@ -9,81 +9,123 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Sticky header dan kolom */
+        /* Container untuk scroll horizontal */
         .table-container {
             overflow-x: auto;
             max-width: 100%;
-            position: relative;
+            border-radius: 12px;
         }
+        
+        /* Tabel utama */
         .iuran-table {
+            width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            min-width: 2000px; /* agar scroll horizontal terasa */
+            font-size: 0.8rem;
+            min-width: 2200px;
         }
-        .iuran-table th, .iuran-table td {
+        
+        /* Sel tabel */
+        .iuran-table th, 
+        .iuran-table td {
             border-bottom: 1px solid #e5e7eb;
             border-right: 1px solid #f0f0f0;
-            padding: 8px 12px;
-            text-align: left;
+            padding: 10px 8px;
             white-space: nowrap;
+            background-color: white;
         }
-        /* Sticky header */
+        
+        /* Header sticky */
         .iuran-table thead th {
             position: sticky;
             top: 0;
-            background-color: #f9fafb;
-            z-index: 20;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            background-color: #f8fafc;
+            z-index: 30;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
         }
-        /* Sticky kolom pertama (NO) */
+        
+        /* Sticky kolom NO */
         .iuran-table th:first-child,
         .iuran-table td:first-child {
             position: sticky;
             left: 0;
             background-color: white;
-            z-index: 10;
+            z-index: 20;
+            width: 60px;
         }
-        /* Sticky kolom kedua (ANGK) */
+        
+        /* Sticky kolom ANGK */
         .iuran-table th:nth-child(2),
         .iuran-table td:nth-child(2) {
             position: sticky;
-            left: 80px; /* lebar perkiraan kolom NO */
+            left: 60px;
             background-color: white;
-            z-index: 10;
+            z-index: 20;
+            width: 70px;
         }
-        /* Sticky kolom ketiga (NIS NAMA) */
+        
+        /* Sticky kolom NIS | NAMA */
         .iuran-table th:nth-child(3),
         .iuran-table td:nth-child(3) {
             position: sticky;
-            left: 180px; /* akumulasi lebar NO + ANGK */
+            left: 130px;
             background-color: white;
-            z-index: 10;
+            z-index: 20;
+            min-width: 150px;
         }
-        /* Agar shadow pada sticky */
-        .iuran-table td:first-child,
-        .iuran-table td:nth-child(2),
-        .iuran-table td:nth-child(3) {
-            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.05);
+        
+        /* Shadow efek pada sticky */
+        .iuran-table td:first-child::after,
+        .iuran-table td:nth-child(2)::after,
+        .iuran-table td:nth-child(3)::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -4px;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to right, rgba(0,0,0,0.08), transparent);
+            pointer-events: none;
         }
-        input.iuran-input {
+        
+        /* Header sticky juga dapat shadow */
+        .iuran-table th:first-child,
+        .iuran-table th:nth-child(2),
+        .iuran-table th:nth-child(3) {
+            background-color: #f8fafc;
+        }
+        
+        /* Input number style */
+        .iuran-input {
             width: 80px;
-            padding: 4px 6px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
             text-align: right;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            transition: all 0.2s;
         }
-        input.iuran-input:focus {
+        
+        .iuran-input:focus {
             outline: none;
             border-color: #10b981;
-            ring: 2px solid #10b981;
+            box-shadow: 0 0 0 2px rgba(16,185,129,0.2);
         }
+        
         .toast-notif {
             animation: fadeInUp 0.3s ease forwards;
         }
+        
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -102,10 +144,10 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <button id="simpanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2">
+                <button id="simpanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 text-sm">
                     <i class="fas fa-save"></i> Simpan Semua
                 </button>
-                <button id="pasteExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2">
+                <button id="pasteExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 text-sm">
                     <i class="fas fa-paste"></i> Tempel Excel
                 </button>
             </div>
@@ -120,19 +162,16 @@
         </div>
 
         <!-- Tabel Iuran -->
-        <div class="table-container bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-            <table class="iuran-table w-full" id="iuranTable">
-                <thead id="tableHeader">
-                    <!-- Header akan diisi JS -->
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Baris akan diisi JS -->
-                </tbody>
+        <div class="table-container bg-white rounded-xl shadow-lg border border-gray-100">
+            <table class="iuran-table" id="iuranTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
             </table>
         </div>
+        
         <div class="mt-4 text-xs text-gray-400 text-center">
             <i class="fas fa-info-circle"></i> Klik pada sel untuk edit. Nilai dalam ribuan (contoh: 450 = Rp 450.000).<br>
-            Gunakan fitur Tempel Excel untuk copy-paste banyak data sekaligus.
+            Scroll horizontal untuk melihat semua bulan. Kolom NO, ANGK, dan NIS | NAMA tetap terlihat.
         </div>
     </main>
 
@@ -144,11 +183,11 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-5">
-                <p class="text-sm text-gray-600 mb-2">Salin data dari Excel (termasuk header atau tanpa header) dengan urutan kolom sesuai tabel: <strong>Nama Santri (opsional), diikuti nilai iuran per bulan sesuai urutan kolom bulan.</strong> <br> Lebih mudah: salin hanya blok angka dari Excel (mulai dari kolom pertama bulan). Pastikan jumlah kolom sesuai dengan jumlah bulan (72 kolom).</p>
-                <textarea id="pasteData" rows="10" class="w-full border rounded-xl p-3 font-mono text-sm" placeholder="Tempel data di sini...&#10;Contoh (baris per santri, nilai dipisah TAB atau spasi):&#10;250	300	275	... (72 angka)"></textarea>
+                <p class="text-sm text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri di tabel. Pisahkan dengan TAB atau spasi.</p>
+                <textarea id="pasteData" rows="8" class="w-full border rounded-xl p-3 font-mono text-sm" placeholder="Tempel data di sini...&#10;Contoh (satu baris per santri, 72 angka):&#10;250 300 275 280 ..."></textarea>
                 <div class="flex justify-end gap-3 mt-5">
-                    <button id="cancelPasteBtn" class="px-4 py-2 border rounded-lg">Batal</button>
-                    <button id="processPasteBtn" class="px-5 py-2 bg-emerald-600 text-white rounded-lg shadow">Terapkan ke Tabel</button>
+                    <button id="cancelPasteBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
+                    <button id="processPasteBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition">Terapkan ke Tabel</button>
                 </div>
             </div>
         </div>
@@ -183,8 +222,6 @@
         document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas pondok'} per bulan (dalam ribuan Rp)`;
 
         // ======================= GENERATE BULAN (JUL (7) s.d JUN (12)) =======================
-        // Kita buat label bulan sesuai permintaan: JUL (7), AGU (7), ..., JUN (7), lalu JUL (8), ..., JUN (12)
-        // Total 6 tahun * 12 = 72 bulan
         const bulanLabels = [];
         for (let tahun = 7; tahun <= 12; tahun++) {
             const bln = ['JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN'];
@@ -194,9 +231,8 @@
         }
         const totalBulan = bulanLabels.length; // 72
 
-        // State: daftar santri dan data iuran per santri
-        let santriList = []; // { id, angkatan, nis, nama, iuranData: array panjang totalBulan (nilai dalam rupiah penuh) }
-        let originalData = []; // untuk cek perubahan
+        // State
+        let santriList = [];
 
         // DOM elements
         const tbody = document.getElementById('tableBody');
@@ -221,21 +257,14 @@
             return Math.round(nominal / 1000).toString();
         }
 
-        // Dari ribuan ke nominal penuh
-        function fromRibuan(ribuan) {
-            let val = parseInt(ribuan);
-            if (isNaN(val)) return 0;
-            return val * 1000;
-        }
-
         // Render header tabel
         function renderHeader() {
             let html = '<tr>';
-            html += '<th class="bg-gray-50 font-semibold text-sm">NO</th>';
-            html += '<th class="bg-gray-50 font-semibold text-sm">ANGK</th>';
-            html += '<th class="bg-gray-50 font-semibold text-sm">NIS | NAMA</th>';
+            html += '<th class="text-center">NO</th>';
+            html += '<th class="text-center">ANGK</th>';
+            html += '<th>NIS | NAMA</th>';
             for (let bln of bulanLabels) {
-                html += `<th class="bg-gray-50 font-semibold text-sm min-w-[80px]">${bln}</th>`;
+                html += `<th class="text-center text-xs">${bln}</th>`;
             }
             html += '</tr>';
             thead.innerHTML = html;
@@ -248,19 +277,20 @@
                 tbody.innerHTML = '<tr><td colspan="' + (3 + totalBulan) + '" class="text-center py-10 text-gray-400">Belum ada data santri. Silakan tambah santri di halaman Data Santri.</td></tr>';
                 return;
             }
+            
             let html = '';
             santriList.forEach((santri, idx) => {
                 const no = idx + 1;
                 const nisNama = `${santri.nis} | ${santri.nama}`;
-                html += `<tr data-id="${santri.id}" data-index="${idx}">`;
-                html += `<td class="font-medium">${no}</td>`;
-                html += `<td>${santri.angkatan || ''}</td>`;
+                html += `<tr>`;
+                html += `<td class="text-center font-medium">${no}</td>`;
+                html += `<td class="text-center">${santri.angkatan || ''}</td>`;
                 html += `<td class="whitespace-nowrap">${nisNama}</td>`;
-                // Kolom iuran
+                
                 for (let b = 0; b < totalBulan; b++) {
                     const nilai = santri.iuranData && santri.iuranData[b] ? santri.iuranData[b] : 0;
                     const tampil = toRibuan(nilai);
-                    html += `<td><input type="text" class="iuran-input text-right" data-santri-idx="${idx}" data-bulan="${b}" value="${tampil}" placeholder="0"></td>`;
+                    html += `<td class="text-center p-1"><input type="text" class="iuran-input" data-santri-idx="${idx}" data-bulan="${b}" value="${tampil}" placeholder="0"></td>`;
                 }
                 html += `</tr>`;
             });
@@ -281,11 +311,11 @@
             });
         }
 
-        // Load data santri dari Firebase, dan load iuran masing-masing
+        // Load data santri dari Firebase
         async function loadAllData() {
             loadingIndicator.classList.remove('hidden');
             try {
-                // 1. Ambil semua santri (tanpa order, nanti urutkan berdasarkan noUrut atau createdAt)
+                // 1. Ambil semua santri
                 const santriSnapshot = await db.collection('santri').get();
                 const santriTemp = [];
                 santriSnapshot.forEach(doc => {
@@ -295,26 +325,19 @@
                         angkatan: data.angkatan || '',
                         nis: data.nis || '',
                         nama: data.nama || '',
-                        noUrut: data.noUrut || 0,
-                        createdAt: data.createdAt || null
+                        noUrut: data.noUrut || 0
                     });
                 });
-                // Urutkan berdasarkan noUrut (jika ada) lalu createdAt
-                santriTemp.sort((a, b) => {
-                    if (a.noUrut && b.noUrut) return a.noUrut - b.noUrut;
-                    if (a.noUrut) return -1;
-                    if (b.noUrut) return 1;
-                    return 0;
-                });
+                // Urutkan berdasarkan noUrut
+                santriTemp.sort((a, b) => a.noUrut - b.noUrut);
 
-                // 2. Ambil data iuran dari collection iuran (konsumsi/pondok)
+                // 2. Ambil data iuran
                 const iuranSnapshot = await db.collection(collectionName).get();
-                const iuranMap = new Map(); // key: santriId, value: array iuran per bulan (panjang totalBulan)
+                const iuranMap = new Map();
                 iuranSnapshot.forEach(doc => {
                     const data = doc.data();
                     const santriId = data.santriId;
                     if (santriId) {
-                        // Kita simpan dalam bentuk array untuk bulan-bulan
                         const iuranArray = new Array(totalBulan).fill(0);
                         for (let i = 0; i < totalBulan; i++) {
                             const key = `bulan_${i}`;
@@ -325,11 +348,11 @@
                 });
 
                 // Gabungkan
-                santriList = santriTemp.map(s => {
-                    const iuranData = iuranMap.get(s.id) || new Array(totalBulan).fill(0);
-                    return { ...s, iuranData };
-                });
-                // Simpan salinan untuk deteksi perubahan (opsional)
+                santriList = santriTemp.map(s => ({
+                    ...s,
+                    iuranData: iuranMap.get(s.id) || new Array(totalBulan).fill(0)
+                }));
+                
                 renderHeader();
                 renderTable();
                 showToast(`Memuat ${santriList.length} santri dan data iuran ${jenis}`);
@@ -345,10 +368,8 @@
         async function simpanSemua() {
             loadingIndicator.classList.remove('hidden');
             try {
-                // Kita akan update atau create setiap dokumen iuran per santri
-                // Untuk efisiensi, kita loop satu per satu (tidak batch karena bisa banyak)
                 for (const santri of santriList) {
-                    const docRef = db.collection(collectionName).doc(santri.id); // gunakan id santri sebagai document id
+                    const docRef = db.collection(collectionName).doc(santri.id);
                     const data = { santriId: santri.id };
                     for (let i = 0; i < totalBulan; i++) {
                         data[`bulan_${i}`] = santri.iuranData[i] || 0;
@@ -368,24 +389,34 @@
         // ======================= FITUR COPY-PASTE EXCEL =======================
         const pasteModal = document.getElementById('pasteModal');
         const pasteDataText = document.getElementById('pasteData');
-        function openPasteModal() { pasteModal.classList.remove('hidden'); }
+        
+        function openPasteModal() { 
+            pasteDataText.value = '';
+            pasteModal.classList.remove('hidden'); 
+        }
         function closePasteModal() { pasteModal.classList.add('hidden'); }
 
         function processPaste() {
             const raw = pasteDataText.value;
-            if (!raw.trim()) { showToast("Tidak ada data", true); closePasteModal(); return; }
+            if (!raw.trim()) { 
+                showToast("Tidak ada data untuk ditempel", true); 
+                closePasteModal(); 
+                return; 
+            }
+            
             const lines = raw.split(/\r?\n/);
-            // Kita asumsikan setiap baris berisi angka untuk setiap bulan (totalBulan kolom) dipisah TAB atau spasi
-            // Baris ke-i mewakili santri ke-i (urutan sama dengan tabel saat ini)
             let rowIndex = 0;
+            let successCount = 0;
+            
             for (let line of lines) {
                 line = line.trim();
                 if (line === "") continue;
+                
                 // Pisahkan berdasarkan whitespace (tab atau spasi)
                 const parts = line.split(/\s+/);
                 if (parts.length >= totalBulan) {
                     if (rowIndex >= santriList.length) {
-                        showToast(`Data lebih banyak dari jumlah santri, kelebihan baris diabaikan`, true);
+                        showToast(`Data lebih banyak dari jumlah santri (${santriList.length}), kelebihan baris diabaikan`, true);
                         break;
                     }
                     for (let b = 0; b < totalBulan; b++) {
@@ -394,12 +425,16 @@
                         santriList[rowIndex].iuranData[b] = val * 1000;
                     }
                     rowIndex++;
+                    successCount++;
                 } else {
-                    showToast(`Baris ${rowIndex+1} jumlah angka kurang (butuh ${totalBulan})`, true);
+                    showToast(`Baris ${rowIndex+1} jumlah angka kurang (butuh ${totalBulan} kolom)`, true);
                 }
             }
-            renderTable();
-            showToast(`Berhasil menempel data untuk ${rowIndex} santri. Jangan lupa simpan.`);
+            
+            if (successCount > 0) {
+                renderTable();
+                showToast(`Berhasil menempel data untuk ${successCount} santri. Jangan lupa simpan.`);
+            }
             closePasteModal();
         }
 
