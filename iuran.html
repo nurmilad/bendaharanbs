@@ -124,7 +124,8 @@
     <header class="bg-white shadow-sm sticky top-0 z-40 border-b">
         <div class="px-4 md:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <a href="submenu.html" class="text-emerald-600 hover:text-emerald-700">
+                <!-- Tombol back dinamis dengan id="backLink" -->
+                <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700">
                     <i class="fas fa-arrow-left text-lg"></i>
                 </a>
                 <div>
@@ -199,6 +200,10 @@
         document.getElementById('pageTitle').innerHTML = `Iuran Bulanan - ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
         document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} - Auto save - Urut NIS`;
 
+        // === TOMBOL BACK DINAMIS ===
+        const backLink = document.getElementById('backLink');
+        backLink.href = `submenu.html?jenis=${jenis}`;
+
         const bulanLabels = [];
         for (let tahun = 7; tahun <= 12; tahun++) {
             const bln = ['JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN'];
@@ -259,7 +264,7 @@
 
         function renderTable() {
             if (!santriList.length) {
-                tbody.innerHTML = `<tr><td colspan="${3+totalBulan}" class="text-center py-8 text-gray-400">Belum ada data santri. Silakan tambah di Data Santri.‹td></tr>`;
+                tbody.innerHTML = `<td><td colspan="${3+totalBulan}" class="text-center py-8 text-gray-400">Belum ada data santri. Silakan tambah di Data Santri.‹td></tr>`;
                 return;
             }
             let html = '';
