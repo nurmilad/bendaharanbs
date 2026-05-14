@@ -4,56 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Data Santri - Pondok Pesantren Nurmilad</title>
-    <!-- Tailwind CSS + Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
-        /* Custom scrollbar untuk tabel */
-        .table-container::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
-        }
-        .table-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        input, .editable-cell {
-            transition: all 0.2s;
-        }
-        input:focus {
-            outline: none;
-            border-color: #10b981;
-            ring: 2px solid #10b981;
-        }
-        .toast-notif {
-            animation: fadeInUp 0.3s ease forwards;
-        }
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        input { transition: all 0.2s; }
+        input:focus { outline: none; border-color: #10b981; ring: 2px solid #10b981; }
+        .toast-notif { animation: fadeInUp 0.3s ease forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
 
-    <!-- Header dengan navigasi kembali -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
         <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -79,7 +47,6 @@
     </header>
 
     <main class="container mx-auto px-4 md:px-6 py-6 md:py-8">
-        <!-- Panel Aksi -->
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <div class="flex flex-wrap gap-2">
                 <button id="tambahBarisBtn" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm">
@@ -97,66 +64,41 @@
             </div>
         </div>
 
-        <!-- Tabel Data Santri (Scrollable) -->
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div class="table-container overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
-                        <tr>
-                            <th class="w-12 px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <input type="checkbox" id="selectAllCheckbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ANGK (Tahun)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAMA</th>
+                        <tr><th class="w-12 px-3 py-3 text-center"><input type="checkbox" id="selectAllCheckbox" class="rounded border-gray-300 text-emerald-600"></th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">NO</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">ANGK (Tahun)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">NIS</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">NAMA</th>
                         </tr>
                     </thead>
-                    <tbody id="santriTableBody" class="bg-white divide-y divide-gray-100">
-                        <!-- Baris akan diisi oleh JavaScript -->
-                    </tbody>
+                    <tbody id="santriTableBody"></tbody>
                 </table>
             </div>
-            <div id="loadingIndicator" class="hidden text-center py-4 bg-gray-50 text-emerald-600">
-                <i class="fas fa-spinner fa-pulse mr-2"></i> Memuat data...
-            </div>
-            <div id="emptyMessage" class="text-center py-8 text-gray-400 hidden">
-                <i class="fas fa-database text-3xl mb-2 block"></i> Belum ada data santri. Tambah baris atau tempel dari Excel.
-            </div>
+            <div id="loadingIndicator" class="hidden text-center py-4 bg-gray-50 text-emerald-600"><i class="fas fa-spinner fa-pulse mr-2"></i> Memuat data...</div>
+            <div id="emptyMessage" class="text-center py-8 text-gray-400 hidden"><i class="fas fa-database text-3xl mb-2 block"></i> Belum ada data santri.</div>
         </div>
-
-        <div class="mt-6 text-xs text-gray-400 text-center border-t pt-4">
-            <i class="fas fa-table me-1"></i> Kolom ANGK (contoh: 2015), NIS (contoh: 2526001), NAMA (contoh: AHMAD YUSUF). <br class="md:hidden"> Data tersimpan realtime ke Firebase.
-        </div>
+        <div class="mt-6 text-xs text-gray-400 text-center border-t pt-4"><i class="fas fa-table me-1"></i> Kolom ANGK (contoh: 2015), NIS (contoh: 2526001), NAMA (contoh: AHMAD YUSUF).</div>
     </main>
 
-    <!-- Modal Paste Excel -->
-    <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-all">
-        <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-2xl transform transition-all">
-            <div class="flex justify-between items-center border-b p-5">
-                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-table me-2 text-emerald-600"></i>Tempel Data dari Excel / Spreadsheet</h3>
-                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
-            </div>
+    <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b p-5"><h3 class="text-lg font-bold"><i class="fas fa-table me-2 text-emerald-600"></i>Tempel Data dari Excel</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button></div>
             <div class="p-5">
-                <p class="text-sm text-gray-600 mb-3">Salin baris dari Excel (tanpa header) dengan urutan kolom: <span class="font-semibold">ANGK, NIS, NAMA</span>. Contoh:</p>
+                <p class="text-sm text-gray-600 mb-3">Salin baris dari Excel (tanpa header) dengan urutan: <span class="font-semibold">ANGK, NIS, NAMA</span>. Contoh:</p>
                 <div class="bg-gray-100 p-2 rounded text-xs font-mono mb-4">2015	2526001	AHMAD YUSUF<br>2016	2526002	FATIMAH ZAHRA</div>
-                <textarea id="pasteDataText" rows="8" class="w-full border border-gray-300 rounded-xl p-3 font-mono text-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tempel data di sini...&#10;Setiap baris baru mewakili satu santri, kolom dipisah TAB atau spasi.&#10;Contoh:&#10;2015	2526001	AHMAD YUSUF&#10;2016	2526002	FATIMAH ZAHRA"></textarea>
-                <div class="flex justify-end gap-3 mt-5">
-                    <button id="cancelPasteBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
-                    <button id="processPasteBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition">Proses & Tambahkan</button>
-                </div>
+                <textarea id="pasteDataText" rows="8" class="w-full border rounded-xl p-3 font-mono text-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tempel data di sini..."></textarea>
+                <div class="flex justify-end gap-3 mt-5"><button id="cancelPasteBtn" class="px-4 py-2 border rounded-lg">Batal</button><button id="processPasteBtn" class="px-5 py-2 bg-emerald-600 text-white rounded-lg">Proses & Tambahkan</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notifikasi -->
-    <div id="toastMessage" class="fixed bottom-5 right-5 bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg z-50 hidden items-center gap-3 toast-notif">
-        <i class="fas fa-check-circle text-emerald-400"></i>
-        <span id="toastText">Pesan</span>
-    </div>
+    <div id="toastMessage" class="fixed bottom-5 right-5 bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg z-50 hidden items-center gap-3 toast-notif"><i class="fas fa-check-circle text-emerald-400"></i><span id="toastText">Pesan</span></div>
 
     <script>
-        // ----------------------------- Firebase Config -----------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -167,12 +109,11 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // State data santri (array of objects)
-        let santriList = []; // setiap item: { id: string (optional untuk sementara), angkatan, nis, nama, noUrut (tidak disimpan sementara) }
-        let selectedRows = new Set(); // simpan index baris yang dipilih
-        
-        // DOM Elements
+        let santriList = [];
+        let selectedRows = new Set();
+
         const tbody = document.getElementById('santriTableBody');
         const emptyMsg = document.getElementById('emptyMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -187,24 +128,16 @@
         const cancelPasteBtn = document.getElementById('cancelPasteBtn');
         const processPasteBtn = document.getElementById('processPasteBtn');
 
-        // Helper: Tampilkan toast
         function showToast(message, isError = false) {
             const toast = document.getElementById('toastMessage');
             const toastText = document.getElementById('toastText');
             const icon = toast.querySelector('i');
             toastText.innerText = message;
-            if (isError) {
-                icon.className = "fas fa-exclamation-circle text-red-400";
-            } else {
-                icon.className = "fas fa-check-circle text-emerald-400";
-            }
+            icon.className = isError ? "fas fa-exclamation-circle text-red-400" : "fas fa-check-circle text-emerald-400";
             toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
+            setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // Render tabel berdasarkan santriList (mengupdate DOM)
         function renderTable() {
             if (!tbody) return;
             if (santriList.length === 0) {
@@ -219,12 +152,11 @@
             santriList.forEach((santri, idx) => {
                 const row = tbody.insertRow();
                 row.setAttribute('data-index', idx);
-                // Checkbox cell
                 const chkCell = row.insertCell(0);
                 chkCell.className = "px-3 py-2 text-center";
                 const chk = document.createElement('input');
                 chk.type = 'checkbox';
-                chk.className = 'row-checkbox rounded border-gray-300 text-emerald-600 focus:ring-emerald-500';
+                chk.className = 'row-checkbox rounded border-gray-300';
                 chk.checked = selectedRows.has(idx);
                 chk.addEventListener('change', (e) => {
                     if (e.target.checked) selectedRows.add(idx);
@@ -232,182 +164,124 @@
                     updateSelectAllState();
                 });
                 chkCell.appendChild(chk);
-                
-                // NO (auto number)
                 const noCell = row.insertCell(1);
-                noCell.className = "px-4 py-2 text-sm text-gray-700 font-medium";
+                noCell.className = "px-4 py-2 text-sm font-medium";
                 noCell.innerText = idx + 1;
-                
-                // ANGK (input)
                 const angkCell = row.insertCell(2);
                 angkCell.className = "px-4 py-2";
                 const angkInput = document.createElement('input');
                 angkInput.type = 'text';
                 angkInput.value = santri.angkatan || '';
                 angkInput.placeholder = 'Tahun (2015)';
-                angkInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200";
+                angkInput.className = "w-full border rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
                 angkInput.addEventListener('change', (e) => { santriList[idx].angkatan = e.target.value; });
                 angkCell.appendChild(angkInput);
-                
-                // NIS (input)
                 const nisCell = row.insertCell(3);
                 nisCell.className = "px-4 py-2";
                 const nisInput = document.createElement('input');
                 nisInput.type = 'text';
                 nisInput.value = santri.nis || '';
                 nisInput.placeholder = 'NIS (2526001)';
-                nisInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200";
+                nisInput.className = "w-full border rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
                 nisInput.addEventListener('change', (e) => { santriList[idx].nis = e.target.value; });
                 nisCell.appendChild(nisInput);
-                
-                // NAMA (input)
                 const namaCell = row.insertCell(4);
                 namaCell.className = "px-4 py-2";
                 const namaInput = document.createElement('input');
                 namaInput.type = 'text';
                 namaInput.value = santri.nama || '';
                 namaInput.placeholder = 'Nama Lengkap';
-                namaInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200";
+                namaInput.className = "w-full border rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
                 namaInput.addEventListener('change', (e) => { santriList[idx].nama = e.target.value; });
                 namaCell.appendChild(namaInput);
             });
             updateSelectAllState();
         }
-        
+
         function updateSelectAllState() {
             if (!selectAllChk) return;
             const total = santriList.length;
             const selectedCount = selectedRows.size;
-            if (selectedCount === 0) {
-                selectAllChk.checked = false;
-                selectAllChk.indeterminate = false;
-            } else if (selectedCount === total && total > 0) {
-                selectAllChk.checked = true;
-                selectAllChk.indeterminate = false;
-            } else {
-                selectAllChk.checked = false;
-                selectAllChk.indeterminate = true;
-            }
+            if (selectedCount === 0) { selectAllChk.checked = false; selectAllChk.indeterminate = false; }
+            else if (selectedCount === total && total > 0) { selectAllChk.checked = true; selectAllChk.indeterminate = false; }
+            else { selectAllChk.checked = false; selectAllChk.indeterminate = true; }
         }
-        
-        // Select All handler
-        if (selectAllChk) {
-            selectAllChk.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    for (let i = 0; i < santriList.length; i++) selectedRows.add(i);
-                } else {
-                    selectedRows.clear();
-                }
-                renderTable();
-            });
-        }
-        
-        // Tambah baris kosong
-        function tambahBaris() {
-            santriList.push({ angkatan: '', nis: '', nama: '' });
+
+        selectAllChk.addEventListener('change', (e) => {
+            if (e.target.checked) { for (let i = 0; i < santriList.length; i++) selectedRows.add(i); }
+            else { selectedRows.clear(); }
             renderTable();
-            showToast("Baris baru ditambahkan");
-        }
-        
-        // Hapus baris terpilih
+        });
+
+        function tambahBaris() { santriList.push({ angkatan: '', nis: '', nama: '' }); renderTable(); showToast("Baris baru ditambahkan"); }
         function hapusTerpilih() {
-            if (selectedRows.size === 0) {
-                showToast("Tidak ada baris yang dipilih", true);
-                return;
-            }
-            const newList = [];
-            const newSelected = new Set();
-            let newIndex = 0;
-            for (let i = 0; i < santriList.length; i++) {
-                if (!selectedRows.has(i)) {
-                    newList.push(santriList[i]);
-                    newSelected.add(newIndex);
-                    newIndex++;
-                }
-            }
+            if (selectedRows.size === 0) { showToast("Tidak ada baris yang dipilih", true); return; }
+            const newList = santriList.filter((_, idx) => !selectedRows.has(idx));
             santriList = newList;
             selectedRows.clear();
             renderTable();
-            showToast(`${selectedRows.size} baris dihapus (sebenarnya ${santriList.length - newList.length} baris dihapus)`, false);
+            showToast(`${santriList.length} data tersisa setelah hapus.`);
         }
-        
-        // ----------------------------- Simpan ke Firebase (Hapus semua & tulis ulang dengan urutan no) -----------------------------
+
         async function simpanKeFirebase() {
-            if (santriList.length === 0) {
-                showToast("Tidak ada data santri untuk disimpan", true);
-                return;
-            }
-            // Validasi minimal mengisi data
-            let hasError = false;
+            if (santriList.length === 0) { showToast("Tidak ada data untuk disimpan", true); return; }
             for (let i=0; i<santriList.length; i++) {
                 const s = santriList[i];
                 if (!s.angkatan || !s.nis || !s.nama) {
                     showToast(`Baris ${i+1} belum lengkap (ANGK, NIS, NAMA wajib diisi)`, true);
-                    hasError = true;
-                    break;
+                    return;
                 }
             }
-            if (hasError) return;
-            
             loadingIndicator.classList.remove('hidden');
             try {
-                // 1. Hapus semua dokumen di collection 'santri'
-                const snapshot = await db.collection('santri').get();
-                const batch = db.batch();
-                snapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
+                // Pastikan autentikasi anonim sudah login
+                const userCred = await auth.signInAnonymously();
+                console.log("Login anonim berhasil:", userCred.user.uid);
                 
-                // 2. Simpan ulang dengan urutan & field noUrut
-                const newBatch = db.batch();
+                // Hapus semua dokumen di collection 'santri' dengan cara iterasi delete (batch terbatas 500, aman)
+                const snapshot = await db.collection('santri').get();
+                const deleteBatch = db.batch();
+                snapshot.forEach(doc => { deleteBatch.delete(doc.ref); });
+                if (snapshot.size > 0) await deleteBatch.commit();
+                
+                // Tulis ulang data baru
+                const writeBatch = db.batch();
                 for (let i = 0; i < santriList.length; i++) {
                     const data = {
                         angkatan: santriList[i].angkatan.trim(),
                         nis: santriList[i].nis.trim(),
                         nama: santriList[i].nama.trim(),
                         noUrut: i + 1,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
-                    const docRef = db.collection('santri').doc(); // auto id
-                    newBatch.set(docRef, data);
+                    const docRef = db.collection('santri').doc();
+                    writeBatch.set(docRef, data);
                 }
-                await newBatch.commit();
-                showToast("Data santri berhasil disimpan ke Firebase!");
-                // Refresh data dari firebase agar konsisten (optional, tapi langsung load ulang)
+                await writeBatch.commit();
+                showToast("Data santri berhasil disimpan!");
                 await loadDataFromFirebase();
             } catch (error) {
-                console.error("Error saving data:", error);
+                console.error("Error saving:", error);
                 showToast("Gagal menyimpan: " + error.message, true);
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
         }
-        
-        // ----------------------------- Load Data dari Firebase -----------------------------
+
         async function loadDataFromFirebase() {
             loadingIndicator.classList.remove('hidden');
             try {
+                await auth.signInAnonymously(); // pastikan login untuk baca juga
                 const querySnapshot = await db.collection('santri').orderBy('noUrut', 'asc').get();
                 const loadedData = [];
                 querySnapshot.forEach(doc => {
                     const data = doc.data();
-                    loadedData.push({
-                        angkatan: data.angkatan || '',
-                        nis: data.nis || '',
-                        nama: data.nama || '',
-                        firebaseId: doc.id
-                    });
+                    loadedData.push({ angkatan: data.angkatan || '', nis: data.nis || '', nama: data.nama || '' });
                 });
                 santriList = loadedData;
                 selectedRows.clear();
                 renderTable();
-                if (santriList.length === 0) {
-                    emptyMsg.classList.remove('hidden');
-                } else {
-                    emptyMsg.classList.add('hidden');
-                }
-                showToast(`${santriList.length} data santri dimuat dari database`);
+                showToast(`${santriList.length} data santri dimuat.`);
             } catch (err) {
                 console.error("Load error:", err);
                 showToast("Gagal memuat data: " + err.message, true);
@@ -417,34 +291,19 @@
                 loadingIndicator.classList.add('hidden');
             }
         }
-        
-        // ----------------------------- Paste dari Excel (Modal) -----------------------------
-        function openPasteModal() {
-            pasteTextarea.value = '';
-            pasteModal.classList.remove('hidden');
-        }
-        
-        function closePasteModal() {
-            pasteModal.classList.add('hidden');
-        }
-        
+
+        function openPasteModal() { pasteTextarea.value = ''; pasteModal.classList.remove('hidden'); }
+        function closePasteModal() { pasteModal.classList.add('hidden'); }
         function processPasteData() {
             const rawText = pasteTextarea.value;
-            if (!rawText.trim()) {
-                showToast("Tidak ada data untuk ditempel", true);
-                return;
-            }
+            if (!rawText.trim()) { showToast("Tidak ada data", true); return; }
             const lines = rawText.split(/\r?\n/);
             let addedCount = 0;
             for (let line of lines) {
                 line = line.trim();
                 if (line === "") continue;
-                // Pisahkan dengan tab (default Excel), atau spasi? coba tab dulu
                 let parts = line.split(/\t+/);
-                if (parts.length < 3) {
-                    // coba pisah dengan spasi atau lebih dari satu spasi
-                    parts = line.split(/\s+/);
-                }
+                if (parts.length < 3) parts = line.split(/\s+/);
                 if (parts.length >= 3) {
                     let angkatan = parts[0].trim();
                     let nis = parts[1].trim();
@@ -452,23 +311,13 @@
                     if (angkatan && nis && nama) {
                         santriList.push({ angkatan, nis, nama });
                         addedCount++;
-                    } else {
-                        console.warn("Data tidak lengkap:", line);
                     }
-                } else {
-                    console.warn("Format baris tidak sesuai (butuh 3 kolom):", line);
                 }
             }
-            if (addedCount > 0) {
-                renderTable();
-                showToast(`${addedCount} data santri berhasil ditambahkan dari tempelan.`);
-                closePasteModal();
-            } else {
-                showToast("Tidak ada data valid. Pastikan format: ANGK [TAB] NIS [TAB] NAMA", true);
-            }
+            if (addedCount > 0) { renderTable(); showToast(`${addedCount} data ditambahkan.`); closePasteModal(); }
+            else { showToast("Format tidak valid. Gunakan: ANGK TAB NIS TAB NAMA", true); }
         }
-        
-        // Event binding
+
         simpanBtn.addEventListener('click', simpanKeFirebase);
         tambahBtn.addEventListener('click', tambahBaris);
         hapusTerpilihBtn.addEventListener('click', hapusTerpilih);
@@ -476,15 +325,9 @@
         closeModalBtn.addEventListener('click', closePasteModal);
         cancelPasteBtn.addEventListener('click', closePasteModal);
         processPasteBtn.addEventListener('click', processPasteData);
-        // Klik luar modal menutup
-        pasteModal.addEventListener('click', (e) => {
-            if (e.target === pasteModal) closePasteModal();
-        });
-        
-        // Inisialisasi load data
-        window.addEventListener('DOMContentLoaded', () => {
-            loadDataFromFirebase();
-        });
+        pasteModal.addEventListener('click', (e) => { if (e.target === pasteModal) closePasteModal(); });
+
+        window.addEventListener('DOMContentLoaded', () => { loadDataFromFirebase(); });
     </script>
 </body>
 </html>
