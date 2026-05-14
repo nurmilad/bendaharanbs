@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Iuran Bulanan Santri - Pondok Pesantren Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Sticky header dan kolom */
+        .table-container {
+            overflow-x: auto;
+            max-width: 100%;
+            position: relative;
+        }
+        .iuran-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 2000px; /* agar scroll horizontal terasa */
+        }
+        .iuran-table th, .iuran-table td {
+            border-bottom: 1px solid #e5e7eb;
+            border-right: 1px solid #f0f0f0;
+            padding: 8px 12px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        /* Sticky header */
+        .iuran-table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f9fafb;
+            z-index: 20;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        /* Sticky kolom pertama (NO) */
+        .iuran-table th:first-child,
+        .iuran-table td:first-child {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 10;
+        }
+        /* Sticky kolom kedua (ANGK) */
+        .iuran-table th:nth-child(2),
+        .iuran-table td:nth-child(2) {
+            position: sticky;
+            left: 80px; /* lebar perkiraan kolom NO */
+            background-color: white;
+            z-index: 10;
+        }
+        /* Sticky kolom ketiga (NIS NAMA) */
+        .iuran-table th:nth-child(3),
+        .iuran-table td:nth-child(3) {
+            position: sticky;
+            left: 180px; /* akumulasi lebar NO + ANGK */
+            background-color: white;
+            z-index: 10;
+        }
+        /* Agar shadow pada sticky */
+        .iuran-table td:first-child,
+        .iuran-table td:nth-child(2),
+        .iuran-table td:nth-child(3) {
+            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.05);
+        }
+        input.iuran-input {
+            width: 80px;
+            padding: 4px 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+        input.iuran-input:focus {
+            outline: none;
+            border-color: #10b981;
+            ring: 2px solid #10b981;
+        }
+        .toast-notif {
+            animation: fadeInUp 0.3s ease forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
+        <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="submenu.html" class="text-emerald-600 hover:text-emerald-700 transition">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="font-bold text-gray-800 text-lg md:text-xl" id="pageTitle">Iuran Bulanan Santri</h1>
+                    <p class="text-xs text-gray-500 hidden md:block" id="pageDesc">Kelola iuran per bulan (dalam ribuan Rp)</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button id="simpanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="fas fa-save"></i> Simpan Semua
+                </button>
+                <button id="pasteExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="fas fa-paste"></i> Tempel Excel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 md:px-6 py-6">
+        <!-- Loading -->
+        <div id="loadingIndicator" class="hidden text-center py-10">
+            <i class="fas fa-spinner fa-pulse text-emerald-600 text-2xl"></i>
+            <p class="mt-2">Memuat data santri dan iuran...</p>
+        </div>
+
+        <!-- Tabel Iuran -->
+        <div class="table-container bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <table class="iuran-table w-full" id="iuranTable">
+                <thead id="tableHeader">
+                    <!-- Header akan diisi JS -->
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Baris akan diisi JS -->
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-400 text-center">
+            <i class="fas fa-info-circle"></i> Klik pada sel untuk edit. Nilai dalam ribuan (contoh: 450 = Rp 450.000).<br>
+            Gunakan fitur Tempel Excel untuk copy-paste banyak data sekaligus.
+        </div>
+    </main>
+
+    <!-- Modal Paste Excel -->
+    <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-3xl mx-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b p-5">
+                <h3 class="text-lg font-bold"><i class="fas fa-table me-2 text-emerald-600"></i>Tempel Data dari Excel</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-600 mb-2">Salin data dari Excel (termasuk header atau tanpa header) dengan urutan kolom sesuai tabel: <strong>Nama Santri (opsional), diikuti nilai iuran per bulan sesuai urutan kolom bulan.</strong> <br> Lebih mudah: salin hanya blok angka dari Excel (mulai dari kolom pertama bulan). Pastikan jumlah kolom sesuai dengan jumlah bulan (72 kolom).</p>
+                <textarea id="pasteData" rows="10" class="w-full border rounded-xl p-3 font-mono text-sm" placeholder="Tempel data di sini...&#10;Contoh (baris per santri, nilai dipisah TAB atau spasi):&#10;250	300	275	... (72 angka)"></textarea>
+                <div class="flex justify-end gap-3 mt-5">
+                    <button id="cancelPasteBtn" class="px-4 py-2 border rounded-lg">Batal</button>
+                    <button id="processPasteBtn" class="px-5 py-2 bg-emerald-600 text-white rounded-lg shadow">Terapkan ke Tabel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastMessage" class="fixed bottom-5 right-5 bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg z-50 hidden items-center gap-3 toast-notif">
+        <i class="fas fa-check-circle text-emerald-400"></i>
+        <span id="toastText">Pesan</span>
+    </div>
+
+    <script>
+        // ======================= FIREBASE =======================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Ambil jenis iuran dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
+        const collectionName = jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok';
+
+        // Set judul
+        document.getElementById('pageTitle').innerText = `Iuran Bulanan - ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
+        document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas pondok'} per bulan (dalam ribuan Rp)`;
+
+        // ======================= GENERATE BULAN (JUL (7) s.d JUN (12)) =======================
+        // Kita buat label bulan sesuai permintaan: JUL (7), AGU (7), ..., JUN (7), lalu JUL (8), ..., JUN (12)
+        // Total 6 tahun * 12 = 72 bulan
+        const bulanLabels = [];
+        for (let tahun = 7; tahun <= 12; tahun++) {
+            const bln = ['JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN'];
+            for (let i = 0; i < bln.length; i++) {
+                bulanLabels.push(`${bln[i]} (${tahun})`);
+            }
+        }
+        const totalBulan = bulanLabels.length; // 72
+
+        // State: daftar santri dan data iuran per santri
+        let santriList = []; // { id, angkatan, nis, nama, iuranData: array panjang totalBulan (nilai dalam rupiah penuh) }
+        let originalData = []; // untuk cek perubahan
+
+        // DOM elements
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const simpanBtn = document.getElementById('simpanBtn');
+        const pasteExcelBtn = document.getElementById('pasteExcelBtn');
+        const toastMsg = document.getElementById('toastMessage');
+        const toastText = document.getElementById('toastText');
+
+        function showToast(message, isError = false) {
+            const icon = toastMsg.querySelector('i');
+            icon.className = isError ? "fas fa-exclamation-circle text-red-400" : "fas fa-check-circle text-emerald-400";
+            toastText.innerText = message;
+            toastMsg.classList.remove('hidden');
+            setTimeout(() => toastMsg.classList.add('hidden'), 3000);
+        }
+
+        // Format rupiah ke ribuan (tampilan)
+        function toRibuan(nominal) {
+            if (nominal === null || nominal === undefined || nominal === 0) return '';
+            return Math.round(nominal / 1000).toString();
+        }
+
+        // Dari ribuan ke nominal penuh
+        function fromRibuan(ribuan) {
+            let val = parseInt(ribuan);
+            if (isNaN(val)) return 0;
+            return val * 1000;
+        }
+
+        // Render header tabel
+        function renderHeader() {
+            let html = '<tr>';
+            html += '<th class="bg-gray-50 font-semibold text-sm">NO</th>';
+            html += '<th class="bg-gray-50 font-semibold text-sm">ANGK</th>';
+            html += '<th class="bg-gray-50 font-semibold text-sm">NIS | NAMA</th>';
+            for (let bln of bulanLabels) {
+                html += `<th class="bg-gray-50 font-semibold text-sm min-w-[80px]">${bln}</th>`;
+            }
+            html += '</tr>';
+            thead.innerHTML = html;
+        }
+
+        // Render seluruh tabel
+        function renderTable() {
+            if (!tbody) return;
+            if (santriList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="' + (3 + totalBulan) + '" class="text-center py-10 text-gray-400">Belum ada data santri. Silakan tambah santri di halaman Data Santri.</td></tr>';
+                return;
+            }
+            let html = '';
+            santriList.forEach((santri, idx) => {
+                const no = idx + 1;
+                const nisNama = `${santri.nis} | ${santri.nama}`;
+                html += `<tr data-id="${santri.id}" data-index="${idx}">`;
+                html += `<td class="font-medium">${no}</td>`;
+                html += `<td>${santri.angkatan || ''}</td>`;
+                html += `<td class="whitespace-nowrap">${nisNama}</td>`;
+                // Kolom iuran
+                for (let b = 0; b < totalBulan; b++) {
+                    const nilai = santri.iuranData && santri.iuranData[b] ? santri.iuranData[b] : 0;
+                    const tampil = toRibuan(nilai);
+                    html += `<td><input type="text" class="iuran-input text-right" data-santri-idx="${idx}" data-bulan="${b}" value="${tampil}" placeholder="0"></td>`;
+                }
+                html += `</tr>`;
+            });
+            tbody.innerHTML = html;
+
+            // Attach event listener ke setiap input
+            document.querySelectorAll('.iuran-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const santriIdx = parseInt(input.dataset.santriIdx);
+                    const bulanIdx = parseInt(input.dataset.bulan);
+                    let newValue = input.value.trim();
+                    if (newValue === '') newValue = '0';
+                    let ribuan = parseInt(newValue);
+                    if (isNaN(ribuan)) ribuan = 0;
+                    const nominalPenuh = ribuan * 1000;
+                    santriList[santriIdx].iuranData[bulanIdx] = nominalPenuh;
+                });
+            });
+        }
+
+        // Load data santri dari Firebase, dan load iuran masing-masing
+        async function loadAllData() {
+            loadingIndicator.classList.remove('hidden');
+            try {
+                // 1. Ambil semua santri (tanpa order, nanti urutkan berdasarkan noUrut atau createdAt)
+                const santriSnapshot = await db.collection('santri').get();
+                const santriTemp = [];
+                santriSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    santriTemp.push({
+                        id: doc.id,
+                        angkatan: data.angkatan || '',
+                        nis: data.nis || '',
+                        nama: data.nama || '',
+                        noUrut: data.noUrut || 0,
+                        createdAt: data.createdAt || null
+                    });
+                });
+                // Urutkan berdasarkan noUrut (jika ada) lalu createdAt
+                santriTemp.sort((a, b) => {
+                    if (a.noUrut && b.noUrut) return a.noUrut - b.noUrut;
+                    if (a.noUrut) return -1;
+                    if (b.noUrut) return 1;
+                    return 0;
+                });
+
+                // 2. Ambil data iuran dari collection iuran (konsumsi/pondok)
+                const iuranSnapshot = await db.collection(collectionName).get();
+                const iuranMap = new Map(); // key: santriId, value: array iuran per bulan (panjang totalBulan)
+                iuranSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const santriId = data.santriId;
+                    if (santriId) {
+                        // Kita simpan dalam bentuk array untuk bulan-bulan
+                        const iuranArray = new Array(totalBulan).fill(0);
+                        for (let i = 0; i < totalBulan; i++) {
+                            const key = `bulan_${i}`;
+                            if (data[key] !== undefined) iuranArray[i] = data[key];
+                        }
+                        iuranMap.set(santriId, iuranArray);
+                    }
+                });
+
+                // Gabungkan
+                santriList = santriTemp.map(s => {
+                    const iuranData = iuranMap.get(s.id) || new Array(totalBulan).fill(0);
+                    return { ...s, iuranData };
+                });
+                // Simpan salinan untuk deteksi perubahan (opsional)
+                renderHeader();
+                renderTable();
+                showToast(`Memuat ${santriList.length} santri dan data iuran ${jenis}`);
+            } catch (err) {
+                console.error(err);
+                showToast("Gagal memuat data: " + err.message, true);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Simpan semua perubahan ke Firebase
+        async function simpanSemua() {
+            loadingIndicator.classList.remove('hidden');
+            try {
+                // Kita akan update atau create setiap dokumen iuran per santri
+                // Untuk efisiensi, kita loop satu per satu (tidak batch karena bisa banyak)
+                for (const santri of santriList) {
+                    const docRef = db.collection(collectionName).doc(santri.id); // gunakan id santri sebagai document id
+                    const data = { santriId: santri.id };
+                    for (let i = 0; i < totalBulan; i++) {
+                        data[`bulan_${i}`] = santri.iuranData[i] || 0;
+                    }
+                    data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await docRef.set(data, { merge: true });
+                }
+                showToast("Semua data iuran berhasil disimpan!");
+            } catch (err) {
+                console.error(err);
+                showToast("Gagal menyimpan: " + err.message, true);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // ======================= FITUR COPY-PASTE EXCEL =======================
+        const pasteModal = document.getElementById('pasteModal');
+        const pasteDataText = document.getElementById('pasteData');
+        function openPasteModal() { pasteModal.classList.remove('hidden'); }
+        function closePasteModal() { pasteModal.classList.add('hidden'); }
+
+        function processPaste() {
+            const raw = pasteDataText.value;
+            if (!raw.trim()) { showToast("Tidak ada data", true); closePasteModal(); return; }
+            const lines = raw.split(/\r?\n/);
+            // Kita asumsikan setiap baris berisi angka untuk setiap bulan (totalBulan kolom) dipisah TAB atau spasi
+            // Baris ke-i mewakili santri ke-i (urutan sama dengan tabel saat ini)
+            let rowIndex = 0;
+            for (let line of lines) {
+                line = line.trim();
+                if (line === "") continue;
+                // Pisahkan berdasarkan whitespace (tab atau spasi)
+                const parts = line.split(/\s+/);
+                if (parts.length >= totalBulan) {
+                    if (rowIndex >= santriList.length) {
+                        showToast(`Data lebih banyak dari jumlah santri, kelebihan baris diabaikan`, true);
+                        break;
+                    }
+                    for (let b = 0; b < totalBulan; b++) {
+                        let val = parseInt(parts[b]);
+                        if (isNaN(val)) val = 0;
+                        santriList[rowIndex].iuranData[b] = val * 1000;
+                    }
+                    rowIndex++;
+                } else {
+                    showToast(`Baris ${rowIndex+1} jumlah angka kurang (butuh ${totalBulan})`, true);
+                }
+            }
+            renderTable();
+            showToast(`Berhasil menempel data untuk ${rowIndex} santri. Jangan lupa simpan.`);
+            closePasteModal();
+        }
+
+        // Event listeners
+        simpanBtn.addEventListener('click', simpanSemua);
+        pasteExcelBtn.addEventListener('click', openPasteModal);
+        document.getElementById('closeModalBtn')?.addEventListener('click', closePasteModal);
+        document.getElementById('cancelPasteBtn')?.addEventListener('click', closePasteModal);
+        document.getElementById('processPasteBtn')?.addEventListener('click', processPaste);
+        pasteModal.addEventListener('click', (e) => { if (e.target === pasteModal) closePasteModal(); });
+
+        // Load data saat halaman siap
+        window.addEventListener('DOMContentLoaded', loadAllData);
+    </script>
+</body>
+</html>
