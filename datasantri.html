@@ -42,7 +42,7 @@
                     </div>
                     <div>
                         <h1 class="font-bold text-gray-800 text-lg md:text-xl">Data Santri <span class="text-emerald-600">Nurmilad</span></h1>
-                        <p class="text-xs text-gray-500 hidden md:block">Kelola data santri | Auto-save setiap perubahan</p>
+                        <p class="text-xs text-gray-500 hidden md:block">Kelola data santri | Auto-save | Urut berdasarkan NIS</p>
                     </div>
                 </div>
             </div>
@@ -68,7 +68,7 @@
                 </button>
             </div>
             <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle"></i> Auto-save otomatis | Data iuran santri yang dihapus ikut terhapus
+                <i class="fas fa-sort-amount-down"></i> Diurut otomatis berdasarkan NIS
             </div>
         </div>
 
@@ -97,7 +97,7 @@
             </div>
         </div>
         <div class="mt-6 text-xs text-gray-400 text-center border-t pt-4">
-            <i class="fas fa-save"></i> Auto-save setiap perubahan | Kolom ANGK (contoh: 2015), NIS (contoh: 2526001), NAMA (contoh: AHMAD YUSUF)
+            <i class="fas fa-save"></i> Auto-save setiap perubahan | Data otomatis diurut berdasarkan NIS
         </div>
     </main>
 
@@ -170,8 +170,21 @@
             else savingDiv.classList.add('hidden');
         }
 
+        // Fungsi untuk mengurutkan santriList berdasarkan NIS (ascending, sebagai string)
+        function sortSantriByNis() {
+            santriList.sort((a, b) => {
+                // Konversi ke string untuk perbandingan, karena NIS bisa berisi angka atau campuran
+                const nisA = String(a.nis || '');
+                const nisB = String(b.nis || '');
+                return nisA.localeCompare(nisB, undefined, { numeric: true });
+            });
+        }
+
+        // Render tabel (dengan sorting otomatis sebelum render)
         function renderTable() {
             if (!tbody) return;
+            // Urutkan berdasarkan NIS setiap kali render
+            sortSantriByNis();
             if (santriList.length === 0) {
                 emptyMsg.classList.remove('hidden');
                 tbody.innerHTML = '';
@@ -196,7 +209,7 @@
                     updateSelectAllState();
                 });
                 chkCell.appendChild(chk);
-                // NO
+                // NO (urutan baru setelah sorting)
                 const noCell = row.insertCell(1);
                 noCell.className = "px-4 py-2 text-sm text-gray-700 font-medium";
                 noCell.innerText = idx + 1;
@@ -223,6 +236,9 @@
                 nisInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
                 nisInput.addEventListener('change', (e) => {
                     santriList[idx].nis = e.target.value;
+                    // Setelah merubah NIS, perlu diurut ulang
+                    sortSantriByNis();
+                    renderTable(); // re-render dengan urutan baru
                     triggerAutoSave();
                 });
                 nisCell.appendChild(nisInput);
@@ -286,13 +302,16 @@
             isSaving = true;
             showSaving(true);
             try {
-                // Validasi data
+                // Validasi data (tidak ada yang kosong)
                 for (let i = 0; i < santriList.length; i++) {
                     if (!santriList[i].angkatan || !santriList[i].nis || !santriList[i].nama) {
                         showToast(`Baris ${i+1} belum lengkap, simpan dibatalkan`, true);
                         return;
                     }
                 }
+                // Urutkan berdasarkan NIS sebelum menyimpan
+                sortSantriByNis();
+                
                 // Ambil semua ID santri yang sudah ada di Firestore
                 const existingSnapshot = await db.collection('santri').get();
                 const existingIds = [];
@@ -304,7 +323,7 @@
                     await hapusIuranSantri(id);
                 }
 
-                // Simpan data baru dengan noUrut
+                // Simpan data baru dengan noUrut sesuai urutan NIS
                 for (let i = 0; i < santriList.length; i++) {
                     const data = {
                         angkatan: santriList[i].angkatan.trim(),
@@ -316,7 +335,7 @@
                     const docRef = await db.collection('santri').add(data);
                     santriList[i].firebaseId = docRef.id;
                 }
-                showToast('Data tersimpan otomatis');
+                showToast('Data tersimpan otomatis & terurut berdasarkan NIS');
             } catch (err) {
                 console.error(err);
                 showToast('Gagal simpan: ' + err.message, true);
@@ -329,6 +348,7 @@
         // ========== TAMBAH BARIS ==========
         function tambahBaris() {
             santriList.push({ angkatan: '', nis: '', nama: '' });
+            sortSantriByNis();
             renderTable();
             triggerAutoSave();
             showToast('Baris ditambahkan, auto-save...');
@@ -346,16 +366,17 @@
             }
             santriList = newList;
             selectedRows.clear();
+            sortSantriByNis();
             renderTable();
             await autoSave(); // langsung simpan setelah hapus
-            showToast(`${newList.length} santri tersisa, data iuran terkait telah dihapus`);
+            showToast(`${santriList.length} santri tersisa, data iuran terkait telah dihapus`);
         }
 
         // ========== LOAD DATA ==========
         async function loadDataFromFirebase() {
             loadingIndicator.classList.remove('hidden');
             try {
-                const querySnapshot = await db.collection('santri').orderBy('noUrut', 'asc').get();
+                const querySnapshot = await db.collection('santri').get();
                 const loadedData = [];
                 querySnapshot.forEach(doc => {
                     const data = doc.data();
@@ -366,10 +387,16 @@
                         firebaseId: doc.id
                     });
                 });
+                // Urutkan berdasarkan NIS setelah load
+                loadedData.sort((a, b) => {
+                    const nisA = String(a.nis || '');
+                    const nisB = String(b.nis || '');
+                    return nisA.localeCompare(nisB, undefined, { numeric: true });
+                });
                 santriList = loadedData;
                 selectedRows.clear();
                 renderTable();
-                showToast(`${santriList.length} data santri dimuat`);
+                showToast(`${santriList.length} data santri dimuat (urut NIS)`);
             } catch (err) {
                 console.error(err);
                 showToast('Gagal memuat data', true);
@@ -409,9 +436,10 @@
                 }
             }
             if (addedCount > 0) {
+                sortSantriByNis();
                 renderTable();
                 triggerAutoSave();
-                showToast(`${addedCount} data ditambahkan, auto-save...`);
+                showToast(`${addedCount} data ditambahkan, auto-save & terurut...`);
                 closePasteModal();
             } else {
                 showToast("Format tidak valid. Gunakan: ANGK [TAB] NIS [TAB] NAMA", true);
