@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Submenu Iuran - Pondok Pesantren Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <!-- ======================= MODAL LOGIN (jika session belum ada) ======================= -->
+    <div id="loginModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 modal-overlay" style="display: none;">
+        <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-lock text-emerald-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Akses Terbatas</h2>
+                <p class="text-gray-500 text-sm mt-1">Masukkan password untuk melanjutkan</p>
+            </div>
+            <div class="mb-4">
+                <input type="password" id="passwordInput" placeholder="Password" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-emerald-500 focus:border-emerald-500">
+                <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Password salah.</p>
+            </div>
+            <button id="loginBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Masuk</button>
+        </div>
+    </div>
+
+    <!-- ======================= KONTEN UTAMA (dengan submenu) ======================= -->
+    <div id="mainContent" style="display: none;">
+        <!-- Header dengan navigasi kembali -->
+        <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
+            <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <a href="index.html" class="text-emerald-600 hover:text-emerald-700 transition">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <div class="flex items-center gap-2">
+                        <div class="bg-emerald-100 p-2 rounded-xl">
+                            <i class="fas fa-hand-holding-usd text-emerald-700 text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-gray-800 text-lg md:text-xl">
+                                <span id="submenuTitle">Iuran</span> - Pondok Pesantren Nurmilad
+                            </h1>
+                            <p class="text-xs text-gray-500 hidden md:block" id="submenuDesc">Kelola iuran santri</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 md:px-6 py-8">
+            <!-- Deskripsi jenis iuran -->
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl mb-8">
+                <p class="text-emerald-800 text-sm flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="infoJenisIuran">Anda sedang mengelola iuran Konsumsi.</span>
+                </p>
+            </div>
+
+            <!-- Grid Menu Submenu -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Iuran Bulanan Santri -->
+                <a href="#" id="menuIuranBulanan" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-200 transition">
+                        <i class="fas fa-calendar-alt text-3xl text-emerald-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Iuran Bulanan Santri</h3>
+                    <p class="text-gray-500 text-sm mt-2">Lihat tagihan iuran bulanan per santri, status lunas/tunggakan.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Kelola <i class="fas fa-arrow-right ml-1"></i></span>
+                </a>
+
+                <!-- Input Transaksi -->
+                <a href="#" id="menuInputTransaksi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-200 transition">
+                        <i class="fas fa-plus-circle text-3xl text-amber-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Input Transaksi</h3>
+                    <p class="text-gray-500 text-sm mt-2">Tambah pemasukan/pengeluaran untuk iuran ini.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Input <i class="fas fa-arrow-right ml-1"></i></span>
+                </a>
+
+                <!-- Riwayat Transaksi -->
+                <a href="#" id="menuRiwayat" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-sky-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-200 transition">
+                        <i class="fas fa-history text-3xl text-sky-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Riwayat Transaksi</h3>
+                    <p class="text-gray-500 text-sm mt-2">Tabel lengkap: Tgl, Uraian, Pemasukan, Pengeluaran.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
+                </a>
+
+                <!-- Laporan Bulanan / BKU -->
+                <a href="#" id="menuBKU" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-purple-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition">
+                        <i class="fas fa-chart-line text-3xl text-purple-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Laporan Bulanan (BKU)</h3>
+                    <p class="text-gray-500 text-sm mt-2">Buku Kas Umum per bulan, ringkasan pemasukan & pengeluaran.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Cetak <i class="fas fa-arrow-right ml-1"></i></span>
+                </a>
+
+                <!-- Laporan per Santri -->
+                <a href="#" id="menuLaporanSantri" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-pink-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-pink-200 transition">
+                        <i class="fas fa-file-alt text-3xl text-pink-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Laporan per Santri</h3>
+                    <p class="text-gray-500 text-sm mt-2">Detail iuran per individu, riwayat pembayaran dan tunggakan.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
+                </a>
+            </div>
+
+            <!-- Catatan -->
+            <div class="mt-12 text-center text-xs text-gray-400 border-t pt-6">
+                <i class="fas fa-database"></i> Data tersimpan di Firebase dengan collection terpisah untuk Konsumsi dan Pondok.
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ======================= FIREBASE =======================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ======================= AMBIL PARAMETER URL =======================
+        function getJenisIuran() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jenis = urlParams.get('jenis');
+            return (jenis === 'pondok') ? 'pondok' : 'konsumsi';
+        }
+        const jenisIuran = getJenisIuran(); // 'konsumsi' atau 'pondok'
+
+        // ======================= LOGIN (sama seperti index.html) =======================
+        const loginModal = document.getElementById('loginModal');
+        const mainContent = document.getElementById('mainContent');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const CORRECT_PASSWORD = "270909";
+
+        function checkLoginStatus() {
+            if (sessionStorage.getItem('pesantren_logged_in') === 'true') {
+                loginModal.style.display = 'none';
+                mainContent.style.display = 'block';
+                setupUIByJenis();
+            } else {
+                loginModal.style.display = 'flex';
+                mainContent.style.display = 'none';
+            }
+        }
+
+        function login() {
+            if (passwordInput.value === CORRECT_PASSWORD) {
+                sessionStorage.setItem('pesantren_logged_in', 'true');
+                loginModal.style.display = 'none';
+                mainContent.style.display = 'block';
+                setupUIByJenis();
+            } else {
+                loginError.classList.remove('hidden');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        }
+        loginBtn.addEventListener('click', login);
+        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+
+        // ======================= PENGATURAN UI BERDASARKAN JENIS IURAN =======================
+        function setupUIByJenis() {
+            const titleElem = document.getElementById('submenuTitle');
+            const descElem = document.getElementById('submenuDesc');
+            const infoElem = document.getElementById('infoJenisIuran');
+            let judul, desc, info, konsumsiOrPondokText;
+
+            if (jenisIuran === 'konsumsi') {
+                judul = "Iuran Konsumsi";
+                desc = "Kelola iuran makan harian santri";
+                info = "Anda sedang mengelola Iuran Konsumsi (makan/minum). Semua transaksi akan tersimpan di collection 'iuran_konsumsi'.";
+                konsumsiOrPondokText = "konsumsi";
+            } else {
+                judul = "Iuran Pondok";
+                desc = "Kelola iuran kebersihan, listrik, dan fasilitas";
+                info = "Anda sedang mengelola Iuran Pondok (kebersihan, listrik, dll). Transaksi tersimpan di collection 'iuran_pondok'.";
+                konsumsiOrPondokText = "pondok";
+            }
+            titleElem.innerText = judul;
+            descElem.innerText = desc;
+            infoElem.innerText = info;
+
+            // Update semua link submenu dengan parameter jenis
+            document.getElementById('menuIuranBulanan').href = `iuran.html?jenis=${jenisIuran}`;
+            document.getElementById('menuInputTransaksi').href = `inputtransaksi.html?jenis=${jenisIuran}`;
+            document.getElementById('menuRiwayat').href = `riwayat.html?jenis=${jenisIuran}`;
+            document.getElementById('menuBKU').href = `bku.html?jenis=${jenisIuran}`;
+            document.getElementById('menuLaporanSantri').href = `laporanpersantri.html?jenis=${jenisIuran}`;
+        }
+
+        // Jalankan pengecekan login
+        checkLoginStatus();
+    </script>
+</body>
+</html>
