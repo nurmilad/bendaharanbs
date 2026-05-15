@@ -62,7 +62,10 @@
                 <h1 class="font-bold text-gray-800 text-lg">Laporan per Santri</h1>
             </div>
             <div>
-                <button id="cetakBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                <button id="refreshDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+                <button id="cetakBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2 ml-2">
                     <i class="fas fa-print"></i> Cetak
                 </button>
             </div>
@@ -194,6 +197,18 @@
             } catch(err) { console.error(err); showToast('Gagal memuat transaksi', true); }
         }
 
+        // Fungsi refresh data: muat ulang santri dan transaksi
+        async function refreshAllData() {
+            showToast('Memuat ulang data...');
+            await loadSantri();
+            await loadTransactions();
+            if (selectedSantri) {
+                // Jika sudah ada santri terpilih, render ulang laporan
+                renderLaporan();
+            }
+            showToast('Data berhasil dimuat ulang');
+        }
+
         function filterSantri(keyword) {
             if (!keyword.trim()) return [];
             const lower = keyword.toLowerCase();
@@ -225,6 +240,8 @@
             selectedSantriInfo.innerHTML = `<i class="fas fa-check-circle text-emerald-600"></i> Terpilih: ${santri.nis} | ${santri.nama} (Angkatan ${santri.angkatan || '-'})`;
             tampilkanBtn.disabled = false;
             autocompleteList.classList.add('hidden');
+            // Langsung render laporan setelah pilih santri
+            renderLaporan();
         }
 
         searchInput.addEventListener('input', (e) => {
@@ -302,6 +319,7 @@
                 showToast('Pilih santri terlebih dahulu', true);
                 return;
             }
+            // Pastikan transaksi sudah dimuat, jika belum muat ulang
             if (allTransactions.length === 0) await loadTransactions();
             renderLaporan();
         }
@@ -315,6 +333,7 @@
         }
 
         document.getElementById('cetakBtn').addEventListener('click', () => window.print());
+        document.getElementById('refreshDataBtn').addEventListener('click', refreshAllData);
         tampilkanBtn.addEventListener('click', tampilkanLaporan);
 
         window.addEventListener('DOMContentLoaded', async () => {
