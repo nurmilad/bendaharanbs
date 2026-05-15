@@ -170,20 +170,16 @@
             else savingDiv.classList.add('hidden');
         }
 
-        // Fungsi untuk mengurutkan santriList berdasarkan NIS (ascending, sebagai string)
         function sortSantriByNis() {
             santriList.sort((a, b) => {
-                // Konversi ke string untuk perbandingan, karena NIS bisa berisi angka atau campuran
                 const nisA = String(a.nis || '');
                 const nisB = String(b.nis || '');
                 return nisA.localeCompare(nisB, undefined, { numeric: true });
             });
         }
 
-        // Render tabel (dengan sorting otomatis sebelum render)
         function renderTable() {
             if (!tbody) return;
-            // Urutkan berdasarkan NIS setiap kali render
             sortSantriByNis();
             if (santriList.length === 0) {
                 emptyMsg.classList.remove('hidden');
@@ -196,7 +192,6 @@
             tbody.innerHTML = '';
             santriList.forEach((santri, idx) => {
                 const row = tbody.insertRow();
-                // checkbox
                 const chkCell = row.insertCell(0);
                 chkCell.className = "px-3 py-2 text-center";
                 const chk = document.createElement('input');
@@ -209,11 +204,9 @@
                     updateSelectAllState();
                 });
                 chkCell.appendChild(chk);
-                // NO (urutan baru setelah sorting)
                 const noCell = row.insertCell(1);
                 noCell.className = "px-4 py-2 text-sm text-gray-700 font-medium";
                 noCell.innerText = idx + 1;
-                // ANGK
                 const angkCell = row.insertCell(2);
                 angkCell.className = "px-4 py-2";
                 const angkInput = document.createElement('input');
@@ -226,7 +219,6 @@
                     triggerAutoSave();
                 });
                 angkCell.appendChild(angkInput);
-                // NIS
                 const nisCell = row.insertCell(3);
                 nisCell.className = "px-4 py-2";
                 const nisInput = document.createElement('input');
@@ -236,13 +228,11 @@
                 nisInput.className = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-400";
                 nisInput.addEventListener('change', (e) => {
                     santriList[idx].nis = e.target.value;
-                    // Setelah merubah NIS, perlu diurut ulang
                     sortSantriByNis();
-                    renderTable(); // re-render dengan urutan baru
+                    renderTable();
                     triggerAutoSave();
                 });
                 nisCell.appendChild(nisInput);
-                // NAMA
                 const namaCell = row.insertCell(4);
                 namaCell.className = "px-4 py-2";
                 const namaInput = document.createElement('input');
@@ -284,17 +274,9 @@
             renderTable();
         });
 
-        // ========== AUTO SAVE ==========
         function triggerAutoSave() {
             if (saveTimeout) clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => autoSave(), 1000);
-        }
-
-        async function hapusIuranSantri(santriId) {
-            try {
-                await db.collection('iuran_konsumsi').doc(santriId).delete();
-                await db.collection('iuran_pondok').doc(santriId).delete();
-            } catch (err) { /* ignore */ }
         }
 
         async function autoSave() {
@@ -302,38 +284,34 @@
             isSaving = true;
             showSaving(true);
             try {
-                // Validasi data (tidak ada yang kosong)
+                // Validasi data
                 for (let i = 0; i < santriList.length; i++) {
                     if (!santriList[i].angkatan || !santriList[i].nis || !santriList[i].nama) {
                         showToast(`Baris ${i+1} belum lengkap, simpan dibatalkan`, true);
                         return;
                     }
                 }
-                // Urutkan berdasarkan NIS sebelum menyimpan
                 sortSantriByNis();
-                
-                // Ambil semua ID santri yang sudah ada di Firestore
-                const existingSnapshot = await db.collection('santri').get();
-                const existingIds = [];
-                existingSnapshot.forEach(doc => existingIds.push(doc.id));
 
-                // Hapus semua data santri lama dan iuran terkait
-                for (const id of existingIds) {
-                    await db.collection('santri').doc(id).delete();
-                    await hapusIuranSantri(id);
-                }
-
-                // Simpan data baru dengan noUrut sesuai urutan NIS
+                // PERBAIKAN: Tidak menghapus semua santri dan iuran
+                // Kita akan update atau insert setiap santri secara individu
                 for (let i = 0; i < santriList.length; i++) {
+                    const santri = santriList[i];
                     const data = {
-                        angkatan: santriList[i].angkatan.trim(),
-                        nis: santriList[i].nis.trim(),
-                        nama: santriList[i].nama.trim(),
+                        angkatan: santri.angkatan.trim(),
+                        nis: santri.nis.trim(),
+                        nama: santri.nama.trim(),
                         noUrut: i + 1,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
-                    const docRef = await db.collection('santri').add(data);
-                    santriList[i].firebaseId = docRef.id;
+                    if (santri.firebaseId) {
+                        // Update existing
+                        await db.collection('santri').doc(santri.firebaseId).update(data);
+                    } else {
+                        // Create new
+                        const docRef = await db.collection('santri').add(data);
+                        santri.firebaseId = docRef.id;
+                    }
                 }
                 showToast('Data tersimpan otomatis & terurut berdasarkan NIS');
             } catch (err) {
@@ -345,7 +323,6 @@
             }
         }
 
-        // ========== TAMBAH BARIS ==========
         function tambahBaris() {
             santriList.push({ angkatan: '', nis: '', nama: '' });
             sortSantriByNis();
@@ -354,12 +331,24 @@
             showToast('Baris ditambahkan, auto-save...');
         }
 
-        // ========== HAPUS TERPILIH ==========
         async function hapusTerpilih() {
             if (selectedRows.size === 0) {
                 showToast("Tidak ada baris yang dipilih", true);
                 return;
             }
+            // Kumpulkan ID yang akan dihapus
+            const idsToDelete = [];
+            for (let i of selectedRows) {
+                if (santriList[i].firebaseId) idsToDelete.push(santriList[i].firebaseId);
+            }
+            // Hapus dari Firestore
+            for (const id of idsToDelete) {
+                await db.collection('santri').doc(id).delete();
+                // Hapus juga data iuran terkait (opsional, tapi jika ingin konsisten)
+                await db.collection('iuran_konsumsi').doc(id).delete();
+                await db.collection('iuran_pondok').doc(id).delete();
+            }
+            // Hapus dari state lokal
             const newList = [];
             for (let i = 0; i < santriList.length; i++) {
                 if (!selectedRows.has(i)) newList.push(santriList[i]);
@@ -368,11 +357,9 @@
             selectedRows.clear();
             sortSantriByNis();
             renderTable();
-            await autoSave(); // langsung simpan setelah hapus
-            showToast(`${santriList.length} santri tersisa, data iuran terkait telah dihapus`);
+            showToast(`${idsToDelete.length} santri dan data iuran terkait dihapus`);
         }
 
-        // ========== LOAD DATA ==========
         async function loadDataFromFirebase() {
             loadingIndicator.classList.remove('hidden');
             try {
@@ -387,7 +374,6 @@
                         firebaseId: doc.id
                     });
                 });
-                // Urutkan berdasarkan NIS setelah load
                 loadedData.sort((a, b) => {
                     const nisA = String(a.nis || '');
                     const nisB = String(b.nis || '');
@@ -407,7 +393,7 @@
             }
         }
 
-        // ========== PASTE EXCEL ==========
+        // Paste Excel
         const pasteModal = document.getElementById('pasteModal');
         const pasteTextarea = document.getElementById('pasteDataText');
         function openPasteModal() {
@@ -446,7 +432,6 @@
             }
         }
 
-        // Event listeners
         refreshBtn.addEventListener('click', loadDataFromFirebase);
         tambahBtn.addEventListener('click', tambahBaris);
         hapusTerpilihBtn.addEventListener('click', hapusTerpilih);
