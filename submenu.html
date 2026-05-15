@@ -11,11 +11,12 @@
     <style>
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
+        .jenis-modal { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
 
-    <!-- ======================= MODAL LOGIN (jika session belum ada) ======================= -->
+    <!-- ======================= MODAL LOGIN ======================= -->
     <div id="loginModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 modal-overlay" style="display: none;">
         <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
             <div class="text-center mb-6">
@@ -33,9 +34,20 @@
         </div>
     </div>
 
-    <!-- ======================= KONTEN UTAMA (dengan submenu) ======================= -->
+    <!-- Modal Catatan Bendahara (2 pilihan) -->
+    <div id="catatanModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden jenis-modal transition-all">
+        <div class="bg-white rounded-2xl w-full max-w-sm mx-4 p-6 shadow-2xl">
+            <h3 class="text-xl font-bold text-center text-gray-800 mb-4">📒 Catatan Bendahara</h3>
+            <div class="flex flex-col gap-3">
+                <button id="btnCatatanPemasukan" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold py-3 rounded-xl transition">💰 Catatan Pemasukan</button>
+                <button id="btnCatatanPengeluaran" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold py-3 rounded-xl transition">🍽️ Catatan Pengeluaran</button>
+                <button id="cancelCatatanModal" class="mt-2 text-gray-500 hover:text-gray-700 text-sm">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= KONTEN UTAMA ======================= -->
     <div id="mainContent" style="display: none;">
-        <!-- Header dengan navigasi kembali -->
         <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
             <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -58,7 +70,6 @@
         </header>
 
         <main class="container mx-auto px-4 md:px-6 py-8">
-            <!-- Deskripsi jenis iuran -->
             <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl mb-8">
                 <p class="text-emerald-800 text-sm flex items-center gap-2">
                     <i class="fas fa-info-circle"></i> 
@@ -66,7 +77,6 @@
                 </p>
             </div>
 
-            <!-- Grid Menu Submenu -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Iuran Bulanan Santri -->
                 <a href="#" id="menuIuranBulanan" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
@@ -117,9 +127,18 @@
                     <p class="text-gray-500 text-sm mt-2">Detail iuran per individu, riwayat pembayaran dan tunggakan.</p>
                     <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
+
+                <!-- Catatan Bendahara -->
+                <button id="catatanBendaharaBtn" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
+                    <div class="bg-indigo-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition">
+                        <i class="fas fa-book text-3xl text-indigo-700"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Catatan Bendahara</h3>
+                    <p class="text-gray-500 text-sm mt-2">Alternatif input pemasukan & pengeluaran, terintegrasi otomatis.</p>
+                    <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka <i class="fas fa-arrow-right ml-1"></i></span>
+                </button>
             </div>
 
-            <!-- Catatan -->
             <div class="mt-12 text-center text-xs text-gray-400 border-t pt-6">
                 <i class="fas fa-database"></i> Data tersimpan di Firebase dengan collection terpisah untuk Konsumsi dan Pondok.
             </div>
@@ -127,7 +146,6 @@
     </div>
 
     <script>
-        // ======================= FIREBASE =======================
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -139,15 +157,14 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ======================= AMBIL PARAMETER URL =======================
         function getJenisIuran() {
             const urlParams = new URLSearchParams(window.location.search);
             const jenis = urlParams.get('jenis');
             return (jenis === 'pondok') ? 'pondok' : 'konsumsi';
         }
-        const jenisIuran = getJenisIuran(); // 'konsumsi' atau 'pondok'
+        const jenisIuran = getJenisIuran();
 
-        // ======================= LOGIN (sama seperti index.html) =======================
+        // Login
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
@@ -181,37 +198,64 @@
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
-        // ======================= PENGATURAN UI BERDASARKAN JENIS IURAN =======================
         function setupUIByJenis() {
             const titleElem = document.getElementById('submenuTitle');
             const descElem = document.getElementById('submenuDesc');
             const infoElem = document.getElementById('infoJenisIuran');
-            let judul, desc, info, konsumsiOrPondokText;
+            let judul, desc, info;
 
             if (jenisIuran === 'konsumsi') {
                 judul = "Iuran Konsumsi";
                 desc = "Kelola iuran makan harian santri";
                 info = "Anda sedang mengelola Iuran Konsumsi (makan/minum). Semua transaksi akan tersimpan di collection 'iuran_konsumsi'.";
-                konsumsiOrPondokText = "konsumsi";
             } else {
                 judul = "Iuran Pondok";
                 desc = "Kelola iuran kebersihan, listrik, dan fasilitas";
                 info = "Anda sedang mengelola Iuran Pondok (kebersihan, listrik, dll). Transaksi tersimpan di collection 'iuran_pondok'.";
-                konsumsiOrPondokText = "pondok";
             }
             titleElem.innerText = judul;
             descElem.innerText = desc;
             infoElem.innerText = info;
 
-            // Update semua link submenu dengan parameter jenis
             document.getElementById('menuIuranBulanan').href = `iuran.html?jenis=${jenisIuran}`;
             document.getElementById('menuInputTransaksi').href = `inputtransaksi.html?jenis=${jenisIuran}`;
             document.getElementById('menuRiwayat').href = `riwayat.html?jenis=${jenisIuran}`;
             document.getElementById('menuBKU').href = `bku.html?jenis=${jenisIuran}`;
             document.getElementById('menuLaporanSantri').href = `laporanpersantri.html?jenis=${jenisIuran}`;
+
+            // Sesuaikan tombol pengeluaran di modal
+            const pengeluaranBtn = document.getElementById('btnCatatanPengeluaran');
+            if (pengeluaranBtn) {
+                if (jenisIuran === 'konsumsi') {
+                    pengeluaranBtn.innerHTML = '🍽️ Catatan Pengeluaran Konsumsi';
+                    pengeluaranBtn.className = 'bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold py-3 rounded-xl transition';
+                } else {
+                    pengeluaranBtn.innerHTML = '🏠 Catatan Pengeluaran Pondok';
+                    pengeluaranBtn.className = 'bg-sky-100 hover:bg-sky-200 text-sky-800 font-semibold py-3 rounded-xl transition';
+                }
+            }
         }
 
-        // Jalankan pengecekan login
+        // Modal Catatan Bendahara
+        const catatanModal = document.getElementById('catatanModal');
+        function showCatatanModal() { catatanModal.classList.remove('hidden'); }
+        function hideCatatanModal() { catatanModal.classList.add('hidden'); }
+
+        document.getElementById('btnCatatanPemasukan')?.addEventListener('click', () => {
+            window.location.href = 'catatanpemasukan.html';
+        });
+        document.getElementById('btnCatatanPengeluaran')?.addEventListener('click', () => {
+            if (jenisIuran === 'konsumsi') {
+                window.location.href = 'catatanpengeluaran.html?jenis=konsumsi';
+            } else {
+                window.location.href = 'catatanpengeluaran.html?jenis=pondok';
+            }
+        });
+        document.getElementById('cancelCatatanModal')?.addEventListener('click', hideCatatanModal);
+        catatanModal.addEventListener('click', (e) => { if (e.target === catatanModal) hideCatatanModal(); });
+
+        document.getElementById('catatanBendaharaBtn')?.addEventListener('click', showCatatanModal);
+
         checkLoginStatus();
     </script>
 </body>
