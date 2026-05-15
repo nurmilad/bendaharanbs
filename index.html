@@ -25,7 +25,7 @@
 
     <!-- ======================= MODAL LOGIN ======================= -->
     <div id="loginModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 modal-overlay">
-        <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl transform transition-all">
+        <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
             <div class="text-center mb-6">
                 <div class="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-lock text-emerald-600 text-2xl"></i>
@@ -73,48 +73,26 @@
         <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
             <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
-                    <div class="bg-emerald-100 p-2 rounded-xl">
-                        <i class="fas fa-mosque text-emerald-700 text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-gray-800 text-lg md:text-xl">Pondok Pesantren <span class="text-emerald-600">Nurmilad</span></h1>
-                        <p class="text-xs text-gray-500 hidden md:block">Sistem Keuangan Terintegrasi</p>
-                    </div>
+                    <div class="bg-emerald-100 p-2 rounded-xl"><i class="fas fa-mosque text-emerald-700 text-xl"></i></div>
+                    <div><h1 class="font-bold text-gray-800 text-lg md:text-xl">Pondok Pesantren <span class="text-emerald-600">Nurmilad</span></h1><p class="text-xs text-gray-500 hidden md:block">Sistem Keuangan Terintegrasi</p></div>
                 </div>
                 <nav class="hidden md:flex items-center gap-6">
                     <a href="#" class="text-gray-600 hover:text-emerald-600 font-medium transition">Beranda</a>
                     <div class="relative dropdown">
-                        <button class="flex items-center gap-1 text-gray-700 hover:text-emerald-600 font-medium py-2">
-                            Kategori <i class="fas fa-chevron-down text-xs ml-1"></i>
-                        </button>
+                        <button class="flex items-center gap-1 text-gray-700 hover:text-emerald-600 font-medium py-2">Kategori <i class="fas fa-chevron-down text-xs ml-1"></i></button>
                         <div class="dropdown-menu hidden absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20">
-                            <a href="datasantri.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
-                                <i class="fas fa-users mr-2 w-5 text-emerald-500"></i> Data Santri
-                            </a>
-                            <a href="submenu.html?jenis=konsumsi" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
-                                <i class="fas fa-utensils mr-2 w-5 text-emerald-500"></i> Iuran Konsumsi
-                            </a>
-                            <a href="submenu.html?jenis=pondok" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
-                                <i class="fas fa-home mr-2 w-5 text-emerald-500"></i> Iuran Pondok
-                            </a>
-                            <!-- MENU CATATAN BENDAHARA -->
-                            <button id="catatanBendaharaBtnDesktop" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
-                                <i class="fas fa-book mr-2 w-5 text-emerald-500"></i> Catatan Bendahara
-                            </button>
+                            <a href="datasantri.html" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition"><i class="fas fa-users mr-2 w-5 text-emerald-500"></i> Data Santri</a>
+                            <a href="submenu.html?jenis=konsumsi" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition"><i class="fas fa-utensils mr-2 w-5 text-emerald-500"></i> Iuran Konsumsi</a>
+                            <a href="submenu.html?jenis=pondok" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition"><i class="fas fa-home mr-2 w-5 text-emerald-500"></i> Iuran Pondok</a>
+                            <button id="catatanBendaharaBtnDesktop" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition"><i class="fas fa-book mr-2 w-5 text-emerald-500"></i> Catatan Bendahara</button>
                             <hr class="my-1">
-                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition" id="laporanBulananLink">
-                                <i class="fas fa-chart-line mr-2 w-5"></i> Laporan Bulanan
-                            </a>
+                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition" id="laporanBulananLink"><i class="fas fa-chart-line mr-2 w-5"></i> Laporan Bulanan</a>
                         </div>
                     </div>
                     <a href="#" class="text-gray-600 hover:text-emerald-600">Informasi</a>
                     <a href="#" class="text-gray-600 hover:text-emerald-600">Bantuan</a>
                 </nav>
-                <div class="md:hidden flex gap-3">
-                    <button id="mobileMenuBtn" class="text-gray-600 focus:outline-none">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                </div>
+                <div class="md:hidden flex gap-3"><button id="mobileMenuBtn" class="text-gray-600 focus:outline-none"><i class="fas fa-bars text-xl"></i></button></div>
             </div>
             <div id="mobileMenuPanel" class="hidden md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-2 shadow-lg">
                 <a href="datasantri.html" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-users text-emerald-600 w-5"></i> Data Santri</a>
@@ -126,9 +104,7 @@
         </header>
 
         <main>
-            <!-- Hero, Statistik, 3 Menu Utama, Konten Populer, Kata Bijak (sama seperti sebelumnya) -->
-            <!-- ... (konten antara hero sampai footer tidak berubah) ... -->
-            <!-- Untuk menghemat tempat, saya tulis ulang ringkas, tapi Anda bisa copy dari kode sebelumnya -->
+            <!-- Hero -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
@@ -149,6 +125,7 @@
                 </div>
             </section>
 
+            <!-- Statistik -->
             <section id="statistik" class="py-12 md:py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="text-center max-w-2xl mx-auto mb-12"><h2 class="text-2xl md:text-3xl font-bold text-gray-800">📊 Statistik Keuangan <span class="text-emerald-600">Pesantren</span></h2><p class="text-gray-500 mt-2">Sistem online, data realtime</p></div>
@@ -161,6 +138,7 @@
                 </div>
             </section>
 
+            <!-- Menu Utama 4 kolom -->
             <section id="menu-utama" class="py-12 md:py-16 bg-gray-50">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="text-center max-w-2xl mx-auto mb-12"><span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Akses Cepat</span><h2 class="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Menu Utama Aplikasi</h2><p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p></div>
@@ -183,7 +161,6 @@
                             <p class="text-gray-500 text-sm mt-2">Kelola iuran kebersihan, listrik, dan fasilitas pondok.</p>
                             <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span>
                         </a>
-                        <!-- Menu Catatan Bendahara di grid utama (opsional, bisa juga di card) -->
                         <button id="catatanBendaharaBtnGrid" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
                             <div class="bg-indigo-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition"><i class="fas fa-book text-3xl text-indigo-700"></i></div>
                             <h3 class="text-xl font-bold text-gray-800">Catatan Bendahara</h3>
@@ -195,18 +172,19 @@
                 </div>
             </section>
 
-            <!-- Konten Populer dan Kata Bijak (sama seperti sebelumnya) -->
+            <!-- Konten Populer -->
             <section class="py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8">
                     <div class="flex justify-between items-end flex-wrap gap-3 mb-10"><div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div></div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-7">
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="bku"><div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600 group-hover:scale-105 transition"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Lihat →</span></div></div>
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="riwayat"><div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600 group-hover:scale-105 transition"></i></div><div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori →</span></div></div>
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="laporanpersantri"><div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600 group-hover:scale-105 transition"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan per Santri</h3><p class="text-gray-500 text-sm mt-1">Tagihan iuran per individu, tunggakan, dan riwayat pembayaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cetak slip →</span></div></div>
+                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="bku"><div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Lihat →</span></div></div>
+                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="riwayat"><div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori →</span></div></div>
+                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="laporanpersantri"><div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan per Santri</h3><p class="text-gray-500 text-sm mt-1">Tagihan iuran per individu, tunggakan, dan riwayat pembayaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cetak slip →</span></div></div>
                     </div>
                 </div>
             </section>
 
+            <!-- Kata Bijak -->
             <section class="py-16 bg-emerald-50/40">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💡 Kata Bijak Keuangan Berkah</h2><p class="text-gray-600">Nasihat penuh keberkahan untuk mengelola harta</p></div>
                 <div class="testimonial-slider-container max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative"><div class="overflow-hidden"><div id="wisdomTrack" class="testimonial-track flex flex-nowrap"></div></div><div class="flex justify-center gap-2 mt-6" id="wisdomDots"></div></div></div>
@@ -222,7 +200,14 @@
     </div>
 
     <script>
-        const firebaseConfig = { ... };
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -234,55 +219,162 @@
         const loginError = document.getElementById('loginError');
         const CORRECT_PASSWORD = "270909";
 
-        function checkLoginStatus() { ... } // (sama seperti sebelumnya)
-        function login() { ... }
-        function formatRupiah(angka) { ... }
-        async function loadAllStats() { ... }
-        // Kata bijak slider
-        const wisdomList = [ ... ];
-        let currentWisdomIdx = 0, wisdomInterval;
-        function loadWisdomSlider() { ... }
-        function updateWisdomSlider() { ... }
-        function startWisdomInterval() { ... }
-        function resetWisdomInterval() { ... }
-        function attachMobileMenu() { ... }
+        function checkLoginStatus() {
+            if (sessionStorage.getItem('pesantren_logged_in') === 'true') {
+                loginModal.style.display = 'none';
+                mainContent.style.display = 'block';
+                loadAllStats();
+                loadWisdomSlider();
+                attachMobileMenu();
+            } else {
+                loginModal.style.display = 'flex';
+                mainContent.style.display = 'none';
+            }
+        }
 
-        // ---------- MODAL JENIS IURAN (Konten Populer) ----------
+        function login() {
+            if (passwordInput.value === CORRECT_PASSWORD) {
+                sessionStorage.setItem('pesantren_logged_in', 'true');
+                loginModal.style.display = 'none';
+                mainContent.style.display = 'block';
+                loginError.classList.add('hidden');
+                loadAllStats();
+                loadWisdomSlider();
+                attachMobileMenu();
+            } else {
+                loginError.classList.remove('hidden');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        }
+        loginBtn.addEventListener('click', login);
+        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+
+        function formatRupiah(angka) {
+            if (!angka && angka !== 0) return '0';
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
+            }
+            return result;
+        }
+
+        async function loadAllStats() {
+            try {
+                const santriSnap = await db.collection('santri').get();
+                document.getElementById('totalSantriCount').innerText = santriSnap.size;
+                const transSnap = await db.collection('transaksi').get();
+                let pemasukanKonsumsi = 0, pengeluaranKonsumsi = 0;
+                let pemasukanPondok = 0, pengeluaranPondok = 0;
+                transSnap.forEach(doc => {
+                    const data = doc.data();
+                    const jenis = data.jenis_iuran || 'konsumsi';
+                    const tipe = data.tipe || (data.pemasukan > 0 ? 'pemasukan' : 'pengeluaran');
+                    const nominal = data.pemasukan || data.pengeluaran || 0;
+                    if (tipe === 'pemasukan' || tipe === 'Pemasukan') {
+                        if (jenis === 'konsumsi') pemasukanKonsumsi += nominal;
+                        else if (jenis === 'pondok') pemasukanPondok += nominal;
+                    } else if (tipe === 'pengeluaran' || tipe === 'Pengeluaran') {
+                        if (jenis === 'konsumsi') pengeluaranKonsumsi += nominal;
+                        else if (jenis === 'pondok') pengeluaranPondok += nominal;
+                    }
+                });
+                const saldoKonsumsi = pemasukanKonsumsi - pengeluaranKonsumsi;
+                const saldoPondok = pemasukanPondok - pengeluaranPondok;
+                const totalSaldo = saldoKonsumsi + saldoPondok;
+                document.getElementById('saldoKonsumsi').innerHTML = formatRupiah(saldoKonsumsi);
+                document.getElementById('saldoPondok').innerHTML = formatRupiah(saldoPondok);
+                document.getElementById('saldoAkhir').innerHTML = formatRupiah(totalSaldo);
+            } catch(err) { console.error(err); }
+        }
+
+        // Kata Bijak Slider
+        const wisdomList = [
+            "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
+            "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
+            "Catat setiap pemasukan dan pengeluaran, karena itulah kunci keberkahan keuangan.",
+            "Jangan menunda membayar hutang, karena itu memberatkan diri sendiri dan orang lain.",
+            "Rezeki yang berkah adalah rezeki yang dibelanjakan di jalan Allah.",
+            "Bijak dalam berbelanja, hemat bukan berarti pelit.",
+            "Sisihkan sebagian harta untuk infak, niscaya Allah ganti dengan yang lebih baik."
+        ];
+        let currentWisdomIdx = 0;
+        let wisdomInterval;
+        const wisdomTrack = document.getElementById('wisdomTrack');
+        const wisdomDots = document.getElementById('wisdomDots');
+
+        function loadWisdomSlider() {
+            if (!wisdomTrack) return;
+            wisdomTrack.innerHTML = '';
+            wisdomDots.innerHTML = '';
+            wisdomList.forEach((text, i) => {
+                const div = document.createElement('div');
+                div.className = 'w-full flex-shrink-0 px-2 text-center';
+                div.innerHTML = `<div class="flex flex-col items-center"><i class="fas fa-quote-right text-emerald-300 text-3xl mb-4"></i><p class="text-gray-700 italic text-md md:text-lg">"${text}"</p><div class="mt-4 text-emerald-600 text-sm font-medium">— Pesantren Nurmilad —</div></div>`;
+                wisdomTrack.appendChild(div);
+                const dot = document.createElement('button');
+                dot.className = `dot h-2 rounded-full transition-all duration-200 ${i === 0 ? 'bg-emerald-600 w-6' : 'bg-gray-300 w-2'} mx-1`;
+                dot.addEventListener('click', () => { currentWisdomIdx = i; updateWisdomSlider(); resetWisdomInterval(); });
+                wisdomDots.appendChild(dot);
+            });
+            updateWisdomSlider();
+            startWisdomInterval();
+        }
+        function updateWisdomSlider() {
+            if (wisdomTrack) wisdomTrack.style.transform = `translateX(-${currentWisdomIdx * 100}%)`;
+            const dots = document.querySelectorAll('#wisdomDots .dot');
+            dots.forEach((dot, i) => {
+                if (i === currentWisdomIdx) { dot.classList.add('bg-emerald-600', 'w-6'); dot.classList.remove('bg-gray-300', 'w-2'); }
+                else { dot.classList.remove('bg-emerald-600', 'w-6'); dot.classList.add('bg-gray-300', 'w-2'); }
+            });
+        }
+        function startWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); wisdomInterval = setInterval(() => { currentWisdomIdx = (currentWisdomIdx + 1) % wisdomList.length; updateWisdomSlider(); }, 5000); }
+        function resetWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); startWisdomInterval(); }
+
+        function attachMobileMenu() {
+            const mobileBtn = document.getElementById('mobileMenuBtn');
+            const mobilePanel = document.getElementById('mobileMenuPanel');
+            if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden');
+        }
+
+        // ---------- MODAL JENIS IURAN ----------
         const jenisModal = document.getElementById('jenisModal');
         let pendingTarget = null;
-        function showJenisModal(target) { ... }
-        function hideJenisModal() { ... }
-        function redirectToLaporan(jenis) { ... }
+        function showJenisModal(target) { pendingTarget = target; jenisModal.classList.remove('hidden'); }
+        function hideJenisModal() { jenisModal.classList.add('hidden'); pendingTarget = null; }
+        function redirectToLaporan(jenis) {
+            if (!pendingTarget) return;
+            let url = '';
+            if (pendingTarget === 'bku') url = `bku.html?jenis=${jenis}`;
+            else if (pendingTarget === 'riwayat') url = `riwayat.html?jenis=${jenis}`;
+            else if (pendingTarget === 'laporanpersantri') url = `laporanpersantri.html?jenis=${jenis}`;
+            if (url) window.location.href = url;
+        }
+        document.querySelectorAll('.populer-card').forEach(card => {
+            card.addEventListener('click', () => { const t = card.dataset.target; if (t) showJenisModal(t); });
+        });
+        document.querySelectorAll('.jenis-option').forEach(btn => {
+            btn.addEventListener('click', () => { const j = btn.dataset.jenis; if (j) redirectToLaporan(j); });
+        });
+        document.getElementById('cancelJenisModal')?.addEventListener('click', hideJenisModal);
+        jenisModal.addEventListener('click', (e) => { if (e.target === jenisModal) hideJenisModal(); });
+        document.getElementById('laporanBulananLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
+        document.getElementById('mobileLaporanLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
 
         // ---------- MODAL CATATAN BENDAHARA ----------
         const catatanModal = document.getElementById('catatanModal');
         function showCatatanModal() { catatanModal.classList.remove('hidden'); }
         function hideCatatanModal() { catatanModal.classList.add('hidden'); }
-
-        // Handler untuk tombol-tombol di modal catatan
-        document.getElementById('btnCatatanPemasukan').addEventListener('click', () => {
-            window.location.href = 'catatanpemasukan.html';
-        });
-        document.getElementById('btnCatatanPengeluaranKonsumsi').addEventListener('click', () => {
-            window.location.href = 'catatanpengeluaran.html?jenis=konsumsi';
-        });
-        document.getElementById('btnCatatanPengeluaranPondok').addEventListener('click', () => {
-            window.location.href = 'catatanpengeluaran.html?jenis=pondok';
-        });
-        document.getElementById('cancelCatatanModal').addEventListener('click', hideCatatanModal);
+        document.getElementById('btnCatatanPemasukan')?.addEventListener('click', () => window.location.href = 'catatanpemasukan.html');
+        document.getElementById('btnCatatanPengeluaranKonsumsi')?.addEventListener('click', () => window.location.href = 'catatanpengeluaran.html?jenis=konsumsi');
+        document.getElementById('btnCatatanPengeluaranPondok')?.addEventListener('click', () => window.location.href = 'catatanpengeluaran.html?jenis=pondok');
+        document.getElementById('cancelCatatanModal')?.addEventListener('click', hideCatatanModal);
         catatanModal.addEventListener('click', (e) => { if (e.target === catatanModal) hideCatatanModal(); });
-
-        // Pasang event listener untuk semua tombol "Catatan Bendahara"
         const catatanButtons = ['catatanBendaharaBtnDesktop', 'catatanBendaharaBtnMobile', 'catatanBendaharaBtnGrid'];
-        catatanButtons.forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) btn.addEventListener('click', showCatatanModal);
-        });
+        catatanButtons.forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', showCatatanModal); });
 
-        // Event lainnya (populer card, dll) sama seperti kode sebelumnya
-        // ... (copy dari kode index.html sebelumnya untuk bagian populer card, dropdown laporan, dll)
-
-        // Inisialisasi
         checkLoginStatus();
     </script>
 </body>
