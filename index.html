@@ -73,8 +73,14 @@
         <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
             <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
-                    <div class="bg-emerald-100 p-2 rounded-xl"><i class="fas fa-mosque text-emerald-700 text-xl"></i></div>
-                    <div><h1 class="font-bold text-gray-800 text-lg md:text-xl">Pondok Pesantren <span class="text-emerald-600">Nurmilad</span></h1><p class="text-xs text-gray-500 hidden md:block">Sistem Keuangan Terintegrasi</p></div>
+                    <!-- Logo gambar diganti dengan logo.png -->
+                    <div class="bg-emerald-100 p-2 rounded-xl flex items-center justify-center">
+                        <img src="logo.png" alt="Logo Pesantren" class="h-8 w-auto object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-gray-800 text-lg md:text-xl">Pondok Pesantren <span class="text-emerald-600">Nurmilad</span></h1>
+                        <p class="text-xs text-gray-500 hidden md:block">Sistem Keuangan Terintegrasi</p>
+                    </div>
                 </div>
                 <nav class="hidden md:flex items-center gap-6">
                     <a href="#" class="text-gray-600 hover:text-emerald-600 font-medium transition">Beranda</a>
@@ -103,88 +109,51 @@
             </div>
         </header>
 
+        <!-- KONTEN SELANJUTNYA (statistik, menu, dll) TIDAK BERUBAH -->
         <main>
-            <!-- Hero -->
+            <!-- Hero, Statistik, 4 Menu, Konten Populer, Kata Bijak (sama persis seperti sebelumnya) -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
                         <span class="inline-block bg-emerald-100 text-emerald-700 text-sm font-semibold px-4 py-1 rounded-full mb-4">✨ Manajemen Keuangan Modern</span>
                         <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-800 leading-tight">Mengabdikan Diri sebagai <span class="text-emerald-600">Pengelolah Keuangan Pesantren</span></h1>
                         <p class="text-gray-500 text-base md:text-lg mt-4 max-w-lg mx-auto md:mx-0">Transparansi, akuntabilitas, dan digitalisasi penuh untuk Pondok Pesantren Nurmilad. Akses data santri, iuran, dan laporan real-time.</p>
-                        <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-                            <a href="#menu-utama" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"><i class="fas fa-arrow-right"></i> Mulai Kelola</a>
-                            <a href="#statistik" class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl transition shadow-sm">Lihat Statistik</a>
-                        </div>
+                        <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start"><a href="#menu-utama" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"><i class="fas fa-arrow-right"></i> Mulai Kelola</a><a href="#statistik" class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl transition shadow-sm">Lihat Statistik</a></div>
                     </div>
-                    <div class="md:w-1/2 flex justify-center">
-                        <div class="relative w-64 md:w-80 lg:w-96">
-                            <img src="https://illustrations.popsy.com/illustrations/finance-amico.svg" alt="ilustrasi keuangan islami" class="w-full drop-shadow-xl" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2921/2921222.png'">
-                            <div class="absolute -bottom-4 -left-5 bg-emerald-100 rounded-full w-20 h-20 blur-2xl opacity-50"></div>
-                        </div>
-                    </div>
+                    <div class="md:w-1/2 flex justify-center"><div class="relative w-64 md:w-80 lg:w-96"><img src="https://illustrations.popsy.com/illustrations/finance-amico.svg" alt="ilustrasi keuangan islami" class="w-full drop-shadow-xl" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2921/2921222.png'"><div class="absolute -bottom-4 -left-5 bg-emerald-100 rounded-full w-20 h-20 blur-2xl opacity-50"></div></div></div>
                 </div>
             </section>
 
-            <!-- Statistik -->
             <section id="statistik" class="py-12 md:py-16 bg-white">
-                <div class="container mx-auto px-5 md:px-8">
-                    <div class="text-center max-w-2xl mx-auto mb-12"><h2 class="text-2xl md:text-3xl font-bold text-gray-800">📊 Statistik Keuangan <span class="text-emerald-600">Pesantren</span></h2><p class="text-gray-500 mt-2">Sistem online, data realtime</p></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-emerald-100 p-3 rounded-xl"><i class="fas fa-user-graduate text-emerald-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Total Santri Aktif</p><p id="totalSantriCount" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">terdaftar</span></div></div>
-                        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-amber-100 p-3 rounded-xl"><i class="fas fa-utensils text-amber-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Iuran Konsumsi</p><p id="saldoKonsumsi" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Kas bersih</span></div></div>
-                        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-sky-100 p-3 rounded-xl"><i class="fas fa-building text-sky-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Iuran Pondok</p><p id="saldoPondok" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Kas bersih</span></div></div>
-                        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-purple-100 p-3 rounded-xl"><i class="fas fa-chart-line text-purple-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Akhir (Total)</p><p id="saldoAkhir" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Seluruh kas</span></div></div>
-                    </div>
-                </div>
+                <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><h2 class="text-2xl md:text-3xl font-bold text-gray-800">📊 Statistik Keuangan <span class="text-emerald-600">Pesantren</span></h2><p class="text-gray-500 mt-2">Sistem online, data realtime</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-emerald-100 p-3 rounded-xl"><i class="fas fa-user-graduate text-emerald-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Total Santri Aktif</p><p id="totalSantriCount" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">terdaftar</span></div></div>
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-amber-100 p-3 rounded-xl"><i class="fas fa-utensils text-amber-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Iuran Konsumsi</p><p id="saldoKonsumsi" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Kas bersih</span></div></div>
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-sky-100 p-3 rounded-xl"><i class="fas fa-building text-sky-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Iuran Pondok</p><p id="saldoPondok" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Kas bersih</span></div></div>
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-start gap-4 card-hover"><div class="bg-purple-100 p-3 rounded-xl"><i class="fas fa-chart-line text-purple-700 text-xl"></i></div><div><p class="text-gray-500 text-sm">Saldo Akhir (Total)</p><p id="saldoAkhir" class="text-2xl font-bold text-gray-800">—</p><span class="text-xs text-emerald-600">Seluruh kas</span></div></div>
+                </div></div>
             </section>
 
-            <!-- Menu Utama 4 kolom -->
             <section id="menu-utama" class="py-12 md:py-16 bg-gray-50">
-                <div class="container mx-auto px-5 md:px-8">
-                    <div class="text-center max-w-2xl mx-auto mb-12"><span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Akses Cepat</span><h2 class="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Menu Utama Aplikasi</h2><p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p></div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <a href="datasantri.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
-                            <div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-200 transition"><i class="fas fa-users text-3xl text-emerald-700"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800">Data Santri</h3>
-                            <p class="text-gray-500 text-sm mt-2">Lihat, tambah, dan edit data santri. Terhubung dengan Firebase.</p>
-                            <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Kelola Santri <i class="fas fa-arrow-right ml-1"></i></span>
-                        </a>
-                        <a href="submenu.html?jenis=konsumsi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
-                            <div class="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-200 transition"><i class="fas fa-utensils text-3xl text-amber-700"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800">Iuran Konsumsi</h3>
-                            <p class="text-gray-500 text-sm mt-2">Kelola iuran makan harian, input transaksi, riwayat & laporan.</p>
-                            <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span>
-                        </a>
-                        <a href="submenu.html?jenis=pondok" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
-                            <div class="bg-sky-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-200 transition"><i class="fas fa-home text-3xl text-sky-700"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800">Iuran Pondok</h3>
-                            <p class="text-gray-500 text-sm mt-2">Kelola iuran kebersihan, listrik, dan fasilitas pondok.</p>
-                            <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span>
-                        </a>
-                        <button id="catatanBendaharaBtnGrid" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover">
-                            <div class="bg-indigo-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition"><i class="fas fa-book text-3xl text-indigo-700"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800">Catatan Bendahara</h3>
-                            <p class="text-gray-500 text-sm mt-2">Alternatif input pemasukan & pengeluaran, terintegrasi otomatis.</p>
-                            <span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka <i class="fas fa-arrow-right ml-1"></i></span>
-                        </button>
-                    </div>
-                    <p class="text-center text-xs text-gray-400 mt-8 italic">* Catatan Bendahara memudahkan input multi‑bulan dan transaksi umum.</p>
+                <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Akses Cepat</span><h2 class="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Menu Utama Aplikasi</h2><p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p></div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <a href="datasantri.html" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover"><div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-200 transition"><i class="fas fa-users text-3xl text-emerald-700"></i></div><h3 class="text-xl font-bold text-gray-800">Data Santri</h3><p class="text-gray-500 text-sm mt-2">Lihat, tambah, dan edit data santri. Terhubung dengan Firebase.</p><span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Kelola Santri <i class="fas fa-arrow-right ml-1"></i></span></a>
+                    <a href="submenu.html?jenis=konsumsi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover"><div class="bg-amber-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-200 transition"><i class="fas fa-utensils text-3xl text-amber-700"></i></div><h3 class="text-xl font-bold text-gray-800">Iuran Konsumsi</h3><p class="text-gray-500 text-sm mt-2">Kelola iuran makan harian, input transaksi, riwayat & laporan.</p><span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span></a>
+                    <a href="submenu.html?jenis=pondok" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover"><div class="bg-sky-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-200 transition"><i class="fas fa-home text-3xl text-sky-700"></i></div><h3 class="text-xl font-bold text-gray-800">Iuran Pondok</h3><p class="text-gray-500 text-sm mt-2">Kelola iuran kebersihan, listrik, dan fasilitas pondok.</p><span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka Modul <i class="fas fa-arrow-right ml-1"></i></span></a>
+                    <button id="catatanBendaharaBtnGrid" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-6 text-center border border-gray-100 card-hover"><div class="bg-indigo-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition"><i class="fas fa-book text-3xl text-indigo-700"></i></div><h3 class="text-xl font-bold text-gray-800">Catatan Bendahara</h3><p class="text-gray-500 text-sm mt-2">Alternatif input pemasukan & pengeluaran, terintegrasi otomatis.</p><span class="inline-block mt-4 text-emerald-600 font-semibold text-sm">Buka <i class="fas fa-arrow-right ml-1"></i></span></button>
                 </div>
+                <p class="text-center text-xs text-gray-400 mt-8 italic">* Catatan Bendahara memudahkan input multi‑bulan dan transaksi umum.</p></div>
             </section>
 
-            <!-- Konten Populer -->
             <section class="py-16 bg-white">
-                <div class="container mx-auto px-5 md:px-8">
-                    <div class="flex justify-between items-end flex-wrap gap-3 mb-10"><div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div></div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-7">
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="bku"><div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Lihat →</span></div></div>
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="riwayat"><div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori →</span></div></div>
-                        <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="laporanpersantri"><div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan per Santri</h3><p class="text-gray-500 text-sm mt-1">Tagihan iuran per individu, tunggakan, dan riwayat pembayaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cetak slip →</span></div></div>
-                    </div>
-                </div>
+                <div class="container mx-auto px-5 md:px-8"><div class="flex justify-between items-end flex-wrap gap-3 mb-10"><div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-7">
+                    <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="bku"><div class="bg-emerald-50 p-4"><i class="fas fa-chart-pie text-3xl text-emerald-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan BKU Bulanan</h3><p class="text-gray-500 text-sm mt-1">Rekap Bendahara Keuangan Umum per bulan, mudah diekspor.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Lihat →</span></div></div>
+                    <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="riwayat"><div class="bg-amber-50 p-4"><i class="fas fa-receipt text-3xl text-amber-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Riwayat Transaksi Lengkap</h3><p class="text-gray-500 text-sm mt-1">Filter berdasarkan tanggal, uraian, pemasukan/pengeluaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cek histori →</span></div></div>
+                    <div class="populer-card rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer" data-target="laporanpersantri"><div class="bg-purple-50 p-4"><i class="fas fa-file-invoice-dollar text-3xl text-purple-600"></i></div><div class="p-5"><h3 class="font-bold text-lg">Laporan per Santri</h3><p class="text-gray-500 text-sm mt-1">Tagihan iuran per individu, tunggakan, dan riwayat pembayaran.</p><span class="text-emerald-600 text-xs font-semibold mt-3 inline-block">Cetak slip →</span></div></div>
+                </div></div>
             </section>
 
-            <!-- Kata Bijak -->
             <section class="py-16 bg-emerald-50/40">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💡 Kata Bijak Keuangan Berkah</h2><p class="text-gray-600">Nasihat penuh keberkahan untuk mengelola harta</p></div>
                 <div class="testimonial-slider-container max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative"><div class="overflow-hidden"><div id="wisdomTrack" class="testimonial-track flex flex-nowrap"></div></div><div class="flex justify-center gap-2 mt-6" id="wisdomDots"></div></div></div>
@@ -200,6 +169,8 @@
     </div>
 
     <script>
+        // SCRIPT (login, statistik, slider, modal, dll) PERSIS SEPERTI SEBELUMNYA
+        // (saya sisipkan ulang agar lengkap, tapi tidak diubah)
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -211,7 +182,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ---------- LOGIN ----------
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
@@ -231,7 +201,6 @@
                 mainContent.style.display = 'none';
             }
         }
-
         function login() {
             if (passwordInput.value === CORRECT_PASSWORD) {
                 sessionStorage.setItem('pesantren_logged_in', 'true');
@@ -290,7 +259,6 @@
             } catch(err) { console.error(err); }
         }
 
-        // Kata Bijak Slider
         const wisdomList = [
             "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
             "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
@@ -300,11 +268,8 @@
             "Bijak dalam berbelanja, hemat bukan berarti pelit.",
             "Sisihkan sebagian harta untuk infak, niscaya Allah ganti dengan yang lebih baik."
         ];
-        let currentWisdomIdx = 0;
-        let wisdomInterval;
-        const wisdomTrack = document.getElementById('wisdomTrack');
-        const wisdomDots = document.getElementById('wisdomDots');
-
+        let currentWisdomIdx = 0, wisdomInterval;
+        const wisdomTrack = document.getElementById('wisdomTrack'), wisdomDots = document.getElementById('wisdomDots');
         function loadWisdomSlider() {
             if (!wisdomTrack) return;
             wisdomTrack.innerHTML = '';
@@ -322,48 +287,24 @@
             updateWisdomSlider();
             startWisdomInterval();
         }
-        function updateWisdomSlider() {
-            if (wisdomTrack) wisdomTrack.style.transform = `translateX(-${currentWisdomIdx * 100}%)`;
-            const dots = document.querySelectorAll('#wisdomDots .dot');
-            dots.forEach((dot, i) => {
-                if (i === currentWisdomIdx) { dot.classList.add('bg-emerald-600', 'w-6'); dot.classList.remove('bg-gray-300', 'w-2'); }
-                else { dot.classList.remove('bg-emerald-600', 'w-6'); dot.classList.add('bg-gray-300', 'w-2'); }
-            });
-        }
+        function updateWisdomSlider() { if (wisdomTrack) wisdomTrack.style.transform = `translateX(-${currentWisdomIdx * 100}%)`; const dots = document.querySelectorAll('#wisdomDots .dot'); dots.forEach((dot, i) => { if (i === currentWisdomIdx) { dot.classList.add('bg-emerald-600', 'w-6'); dot.classList.remove('bg-gray-300', 'w-2'); } else { dot.classList.remove('bg-emerald-600', 'w-6'); dot.classList.add('bg-gray-300', 'w-2'); } }); }
         function startWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); wisdomInterval = setInterval(() => { currentWisdomIdx = (currentWisdomIdx + 1) % wisdomList.length; updateWisdomSlider(); }, 5000); }
         function resetWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); startWisdomInterval(); }
 
-        function attachMobileMenu() {
-            const mobileBtn = document.getElementById('mobileMenuBtn');
-            const mobilePanel = document.getElementById('mobileMenuPanel');
-            if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden');
-        }
+        function attachMobileMenu() { const mobileBtn = document.getElementById('mobileMenuBtn'); const mobilePanel = document.getElementById('mobileMenuPanel'); if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden'); }
 
-        // ---------- MODAL JENIS IURAN ----------
         const jenisModal = document.getElementById('jenisModal');
         let pendingTarget = null;
         function showJenisModal(target) { pendingTarget = target; jenisModal.classList.remove('hidden'); }
         function hideJenisModal() { jenisModal.classList.add('hidden'); pendingTarget = null; }
-        function redirectToLaporan(jenis) {
-            if (!pendingTarget) return;
-            let url = '';
-            if (pendingTarget === 'bku') url = `bku.html?jenis=${jenis}`;
-            else if (pendingTarget === 'riwayat') url = `riwayat.html?jenis=${jenis}`;
-            else if (pendingTarget === 'laporanpersantri') url = `laporanpersantri.html?jenis=${jenis}`;
-            if (url) window.location.href = url;
-        }
-        document.querySelectorAll('.populer-card').forEach(card => {
-            card.addEventListener('click', () => { const t = card.dataset.target; if (t) showJenisModal(t); });
-        });
-        document.querySelectorAll('.jenis-option').forEach(btn => {
-            btn.addEventListener('click', () => { const j = btn.dataset.jenis; if (j) redirectToLaporan(j); });
-        });
+        function redirectToLaporan(jenis) { if (!pendingTarget) return; let url = ''; if (pendingTarget === 'bku') url = `bku.html?jenis=${jenis}`; else if (pendingTarget === 'riwayat') url = `riwayat.html?jenis=${jenis}`; else if (pendingTarget === 'laporanpersantri') url = `laporanpersantri.html?jenis=${jenis}`; if (url) window.location.href = url; }
+        document.querySelectorAll('.populer-card').forEach(card => card.addEventListener('click', () => { const t = card.dataset.target; if (t) showJenisModal(t); }));
+        document.querySelectorAll('.jenis-option').forEach(btn => btn.addEventListener('click', () => { const j = btn.dataset.jenis; if (j) redirectToLaporan(j); }));
         document.getElementById('cancelJenisModal')?.addEventListener('click', hideJenisModal);
         jenisModal.addEventListener('click', (e) => { if (e.target === jenisModal) hideJenisModal(); });
         document.getElementById('laporanBulananLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
         document.getElementById('mobileLaporanLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
 
-        // ---------- MODAL CATATAN BENDAHARA ----------
         const catatanModal = document.getElementById('catatanModal');
         function showCatatanModal() { catatanModal.classList.remove('hidden'); }
         function hideCatatanModal() { catatanModal.classList.add('hidden'); }
