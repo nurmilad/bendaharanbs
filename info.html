@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Informasi & Bantuan - Pondok Pesantren Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
+        .tab-active { background-color: #10b981; color: white; }
+        .tab-inactive { background-color: #e5e7eb; color: #374151; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
+        <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="text-emerald-600 hover:text-emerald-700 transition">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div class="flex items-center gap-2">
+                    <div class="bg-emerald-100 p-2 rounded-xl">
+                        <i class="fas fa-info-circle text-emerald-700 text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-gray-800 text-lg md:text-xl" id="pageTitle">Informasi & Bantuan</h1>
+                        <p class="text-xs text-gray-500 hidden md:block" id="pageSub">Pondok Pesantren Nurmilad</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap gap-3 mb-8 border-b pb-2">
+            <a href="?mode=informasi" id="tabInformasi" class="tab-btn px-5 py-2 rounded-lg font-semibold transition">📋 Informasi Umum</a>
+            <a href="?mode=bantuan" id="tabBantuan" class="tab-btn px-5 py-2 rounded-lg font-semibold transition">🆘 Bantuan & Panduan</a>
+        </div>
+
+        <!-- Konten Informasi -->
+        <div id="kontenInformasi" class="konten hidden space-y-6">
+            <!-- Kontak -->
+            <div class="bg-white rounded-2xl shadow-md p-6 card-hover">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <i class="fas fa-address-card text-emerald-600"></i> Kontak & Dukungan
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="font-semibold text-gray-700">📧 Email Pesantren</p>
+                        <p class="text-gray-600">nurmiladboardingschool@gmail.com</p>
+                        <p class="font-semibold text-gray-700 mt-3">📱 WhatsApp Pesantren</p>
+                        <p class="text-gray-600">085796097322</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-700">⚙️ Dukungan Teknis Aplikasi</p>
+                        <p class="text-gray-600">a.n. ABDUL RAHIM</p>
+                        <p class="text-gray-600">📞 WhatsApp: 085242332234</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Iuran Santri & Subsidi -->
+            <div class="bg-white rounded-2xl shadow-md p-6 card-hover">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd text-emerald-600"></i> Info Iuran Santri & Subsidi
+                </h2>
+                <div class="mb-6">
+                    <h3 class="font-semibold text-emerald-700 text-lg">💰 Besaran Iuran Reguler</h3>
+                    <ul class="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                        <li><span class="font-medium">Iuran Konsumsi</span> (makan, minum, catering) : <strong>Rp 450.000 / bulan</strong></li>
+                        <li><span class="font-medium">Iuran Pondok</span> (listrik, air, kebersihan, fasilitas) : <strong>Rp 150.000 / bulan</strong></li>
+                    </ul>
+                    <p class="mt-2 text-gray-600 text-sm italic">* Total iuran per santri per bulan = Rp 600.000 (belum termasuk biaya pendidikan lainnya).</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-emerald-700 text-lg">🤝 Kebijakan Subsidi & Keringanan</h3>
+                    <p class="text-gray-700 mt-1">Pesantren memberikan keringanan iuran kepada santri dengan kriteria sebagai berikut:</p>
+                    <ul class="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                        <li>Santri berprestasi (juara akademik/non-akademik tingkat kabupaten/provinsi/nasional).</li>
+                        <li>Santri penghafal Al-Qur'an (hafalan minimal 2 juz).</li>
+                        <li>Santri yatim / piatu (dibuktikan dengan surat keterangan).</li>
+                        <li>Dua bersaudara atau lebih yang belajar di pesantren ini (potongan untuk setiap anak).</li>
+                        <li>Santri dari keluarga tidak mampu (dibuktikan dengan KIP atau surat keterangan RT/RW/desa).</li>
+                        <li>Subsidi khusus lainnya sesuai kebijakan pimpinan pondok.</li>
+                    </ul>
+                    <div class="bg-emerald-50 p-3 rounded-lg mt-3">
+                        <p class="text-sm"><i class="fas fa-info-circle text-emerald-600 mr-1"></i> Untuk pengajuan subsidi, harap menghubungi bagian bendahara atau pengasuh pondok dengan membawa bukti pendukung.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-100 rounded-2xl p-6 text-center text-gray-600 text-sm">
+                <i class="fas fa-database mr-1"></i> Semua data tersimpan di cloud Firebase dan dapat diakses kapan saja.
+                <br>Dikembangkan untuk Pondok Pesantren Nurmilad – <span class="font-mono">v2.0 (2026)</span>
+            </div>
+        </div>
+
+        <!-- Konten Bantuan (Panduan Penggunaan) -->
+        <div id="kontenBantuan" class="konten hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-md p-6 card-hover">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <i class="fas fa-book-open text-emerald-600"></i> Panduan Penggunaan Aplikasi
+                </h2>
+                <div class="space-y-4 text-gray-700">
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">1. Login</h3>
+                        <p>Masukkan password <span class="font-mono bg-gray-100 px-2 py-0.5 rounded">270909</span> untuk mengakses seluruh fitur.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">2. Data Santri</h3>
+                        <p>Kelola data santri (ANGKATAN, NIS, NAMA). Data otomatis terurut berdasarkan NIS. Gunakan tombol <strong>Import Data</strong> untuk menempel data dari Excel (format: ANGK [TAB] NIS [TAB] NAMA).</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">3. Iuran Bulanan Santri (Iuran Konsumsi / Iuran Pondok)</h3>
+                        <p>Tentukan nominal iuran per bulan per kelas untuk 6 tahun (72 bulan). Nilai dalam ribuan (contoh: 450 = Rp 450.000). Auto-save setiap perubahan. Gunakan tombol <strong>Import Data</strong> untuk menempel data dengan format <code>NIS nilai1 nilai2 ...</code> (nilai diisikan ke kolom berurutan).</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">4. Input Transaksi</h3>
+                        <p>Pilih tipe <strong>Pemasukan</strong> atau <strong>Pengeluaran</strong>. Untuk pemasukan, centang <strong>Pembayaran Santri</strong> jika transaksi berasal dari santri (otomatis mengambil nominal dari iuran yang sudah ditetapkan). Pengeluaran dapat menambah beberapa baris sekaligus.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">5. Riwayat Transaksi</h3>
+                        <p>Lihat semua transaksi, edit, filter tanggal, dan import multi baris dari spreadsheet. Tombol <strong>Sinkronisasi</strong> akan memperbarui nilai pemasukan pembayaran santri sesuai iuran terbaru.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">6. Laporan BKU & Laporan per Santri</h3>
+                        <p>Laporan Buku Kas Umum (BKU) per bulan, dapat dicetak. Laporan per Santri menampilkan pembayaran santri per bulan per kelas.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-emerald-700">7. Catatan Bendahara</h3>
+                        <p>Alternatif input pemasukan multi‑bulan dan pengeluaran. Setelah mengisi catatan, klik <strong>Import</strong> untuk memindahkan ke transaksi utama.</p>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-lg mt-2">
+                        <p class="text-sm"><i class="fas fa-lightbulb text-amber-500 mr-1"></i> <strong>Tips:</strong> Data selalu auto-save. Gunakan tombol <strong>Refresh</strong> di setiap halaman jika ada perubahan dari luar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 text-white py-6 mt-8">
+        <div class="container mx-auto px-5 text-center text-gray-400 text-sm">
+            <p>© 2026 Pondok Pesantren Nurmilad – Sistem Keuangan Digital</p>
+        </div>
+    </footer>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let mode = urlParams.get('mode') || 'informasi';
+        
+        const kontenInfo = document.getElementById('kontenInformasi');
+        const kontenBantuan = document.getElementById('kontenBantuan');
+        const tabInfo = document.getElementById('tabInformasi');
+        const tabBantuan = document.getElementById('tabBantuan');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSub = document.getElementById('pageSub');
+
+        function setActiveTab(activeMode) {
+            if (activeMode === 'informasi') {
+                kontenInfo.classList.remove('hidden');
+                kontenBantuan.classList.add('hidden');
+                tabInfo.classList.add('bg-emerald-600', 'text-white');
+                tabInfo.classList.remove('bg-gray-200', 'text-gray-700');
+                tabBantuan.classList.add('bg-gray-200', 'text-gray-700');
+                tabBantuan.classList.remove('bg-emerald-600', 'text-white');
+                pageTitle.innerText = 'Informasi Pesantren';
+                pageSub.innerText = 'Kontak, iuran, dan kebijakan subsidi';
+            } else {
+                kontenInfo.classList.add('hidden');
+                kontenBantuan.classList.remove('hidden');
+                tabBantuan.classList.add('bg-emerald-600', 'text-white');
+                tabBantuan.classList.remove('bg-gray-200', 'text-gray-700');
+                tabInfo.classList.add('bg-gray-200', 'text-gray-700');
+                tabInfo.classList.remove('bg-emerald-600', 'text-white');
+                pageTitle.innerText = 'Bantuan & Panduan';
+                pageSub.innerText = 'Petunjuk penggunaan aplikasi';
+            }
+        }
+
+        if (mode !== 'informasi' && mode !== 'bantuan') mode = 'informasi';
+        setActiveTab(mode);
+
+        tabInfo.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.history.pushState({}, '', '?mode=informasi');
+            setActiveTab('informasi');
+        });
+        tabBantuan.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.history.pushState({}, '', '?mode=bantuan');
+            setActiveTab('bantuan');
+        });
+    </script>
+</body>
+</html>
