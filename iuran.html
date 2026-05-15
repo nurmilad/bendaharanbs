@@ -124,7 +124,6 @@
     <header class="bg-white shadow-sm sticky top-0 z-40 border-b">
         <div class="px-4 md:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- Tombol back dinamis dengan id="backLink" -->
                 <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700">
                     <i class="fas fa-arrow-left text-lg"></i>
                 </a>
@@ -165,8 +164,8 @@
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4">
-                <p class="text-xs text-gray-600 mb-2">Salin blok angka dari Excel (72 kolom) sesuai urutan santri (urutan NIS). Angka bisa dengan atau tanpa titik.</p>
-                <textarea id="pasteData" rows="8" class="w-full border rounded p-2 font-mono text-xs" placeholder="Tempel 72 angka per baris...&#10;Contoh: 450000 275000 300000"></textarea>
+                <p class="text-xs text-gray-600 mb-2">Salin data dengan format: NIS diikuti nilai iuran (pisahkan spasi atau TAB). Nilai akan diisikan ke kolom bulan berurutan mulai JUL (7).</p>
+                <textarea id="pasteData" rows="8" class="w-full border rounded p-2 font-mono text-xs" placeholder="Contoh:&#10;2425001 450000 450000 450000&#10;2425007 300000&#10;2425003 300000 300000"></textarea>
                 <div class="flex justify-end gap-2 mt-3">
                     <button id="cancelPasteBtn" class="px-3 py-1 border rounded text-sm">Batal</button>
                     <button id="processPasteBtn" class="px-3 py-1 bg-emerald-600 text-white rounded text-sm">Terapkan</button>
@@ -200,7 +199,6 @@
         document.getElementById('pageTitle').innerHTML = `Iuran Bulanan - ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}`;
         document.getElementById('pageDesc').innerText = `Kelola iuran ${jenis === 'konsumsi' ? 'makanan' : 'fasilitas'} - Auto save - Urut NIS`;
 
-        // === TOMBOL BACK DINAMIS ===
         const backLink = document.getElementById('backLink');
         backLink.href = `submenu.html?jenis=${jenis}`;
 
@@ -338,7 +336,6 @@
                         noUrut: d.noUrut || 0
                     });
                 });
-                // Urutkan berdasarkan NIS secara numerik (ascending)
                 santriTemp.sort((a, b) => {
                     const nisA = parseInt(a.nis) || 0;
                     const nisB = parseInt(b.nis) || 0;
@@ -374,39 +371,53 @@
             }
         }
 
-        // Paste Excel
+        // ========== FITUR TEMPEL EXCEL YANG DIPERBAIKI ==========
         const pasteModal = document.getElementById('pasteModal');
         const pasteData = document.getElementById('pasteData');
         function openPaste() { pasteData.value = ''; pasteModal.classList.remove('hidden'); }
         function closePaste() { pasteModal.classList.add('hidden'); }
+
         function processPaste() {
             const raw = pasteData.value;
             if (!raw.trim()) { showToast('Tidak ada data', true); closePaste(); return; }
             const lines = raw.split(/\r?\n/);
-            let rowIdx = 0;
-            let success = 0;
+            let successCount = 0;
             for (let line of lines) {
                 line = line.trim();
                 if (line === '') continue;
+                // Pisahkan berdasarkan spasi atau tab
                 const parts = line.split(/\s+/);
-                if (parts.length >= totalBulan && rowIdx < santriList.length) {
-                    for (let b=0; b<totalBulan; b++) {
-                        let val = parseRupiah(parts[b]);
-                        santriList[rowIdx].iuranData[b] = val;
+                if (parts.length < 2) {
+                    showToast(`Baris tidak valid (minimal NIS + 1 nilai): ${line.substring(0,50)}`, true);
+                    continue;
+                }
+                const nis = parts[0].trim();
+                // Cari santri berdasarkan NIS
+                const santriIndex = santriList.findIndex(s => s.nis === nis);
+                if (santriIndex === -1) {
+                    showToast(`NIS ${nis} tidak ditemukan`, true);
+                    continue;
+                }
+                const nilaiList = parts.slice(1);
+                let updated = false;
+                // Isikan nilai ke kolom bulan berurutan (index 0,1,2,...) sebanyak nilai yang diberikan
+                for (let i = 0; i < nilaiList.length && i < totalBulan; i++) {
+                    const val = parseRupiah(nilaiList[i]);
+                    if (val !== santriList[santriIndex].iuranData[i]) {
+                        santriList[santriIndex].iuranData[i] = val;
+                        updated = true;
                     }
-                    rowIdx++;
-                    success++;
-                } else if (rowIdx >= santriList.length) {
-                    showToast('Kelebihan baris data', true);
-                    break;
-                } else {
-                    showToast(`Baris ${rowIdx+1} kurang dari ${totalBulan} angka`, true);
+                }
+                if (updated) {
+                    successCount++;
                 }
             }
-            if (success > 0) {
-                renderTable();
-                autoSave();
-                showToast(`${success} baris ditempel, auto-save...`);
+            if (successCount > 0) {
+                renderTable();  // update tampilan
+                autoSave();     // simpan ke Firebase
+                showToast(`${successCount} baris berhasil ditempel, auto-save...`);
+            } else {
+                showToast('Tidak ada data yang valid ditempel', true);
             }
             closePaste();
         }
