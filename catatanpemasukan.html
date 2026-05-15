@@ -24,6 +24,16 @@
         .total-row { background-color: #fef3c7; font-weight: 600; }
         .wrap-textarea { white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
         textarea { min-height: 50px; }
+        .total-summary {
+            background-color: #f3f4f6;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+            border: 1px solid #e5e7eb;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -52,17 +62,20 @@
         <!-- Tabel (tanpa kolom Verifikasi) -->
         <div class="bg-white rounded-xl shadow overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="catatan-table">
+                <table class="catatan-table" id="catatanTable">
                     <thead>
                         <tr>
                             <th>Tanggal</th><th>Uraian</th><th>Konsumsi (Rp)</th><th>Bulan*</th><th>Pondok (Rp)</th><th>Bulan**</th><th>Jumlah (Rp)</th><th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
-                    <tfoot id="tableFooter" class="total-row">
-                        <tr><td colspan="2" class="text-right font-bold">TOTAL</td><td class="text-right" id="totalK">-</td><td></td><td class="text-right" id="totalP">-</td><td class="text-right" id="totalJ">-</td><td class="text-right">-</td></tr>
-                    </tfoot>
                 </table>
+            </div>
+            <!-- Ringkasan total di bawah tabel -->
+            <div id="totalSummary" class="total-summary">
+                <span>Sub Total Pemasukan Konsumsi: <strong id="totalK">Rp 0</strong></span>
+                <span>Sub Total Pemasukan Pondok: <strong id="totalP">Rp 0</strong></span>
+                <span>Total Pemasukan: <strong id="totalJ">Rp 0</strong></span>
             </div>
             <div class="p-3 text-right"><button id="tambahBarisBtn" class="bg-emerald-600 text-white px-3 py-1 rounded text-sm">+ Tambah Baris</button></div>
         </div>
@@ -220,10 +233,11 @@
             let dari = document.getElementById('filterDari').value, sampai = document.getElementById('filterSampai').value;
             let filtered = catatanList.filter(r => (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai));
             renderTable(filtered);
-            let totK=0,totP=0,totJ=0; filtered.forEach(r=>{ totK+=r.konsumsi; totP+=r.pondok; totJ+=r.jumlah; });
-            document.getElementById('totalK').innerText=formatRp(totK);
-            document.getElementById('totalP').innerText=formatRp(totP);
-            document.getElementById('totalJ').innerText=formatRp(totJ);
+            let totK=0,totP=0,totJ=0;
+            filtered.forEach(r=>{ totK+=r.konsumsi; totP+=r.pondok; totJ+=r.jumlah; });
+            document.getElementById('totalK').innerHTML = `Rp ${formatRp(totK)}`;
+            document.getElementById('totalP').innerHTML = `Rp ${formatRp(totP)}`;
+            document.getElementById('totalJ').innerHTML = `Rp ${formatRp(totJ)}`;
         }
 
         function renderTable(data) {
@@ -235,21 +249,21 @@
                 let santri = extractSantri(row.uraian), isSantri = !!santri, rowClass = row.exported ? 'row-exported' : '', disabled = row.exported ? 'disabled' : '';
                 let rowIdAttr = row.id ? row.id : 'new_' + idx;
                 html += `<tr class="${rowClass}" data-id="${rowIdAttr}">`;
-                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}></td>`;
-                html += `<td class="relative"><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" style="min-width:200px;" ${disabled}><div class="autocomplete-items autocomplete-${rowIdAttr}" style="display:none;"></div></td>`;
-                if (isSantri) html += `<td><input type="text" class="field-konsumsi" value="${formatRp(row.konsumsi)}" readonly disabled></td>`;
-                else html += `<td><input type="text" class="field-konsumsi rupiah-input" value="${formatRp(row.konsumsi)}" ${disabled}></td>`;
-                if (isSantri) html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanKonsumsi)}</textarea></td>`;
-                else html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" disabled readonly></textarea></td>`;
-                if (isSantri) html += `<td><input type="text" class="field-pondok" value="${formatRp(row.pondok)}" readonly disabled></td>`;
-                else html += `<td><input type="text" class="field-pondok rupiah-input" value="${formatRp(row.pondok)}" ${disabled}></td>`;
-                if (isSantri) html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanPondok)}</textarea></td>`;
-                else html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" disabled readonly></textarea></td>`;
-                html += `<td class="text-right font-medium">${formatRp(row.jumlah)}</td>`;
+                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}><\/td>`;
+                html += `<td class="relative"><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" style="min-width:200px;" ${disabled}><div class="autocomplete-items autocomplete-${rowIdAttr}" style="display:none;"></div><\/td>`;
+                if (isSantri) html += `<td><input type="text" class="field-konsumsi" value="${formatRp(row.konsumsi)}" readonly disabled><\/td>`;
+                else html += `<td><input type="text" class="field-konsumsi rupiah-input" value="${formatRp(row.konsumsi)}" ${disabled}><\/td>`;
+                if (isSantri) html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanKonsumsi)}</textarea><\/td>`;
+                else html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" disabled readonly><\/textarea><\/td>`;
+                if (isSantri) html += `<td><input type="text" class="field-pondok" value="${formatRp(row.pondok)}" readonly disabled><\/td>`;
+                else html += `<td><input type="text" class="field-pondok rupiah-input" value="${formatRp(row.pondok)}" ${disabled}><\/td>`;
+                if (isSantri) html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanPondok)}</textarea><\/td>`;
+                else html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" disabled readonly><\/textarea><\/td>`;
+                html += `<td class="text-right font-medium">${formatRp(row.jumlah)}<\/td>`;
                 html += `<td class="text-center"><button class="hapus-btn text-red-500 mr-2"><i class="fas fa-trash"></i></button>`;
                 if (!row.exported) html += `<button class="import-btn bg-blue-500 text-white px-2 py-1 rounded text-xs"><i class="fas fa-upload"></i> Import</button>`;
                 else html += `<button class="import-btn bg-green-500 text-white px-2 py-1 rounded text-xs" disabled><i class="fas fa-check"></i> Terimport</button>`;
-                html += `</tr>`;
+                html += `<\/td><\/tr>`;
             });
             tbody.innerHTML = html;
             // Attach event listeners
@@ -315,10 +329,9 @@
                         div.className = 'autocomplete-item';
                         div.textContent = `${s.nis} | ${s.nama}`;
                         div.onmousedown = (event) => {
-                            event.preventDefault(); // mencegah hilangnya fokus dari input
+                            event.preventDefault();
                             inp.value = `${s.nis} | ${s.nama}`;
                             container.style.display = 'none';
-                            // trigger change event agar data tersimpan
                             let changeEvent = new Event('change', { bubbles: true });
                             inp.dispatchEvent(changeEvent);
                         };
