@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Catatan Pengeluaran - Pondok Pesantren Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        .pengeluaran-table { border-collapse: collapse; width: 100%; font-size: 0.75rem; }
+        .pengeluaran-table th, .pengeluaran-table td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: top; }
+        .pengeluaran-table th { background-color: #f1f5f9; font-weight: 600; text-align: center; }
+        .row-imported { background-color: #d1fae5 !important; }
+        input { width: 100%; border: none; background: transparent; padding: 4px; }
+        input:focus { outline: none; background-color: #fefce8; }
+        .disabled-input { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
+        .total-row { background-color: #fef3c7; font-weight: 600; }
+        .jumlah-harga { text-align: right; font-weight: 500; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b">
+        <div class="px-4 md:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
+                <h1 class="font-bold text-gray-800 text-lg" id="pageTitle">Catatan Pengeluaran</h1>
+            </div>
+            <div>
+                <button id="refreshDataBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-6xl mx-auto">
+        <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center">Memproses...</div>
+
+        <!-- Filter Tanggal -->
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
+            <div><label class="text-sm font-medium">Dari Tanggal</label><input type="date" id="filterDari" class="border rounded p-2"></div>
+            <div><label class="text-sm font-medium">Sampai Tanggal</label><input type="date" id="filterSampai" class="border rounded p-2"></div>
+            <button id="filterBtn" class="bg-emerald-600 text-white px-3 py-2 rounded">Filter</button>
+            <button id="resetFilterBtn" class="bg-gray-500 text-white px-3 py-2 rounded">Reset</button>
+        </div>
+
+        <!-- Tabel -->
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="pengeluaran-table">
+                    <thead>
+                        <tr><th>Tanggal</th><th>Uraian</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Jumlah Harga (Rp)</th><th>Aksi</th></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                    <tfoot id="tableFooter" class="total-row">
+                        <tr><td colspan="4" class="text-right font-bold">TOTAL PENGELUARAN</td><td class="text-right font-bold" id="totalPengeluaran">-</td><td></td></tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="p-3 text-right"><button id="tambahBarisBtn" class="bg-emerald-600 text-white px-3 py-1 rounded text-sm">+ Tambah Baris</button></div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast hidden"><i class="fas fa-info-circle"></i> <span id="toastMsg"></span></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Ambil parameter jenis
+        const urlParams = new URLSearchParams(window.location.search);
+        const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
+        const collectionCatatan = `catatan_pengeluaran_${jenis}`; // misal catatan_pengeluaran_konsumsi
+        const jenisIuranText = jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok';
+        document.getElementById('pageTitle').innerHTML = `Catatan Pengeluaran ${jenisIuranText}`;
+        document.getElementById('jenisInfo').innerHTML = `📌 Mengelola pengeluaran untuk Iuran ${jenisIuranText}`;
+
+        let catatanList = [];
+        let saveTimeout = null;
+        let isSaving = false;
+
+        const tbody = document.getElementById('tableBody');
+        const filterDari = document.getElementById('filterDari');
+        const filterSampai = document.getElementById('filterSampai');
+        const totalSpan = document.getElementById('totalPengeluaran');
+
+        function today() { return new Date().toISOString().slice(0,10); }
+        function formatRp(angka) { if (!angka && angka!==0) return ''; let s = Math.floor(angka).toString(), r=''; for(let i=s.length-1,j=0;i>=0;i--,j++){ if(j>0 && j%3===0) r='.'+r; r=s[i]+r; } return r; }
+        function parseRp(str) { if(!str) return 0; return parseInt(str.replace(/\./g,'').replace(/[^0-9]/g,''))||0; }
+        function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+        function toast(msg, isErr=false) { let t=document.getElementById('toast'); t.querySelector('i').className=isErr?'fas fa-exclamation-circle text-red-400':'fas fa-check-circle text-emerald-400'; document.getElementById('toastMsg').innerText=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),3000); }
+
+        // Hitung jumlah harga = satuan * harga satuan
+        function hitungJumlah(satuanStr, hargaSatuan) {
+            let satuan = parseFloat(satuanStr) || 0;
+            return satuan * hargaSatuan;
+        }
+
+        // Load catatan dari Firebase
+        async function loadCatatan() {
+            try {
+                const snap = await db.collection(collectionCatatan).orderBy('tanggal','asc').get();
+                catatanList = snap.docs.map(d => {
+                    let data = d.data();
+                    return {
+                        id: d.id,
+                        tanggal: data.tanggal || today(),
+                        uraian: data.uraian || '',
+                        satuan: data.satuan || '',
+                        hargaSatuan: data.hargaSatuan || 0,
+                        jumlah: data.jumlah || 0,
+                        imported: data.imported || false,
+                        transaksiId: data.transaksiId || null
+                    };
+                });
+                await syncCatatan();
+                applyFilter();
+            } catch(e) { toast('Gagal muat catatan', true); }
+        }
+
+        // Sinkron: cek apakah transaksi terkait masih ada di Firebase
+        async function syncCatatan() {
+            let updated = false;
+            for (let row of catatanList) {
+                if (row.imported && row.transaksiId) {
+                    const doc = await db.collection('transaksi').doc(row.transaksiId).get();
+                    if (!doc.exists) {
+                        row.imported = false;
+                        row.transaksiId = null;
+                        updated = true;
+                    }
+                }
+            }
+            if (updated) await autoSave();
+        }
+
+        // Auto save
+        async function autoSave() {
+            if (isSaving) return;
+            isSaving = true;
+            try {
+                let batch = db.batch();
+                for (let row of catatanList) {
+                    let ref = row.id ? db.collection(collectionCatatan).doc(row.id) : db.collection(collectionCatatan).doc();
+                    if (!row.id) row.id = ref.id;
+                    batch.set(ref, {
+                        tanggal: row.tanggal,
+                        uraian: row.uraian,
+                        satuan: row.satuan,
+                        hargaSatuan: row.hargaSatuan,
+                        jumlah: row.jumlah,
+                        imported: row.imported,
+                        transaksiId: row.transaksiId,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+                await batch.commit();
+            } catch(e) { console.error(e); toast('Gagal simpan catatan', true); }
+            finally { isSaving = false; }
+        }
+        function triggerAutoSave() { if(saveTimeout) clearTimeout(saveTimeout); saveTimeout = setTimeout(autoSave, 1500); }
+
+        // Import ke transaksi
+        async function importRow(rowId) {
+            let row = catatanList.find(r => r.id === rowId);
+            if (!row || row.imported) return;
+            if (!row.tanggal || !row.uraian || !row.satuan || row.hargaSatuan === 0) {
+                toast('Lengkapi data (tanggal, uraian, satuan, harga) sebelum import', true);
+                return;
+            }
+            try {
+                const docRef = db.collection('transaksi').doc();
+                const data = {
+                    tanggal: row.tanggal,
+                    uraian: row.uraian,
+                    pemasukan: 0,
+                    pengeluaran: row.jumlah,
+                    tipe: 'pengeluaran',
+                    jenis_iuran: jenis,
+                    catatanId: row.id,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await docRef.set(data);
+                row.imported = true;
+                row.transaksiId = docRef.id;
+                await autoSave();
+                applyFilter();
+                toast('Berhasil diimport ke transaksi');
+            } catch(e) { toast('Gagal import: '+e.message, true); }
+        }
+
+        // Hapus catatan dan transaksi terkait
+        async function hapusRow(rowId) {
+            let row = catatanList.find(r => r.id === rowId);
+            if (!row) return;
+            if (!confirm('Hapus catatan ini? Data transaksi terkait juga akan dihapus.')) return;
+            try {
+                let batch = db.batch();
+                if (row.transaksiId) batch.delete(db.collection('transaksi').doc(row.transaksiId));
+                batch.delete(db.collection(collectionCatatan).doc(rowId));
+                await batch.commit();
+                catatanList = catatanList.filter(r => r.id !== rowId);
+                applyFilter();
+                toast('Catatan dan transaksi terkait dihapus');
+            } catch(e) { toast('Gagal hapus: '+e.message, true); }
+        }
+
+        // Tambah baris baru
+        function tambahBaris() {
+            let lastDate = catatanList.length ? catatanList[catatanList.length-1].tanggal : today();
+            catatanList.push({
+                id: null, tanggal: lastDate, uraian: '', satuan: '', hargaSatuan: 0, jumlah: 0,
+                imported: false, transaksiId: null
+            });
+            applyFilter();
+            triggerAutoSave();
+        }
+
+        // Filter & render
+        function applyFilter() {
+            let dari = filterDari.value, sampai = filterSampai.value;
+            let filtered = catatanList.filter(r => (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai));
+            renderTable(filtered);
+            let total = filtered.reduce((sum, r) => sum + (r.jumlah || 0), 0);
+            totalSpan.innerText = formatRp(total);
+        }
+
+        // Render tabel
+        function renderTable(data) {
+            if (!tbody) return;
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Belum ada catatan</td></tr>'; return; }
+            let html = '';
+            data.forEach(row => {
+                let rowClass = row.imported ? 'row-imported' : '';
+                let disabled = row.imported ? 'disabled' : '';
+                html += `<tr class="${rowClass}" data-id="${row.id}">`;
+                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}><\/td>`;
+                html += `<td><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" ${disabled}><\/td>`;
+                html += `<td><input type="text" class="field-satuan" value="${escapeHtml(row.satuan)}" ${disabled}><\/td>`;
+                html += `<td><input type="text" class="field-hargaSatuan rupiah-input" value="${formatRp(row.hargaSatuan)}" ${disabled}><\/td>`;
+                html += `<td class="jumlah-harga">${formatRp(row.jumlah)}<\/td>`;
+                html += `<td class="text-center">`;
+                if (!row.imported) {
+                    html += `<button class="import-btn bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1"><i class="fas fa-upload"></i> Import</button>`;
+                    html += `<button class="hapus-btn text-red-500"><i class="fas fa-trash"></i></button>`;
+                } else {
+                    html += `<button class="hapus-btn text-red-500"><i class="fas fa-trash"></i></button>`;
+                }
+                html += `<\/td><\/tr>`;
+            });
+            tbody.innerHTML = html;
+
+            // Attach events untuk baris yang tidak diimport
+            for (let row of data) {
+                let tr = tbody.querySelector(`tr[data-id="${row.id}"]`);
+                if (!tr) continue;
+                if (!row.imported) {
+                    let tanggal = tr.querySelector('.field-tanggal');
+                    let uraian = tr.querySelector('.field-uraian');
+                    let satuan = tr.querySelector('.field-satuan');
+                    let hargaSatuan = tr.querySelector('.field-hargaSatuan');
+                    if (tanggal) tanggal.addEventListener('change', (e) => onFieldChange(row.id, 'tanggal', e.target.value));
+                    if (uraian) uraian.addEventListener('change', (e) => onFieldChange(row.id, 'uraian', e.target.value));
+                    if (satuan) satuan.addEventListener('input', (e) => onSatuanChange(row.id, e.target.value, hargaSatuan?.value));
+                    if (hargaSatuan) hargaSatuan.addEventListener('input', (e) => onHargaChange(row.id, satuan?.value, e.target.value));
+                    let importBtn = tr.querySelector('.import-btn');
+                    if (importBtn) importBtn.addEventListener('click', () => importRow(row.id));
+                }
+                let hapusBtn = tr.querySelector('.hapus-btn');
+                if (hapusBtn) hapusBtn.addEventListener('click', () => hapusRow(row.id));
+            }
+        }
+
+        async function onFieldChange(rowId, field, value) {
+            let row = catatanList.find(r => r.id === rowId);
+            if (!row || row.imported) return;
+            row[field] = value;
+            if (field === 'tanggal' || field === 'uraian') {
+                // nothing else
+            }
+            await updateJumlah(row);
+            applyFilter();
+            triggerAutoSave();
+        }
+
+        async function onSatuanChange(rowId, satuanVal, hargaVal) {
+            let row = catatanList.find(r => r.id === rowId);
+            if (!row || row.imported) return;
+            row.satuan = satuanVal;
+            let harga = parseRp(hargaVal) || row.hargaSatuan;
+            row.hargaSatuan = harga;
+            await updateJumlah(row);
+            applyFilter();
+            triggerAutoSave();
+        }
+
+        async function onHargaChange(rowId, satuanVal, hargaVal) {
+            let row = catatanList.find(r => r.id === rowId);
+            if (!row || row.imported) return;
+            let harga = parseRp(hargaVal);
+            row.hargaSatuan = harga;
+            let satuan = parseFloat(satuanVal) || parseFloat(row.satuan) || 0;
+            row.satuan = satuanVal || row.satuan;
+            await updateJumlah(row);
+            applyFilter();
+            triggerAutoSave();
+        }
+
+        async function updateJumlah(row) {
+            let satuan = parseFloat(row.satuan) || 0;
+            let hargaSatuan = row.hargaSatuan || 0;
+            row.jumlah = satuan * hargaSatuan;
+        }
+
+        // Refresh all
+        async function refreshAll() {
+            toast('Memuat ulang data...');
+            await loadCatatan();
+            toast('Data berhasil di-refresh');
+        }
+
+        document.getElementById('filterBtn').addEventListener('click', applyFilter);
+        document.getElementById('resetFilterBtn').addEventListener('click', () => { filterDari.value=''; filterSampai.value=''; applyFilter(); });
+        document.getElementById('tambahBarisBtn').addEventListener('click', tambahBaris);
+        document.getElementById('refreshDataBtn').addEventListener('click', refreshAll);
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadCatatan();
+        });
+    </script>
+</body>
+</html>
