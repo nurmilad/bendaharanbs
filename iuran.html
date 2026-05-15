@@ -132,7 +132,10 @@
                     <p class="text-xs text-gray-500" id="pageDesc"></p>
                 </div>
             </div>
-            <div>
+            <div class="flex gap-2">
+                <button id="refreshBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
                 <button id="pasteExcelBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm flex items-center gap-2 border">
                     <i class="fas fa-paste"></i> Import Data
                 </button>
@@ -160,7 +163,7 @@
     <div id="pasteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg w-full max-w-2xl mx-4">
             <div class="flex justify-between items-center border-b p-3">
-                <h3 class="font-bold text-sm"><i class="fas fa-table me-2 text-emerald-600"></i>Tempel dari Excel</h3>
+                <h3 class="font-bold text-sm"><i class="fas fa-table me-2 text-emerald-600"></i>Import dari Excel</h3>
                 <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4">
@@ -371,7 +374,14 @@
             }
         }
 
-        // ========== FITUR TEMPEL EXCEL YANG DIPERBAIKI ==========
+        // ========== TOMBOL REFRESH ==========
+        async function refreshData() {
+            showToast('Memuat ulang data...');
+            await loadAllData();
+            showToast('Data berhasil dimuat ulang');
+        }
+
+        // ========== FITUR IMPORT / TEMPEL EXCEL ==========
         const pasteModal = document.getElementById('pasteModal');
         const pasteData = document.getElementById('pasteData');
         function openPaste() { pasteData.value = ''; pasteModal.classList.remove('hidden'); }
@@ -385,14 +395,13 @@
             for (let line of lines) {
                 line = line.trim();
                 if (line === '') continue;
-                // Pisahkan berdasarkan spasi atau tab
                 const parts = line.split(/\s+/);
                 if (parts.length < 2) {
                     showToast(`Baris tidak valid (minimal NIS + 1 nilai): ${line.substring(0,50)}`, true);
                     continue;
                 }
                 const nis = parts[0].trim();
-                // Cari santri berdasarkan NIS
+                // Cari santri berdasarkan NIS (tidak harus urut)
                 const santriIndex = santriList.findIndex(s => s.nis === nis);
                 if (santriIndex === -1) {
                     showToast(`NIS ${nis} tidak ditemukan`, true);
@@ -408,20 +417,19 @@
                         updated = true;
                     }
                 }
-                if (updated) {
-                    successCount++;
-                }
+                if (updated) successCount++;
             }
             if (successCount > 0) {
-                renderTable();  // update tampilan
-                autoSave();     // simpan ke Firebase
-                showToast(`${successCount} baris berhasil ditempel, auto-save...`);
+                renderTable();
+                autoSave();
+                showToast(`${successCount} baris berhasil diimport, auto-save...`);
             } else {
-                showToast('Tidak ada data yang valid ditempel', true);
+                showToast('Tidak ada data yang valid diimport', true);
             }
             closePaste();
         }
 
+        document.getElementById('refreshBtn').addEventListener('click', refreshData);
         document.getElementById('pasteExcelBtn').addEventListener('click', openPaste);
         document.getElementById('closeModalBtn').addEventListener('click', closePaste);
         document.getElementById('cancelPasteBtn').addEventListener('click', closePaste);
