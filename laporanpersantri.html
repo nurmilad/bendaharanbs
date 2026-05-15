@@ -9,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Gaya tabel laporan */
         .laporan-table {
             border-collapse: collapse;
             width: 100%;
@@ -29,113 +28,29 @@
             background-color: #fefce8;
             font-weight: 600;
         }
-
-        /* Elemen cetak (awal tersembunyi) */
         .print-header, .print-footer {
             display: none;
         }
-
-        /* Media print */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            .print-area, .print-area * {
-                visibility: visible;
-            }
-            .print-area {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                margin: 0;
-                padding: 20px;
-                background: white;
-            }
-            .no-print {
-                display: none;
-            }
-            .print-header, .print-footer {
-                display: block;
-            }
-            .laporan-table {
-                width: 100%;
-                font-size: 10pt;
-                page-break-inside: avoid;
-            }
-            .print-header {
-                text-align: center;
-                margin-bottom: 20px;
-            }
-            .print-header h2 {
-                font-size: 1.3rem;
-                font-weight: bold;
-                margin: 0;
-            }
-            .print-header h3 {
-                font-size: 1rem;
-                font-weight: 600;
-                margin: 5px 0;
-            }
-            .print-header p {
-                font-size: 1rem;
-                margin: 5px 0;
-            }
-            .print-footer {
-                margin-top: 40px;
-                display: flex;
-                justify-content: flex-start;
-                flex-direction: column;
-                align-items: flex-end;
-            }
-            .ttd-line {
-                border-top: 1px solid black;
-                width: 200px;
-                margin-top: 20px;
-            }
-            .print-footer p {
-                margin: 5px 0;
-                text-align: right;
-            }
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 20px; background: white; }
+            .no-print { display: none; }
+            .print-header, .print-footer { display: block; }
+            .laporan-table { width: 100%; font-size: 10pt; page-break-inside: avoid; }
+            .print-header { text-align: center; margin-bottom: 20px; }
+            .print-header h2 { font-size: 1.3rem; font-weight: bold; margin: 0; }
+            .print-header h3 { font-size: 1rem; font-weight: 600; margin: 5px 0; }
+            .print-header p { font-size: 1rem; margin: 5px 0; }
+            .print-footer { margin-top: 40px; display: flex; justify-content: flex-start; flex-direction: column; align-items: flex-end; }
+            .ttd-line { border-top: 1px solid black; width: 200px; margin-top: 20px; }
+            .print-footer p { margin: 5px 0; text-align: right; }
         }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #1f2937;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 8px;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .autocomplete-items {
-            position: absolute;
-            border: 1px solid #d4d4d4;
-            border-bottom: none;
-            border-top: none;
-            z-index: 99;
-            top: 100%;
-            left: 0;
-            right: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-        }
-        .autocomplete-item {
-            padding: 8px;
-            cursor: pointer;
-            border-bottom: 1px solid #d4d4d4;
-        }
-        .autocomplete-item:hover {
-            background-color: #e9e9e9;
-        }
-        .relative {
-            position: relative;
-        }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
+        .autocomplete-items { position: absolute; border: 1px solid #d4d4d4; border-bottom: none; border-top: none; z-index: 99; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: white; }
+        .autocomplete-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #d4d4d4; }
+        .autocomplete-item:hover { background-color: #e9e9e9; }
+        .relative { position: relative; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -157,7 +72,6 @@
     <main class="p-4 md:p-6 max-w-7xl mx-auto">
         <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center no-print">Memproses...</div>
 
-        <!-- Form Pencarian (tidak ikut cetak) -->
         <div class="bg-white rounded-xl shadow p-4 mb-4 no-print">
             <label class="block text-sm font-medium mb-1">Cari Santri (NIS | NAMA)</label>
             <div class="relative">
@@ -168,15 +82,12 @@
             <button id="tampilkanBtn" class="mt-3 bg-emerald-600 text-white px-4 py-2 rounded" disabled>Tampilkan Laporan</button>
         </div>
 
-        <!-- Area Cetak (hanya ini yang terlihat saat print) -->
         <div class="print-area bg-white rounded-xl shadow overflow-hidden">
-            <!-- Header cetak -->
             <div class="print-header">
                 <h2>LAPORAN PEMBAYARAN SANTRI</h2>
                 <h3 id="printJenisIuran"></h3>
                 <p id="printSantriIdentitas"></p>
             </div>
-
             <div class="overflow-x-auto">
                 <table class="laporan-table" id="laporanTable">
                     <thead id="tableHeader"></thead>
@@ -185,8 +96,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <!-- Footer cetak -->
             <div class="print-footer">
                 <p>Lempong, <span id="printTanggalLaporan"></span></p>
                 <p>Bendahara</p>
@@ -250,18 +159,29 @@
                     });
                 });
                 santriList.sort((a,b) => (parseInt(a.nis)||0) - (parseInt(b.nis)||0));
+                console.log('Santri loaded:', santriList.length);
             } catch(err) { console.error(err); showToast('Gagal memuat data santri', true); }
         }
 
         async function loadTransactions() {
             try {
-                const snap = await db.collection('transaksi')
-                    .where('jenis_iuran', '==', jenis)
-                    .get();
+                let snap;
+                try {
+                    snap = await db.collection('transaksi')
+                        .where('jenis_iuran', '==', jenis)
+                        .get();
+                } catch(e) {
+                    console.warn('Query filtered gagal, ambil semua transaksi lalu filter manual');
+                    snap = await db.collection('transaksi').get();
+                }
                 const trans = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    if (data.tipe === 'pemasukan' && data.santriId && data.bulanIdx !== undefined && data.pemasukan > 0) {
+                    // Filter manual jika query tidak support
+                    const dataJenis = data.jenis_iuran || jenis;
+                    if (dataJenis !== jenis) return;
+                    // Cek apakah ini pembayaran santri (ada santriId dan bulanIdx, dan pemasukan > 0)
+                    if (data.santriId && data.bulanIdx !== undefined && (data.pemasukan > 0 || (data.tipe === 'pemasukan' && data.pemasukan > 0))) {
                         trans.push({
                             santriId: data.santriId,
                             bulanIdx: data.bulanIdx,
@@ -270,6 +190,7 @@
                     }
                 });
                 allTransactions = trans;
+                console.log('Transaksi pembayaran santri loaded:', allTransactions.length);
             } catch(err) { console.error(err); showToast('Gagal memuat transaksi', true); }
         }
 
@@ -332,6 +253,7 @@
             const bulanNames = ['JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER', 'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI'];
             
             const transaksiSantri = allTransactions.filter(t => t.santriId === selectedSantri.id);
+            console.log(`Transaksi untuk santri ${selectedSantri.nis}:`, transaksiSantri.length);
             for (const tr of transaksiSantri) {
                 const bulanIdx = tr.bulanIdx;
                 if (bulanIdx === undefined || bulanIdx < 0 || bulanIdx >= 72) continue;
@@ -364,7 +286,6 @@
             const table = document.getElementById('laporanTable');
             table.innerHTML = headerHtml + bodyHtml;
 
-            // Update footer tanggal cetak (hari ini)
             const now = new Date();
             const tglStr = `${now.getDate()} ${getNamaBulan(now.getMonth()+1)} ${now.getFullYear()}`;
             document.getElementById('printTanggalLaporan').innerText = tglStr;
@@ -398,7 +319,7 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadSantri();
-            await loadTransactions();
+            await loadTransactions(); // preload transaksi
         });
     </script>
 </body>
