@@ -38,7 +38,6 @@
     <main class="p-4 md:p-6 max-w-6xl mx-auto">
         <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center">Memproses...</div>
 
-        <!-- Filter Tanggal -->
         <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
             <div><label class="text-sm font-medium">Dari Tanggal</label><input type="date" id="filterDari" class="border rounded p-2"></div>
             <div><label class="text-sm font-medium">Sampai Tanggal</label><input type="date" id="filterSampai" class="border rounded p-2"></div>
@@ -46,17 +45,12 @@
             <button id="resetFilterBtn" class="bg-gray-500 text-white px-3 py-2 rounded">Reset</button>
         </div>
 
-        <!-- Tabel -->
         <div class="bg-white rounded-xl shadow overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="pengeluaran-table">
-                    <thead>
-                        <tr><th>Tanggal</th><th>Uraian</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Jumlah Harga (Rp)</th><th>Aksi</th></tr>
-                    </thead>
+                    <thead><tr><th>Tanggal</th><th>Uraian</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Jumlah Harga (Rp)</th><th>Aksi</th></tr></thead>
                     <tbody id="tableBody"></tbody>
-                    <tfoot id="tableFooter" class="total-row">
-                        <tr><td colspan="4" class="text-right font-bold">TOTAL PENGELUARAN</td><td class="text-right font-bold" id="totalPengeluaran">-</td><td></td></tr>
-                    </tfoot>
+                    <tfoot class="total-row"><tr><td colspan="4" class="text-right font-bold">TOTAL PENGELUARAN</td><td class="text-right font-bold" id="totalPengeluaran">-</td><td></td></tr></tfoot>
                 </table>
             </div>
             <div class="p-3 text-right"><button id="tambahBarisBtn" class="bg-emerald-600 text-white px-3 py-1 rounded text-sm">+ Tambah Baris</button></div>
@@ -77,10 +71,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Ambil parameter jenis
         const urlParams = new URLSearchParams(window.location.search);
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
-        const collectionCatatan = `catatan_pengeluaran_${jenis}`; // misal catatan_pengeluaran_konsumsi
+        const collectionCatatan = `catatan_pengeluaran_${jenis}`;
         const jenisIuranText = jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok';
         document.getElementById('pageTitle').innerHTML = `Catatan Pengeluaran ${jenisIuranText}`;
         document.getElementById('jenisInfo').innerHTML = `📌 Mengelola pengeluaran untuk Iuran ${jenisIuranText}`;
@@ -88,6 +81,7 @@
         let catatanList = [];
         let saveTimeout = null;
         let isSaving = false;
+        let currentFilteredIds = new Set();
 
         const tbody = document.getElementById('tableBody');
         const filterDari = document.getElementById('filterDari');
@@ -100,13 +94,6 @@
         function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
         function toast(msg, isErr=false) { let t=document.getElementById('toast'); t.querySelector('i').className=isErr?'fas fa-exclamation-circle text-red-400':'fas fa-check-circle text-emerald-400'; document.getElementById('toastMsg').innerText=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),3000); }
 
-        // Hitung jumlah harga = satuan * harga satuan
-        function hitungJumlah(satuanStr, hargaSatuan) {
-            let satuan = parseFloat(satuanStr) || 0;
-            return satuan * hargaSatuan;
-        }
-
-        // Load catatan dari Firebase
         async function loadCatatan() {
             try {
                 const snap = await db.collection(collectionCatatan).orderBy('tanggal','asc').get();
@@ -128,7 +115,6 @@
             } catch(e) { toast('Gagal muat catatan', true); }
         }
 
-        // Sinkron: cek apakah transaksi terkait masih ada di Firebase
         async function syncCatatan() {
             let updated = false;
             for (let row of catatanList) {
@@ -144,7 +130,6 @@
             if (updated) await autoSave();
         }
 
-        // Auto save
         async function autoSave() {
             if (isSaving) return;
             isSaving = true;
@@ -170,7 +155,6 @@
         }
         function triggerAutoSave() { if(saveTimeout) clearTimeout(saveTimeout); saveTimeout = setTimeout(autoSave, 1500); }
 
-        // Import ke transaksi
         async function importRow(rowId) {
             let row = catatanList.find(r => r.id === rowId);
             if (!row || row.imported) return;
@@ -199,7 +183,6 @@
             } catch(e) { toast('Gagal import: '+e.message, true); }
         }
 
-        // Hapus catatan dan transaksi terkait
         async function hapusRow(rowId) {
             let row = catatanList.find(r => r.id === rowId);
             if (!row) return;
@@ -215,7 +198,6 @@
             } catch(e) { toast('Gagal hapus: '+e.message, true); }
         }
 
-        // Tambah baris baru
         function tambahBaris() {
             let lastDate = catatanList.length ? catatanList[catatanList.length-1].tanggal : today();
             catatanList.push({
@@ -226,16 +208,15 @@
             triggerAutoSave();
         }
 
-        // Filter & render
         function applyFilter() {
             let dari = filterDari.value, sampai = filterSampai.value;
             let filtered = catatanList.filter(r => (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai));
+            currentFilteredIds = new Set(filtered.map(r => r.id));
             renderTable(filtered);
             let total = filtered.reduce((sum, r) => sum + (r.jumlah || 0), 0);
             totalSpan.innerText = formatRp(total);
         }
 
-        // Render tabel
         function renderTable(data) {
             if (!tbody) return;
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Belum ada catatan</td></tr>'; return; }
@@ -244,11 +225,11 @@
                 let rowClass = row.imported ? 'row-imported' : '';
                 let disabled = row.imported ? 'disabled' : '';
                 html += `<tr class="${rowClass}" data-id="${row.id}">`;
-                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}><\/td>`;
-                html += `<td><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" ${disabled}><\/td>`;
-                html += `<td><input type="text" class="field-satuan" value="${escapeHtml(row.satuan)}" ${disabled}><\/td>`;
-                html += `<td><input type="text" class="field-hargaSatuan rupiah-input" value="${formatRp(row.hargaSatuan)}" ${disabled}><\/td>`;
-                html += `<td class="jumlah-harga">${formatRp(row.jumlah)}<\/td>`;
+                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}></td>`;
+                html += `<td><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" ${disabled}></td>`;
+                html += `<td><input type="text" class="field-satuan" value="${escapeHtml(row.satuan)}" ${disabled}></td>`;
+                html += `<td><input type="text" class="field-hargaSatuan rupiah-input" value="${formatRp(row.hargaSatuan)}" ${disabled}></td>`;
+                html += `<td class="jumlah-harga">${formatRp(row.jumlah)}</td>`;
                 html += `<td class="text-center">`;
                 if (!row.imported) {
                     html += `<button class="import-btn bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1"><i class="fas fa-upload"></i> Import</button>`;
@@ -256,11 +237,11 @@
                 } else {
                     html += `<button class="hapus-btn text-red-500"><i class="fas fa-trash"></i></button>`;
                 }
-                html += `<\/td><\/tr>`;
+                html += `</td></tr>`;
             });
             tbody.innerHTML = html;
 
-            // Attach events untuk baris yang tidak diimport
+            // Attach event listeners untuk semua baris (termasuk yang sudah diimport, tapi input disabled tidak perlu event)
             for (let row of data) {
                 let tr = tbody.querySelector(`tr[data-id="${row.id}"]`);
                 if (!tr) continue;
@@ -269,10 +250,36 @@
                     let uraian = tr.querySelector('.field-uraian');
                     let satuan = tr.querySelector('.field-satuan');
                     let hargaSatuan = tr.querySelector('.field-hargaSatuan');
-                    if (tanggal) tanggal.addEventListener('change', (e) => onFieldChange(row.id, 'tanggal', e.target.value));
-                    if (uraian) uraian.addEventListener('change', (e) => onFieldChange(row.id, 'uraian', e.target.value));
-                    if (satuan) satuan.addEventListener('input', (e) => onSatuanChange(row.id, e.target.value, hargaSatuan?.value));
-                    if (hargaSatuan) hargaSatuan.addEventListener('input', (e) => onHargaChange(row.id, satuan?.value, e.target.value));
+                    let jumlahTd = tr.querySelector('.jumlah-harga');
+
+                    if (tanggal) tanggal.addEventListener('change', (e) => { row.tanggal = e.target.value; triggerAutoSave(); });
+                    if (uraian) uraian.addEventListener('change', (e) => { row.uraian = e.target.value; triggerAutoSave(); });
+                    
+                    // Event untuk satuan dan harga satuan: langsung update jumlah di memory, update tampilan, lalu auto save
+                    if (satuan) {
+                        satuan.addEventListener('input', (e) => {
+                            row.satuan = e.target.value;
+                            let satuanVal = parseFloat(row.satuan) || 0;
+                            let harga = row.hargaSatuan;
+                            row.jumlah = satuanVal * harga;
+                            jumlahTd.innerText = formatRp(row.jumlah);
+                            updateTotal(); // update total di footer
+                            triggerAutoSave();
+                        });
+                    }
+                    if (hargaSatuan) {
+                        hargaSatuan.addEventListener('input', (e) => {
+                            let raw = e.target.value.replace(/\./g, '');
+                            let num = parseInt(raw) || 0;
+                            e.target.value = formatRp(num);
+                            row.hargaSatuan = num;
+                            let satuanVal = parseFloat(row.satuan) || 0;
+                            row.jumlah = satuanVal * num;
+                            jumlahTd.innerText = formatRp(row.jumlah);
+                            updateTotal();
+                            triggerAutoSave();
+                        });
+                    }
                     let importBtn = tr.querySelector('.import-btn');
                     if (importBtn) importBtn.addEventListener('click', () => importRow(row.id));
                 }
@@ -281,48 +288,13 @@
             }
         }
 
-        async function onFieldChange(rowId, field, value) {
-            let row = catatanList.find(r => r.id === rowId);
-            if (!row || row.imported) return;
-            row[field] = value;
-            if (field === 'tanggal' || field === 'uraian') {
-                // nothing else
-            }
-            await updateJumlah(row);
-            applyFilter();
-            triggerAutoSave();
+        function updateTotal() {
+            let dari = filterDari.value, sampai = filterSampai.value;
+            let filtered = catatanList.filter(r => (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai));
+            let total = filtered.reduce((sum, r) => sum + (r.jumlah || 0), 0);
+            totalSpan.innerText = formatRp(total);
         }
 
-        async function onSatuanChange(rowId, satuanVal, hargaVal) {
-            let row = catatanList.find(r => r.id === rowId);
-            if (!row || row.imported) return;
-            row.satuan = satuanVal;
-            let harga = parseRp(hargaVal) || row.hargaSatuan;
-            row.hargaSatuan = harga;
-            await updateJumlah(row);
-            applyFilter();
-            triggerAutoSave();
-        }
-
-        async function onHargaChange(rowId, satuanVal, hargaVal) {
-            let row = catatanList.find(r => r.id === rowId);
-            if (!row || row.imported) return;
-            let harga = parseRp(hargaVal);
-            row.hargaSatuan = harga;
-            let satuan = parseFloat(satuanVal) || parseFloat(row.satuan) || 0;
-            row.satuan = satuanVal || row.satuan;
-            await updateJumlah(row);
-            applyFilter();
-            triggerAutoSave();
-        }
-
-        async function updateJumlah(row) {
-            let satuan = parseFloat(row.satuan) || 0;
-            let hargaSatuan = row.hargaSatuan || 0;
-            row.jumlah = satuan * hargaSatuan;
-        }
-
-        // Refresh all
         async function refreshAll() {
             toast('Memuat ulang data...');
             await loadCatatan();
