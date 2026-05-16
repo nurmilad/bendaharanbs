@@ -16,7 +16,6 @@
         .autocomplete-item { padding: 6px; cursor: pointer; border-bottom: 1px solid #eee; }
         .autocomplete-item:hover { background-color: #e9e9e9; }
         .relative { position: relative; }
-        /* Style untuk checkbox disabled */
         input[type="checkbox"]:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -128,7 +127,7 @@
         let santriList = [];
         let iuranDataMap = new Map();
         let daftarTransaksi = [];
-        let paidMonthsMap = new Map();
+        let paidMonthsMap = new Map(); // key: santriId, value: Set bulanIdx yang sudah dibayar (dari Firebase + transaksi sementara)
 
         let lastTanggalPemasukan = getTodayDate();
         let lastTanggalPengeluaran = getTodayDate();
@@ -180,9 +179,9 @@
             document.getElementById('tglSantri').value = lastTanggalPemasukan;
         }
 
+        // ========== AMBIL TRANSAKSI PEMBAYARAN SANTRI YANG SUDAH TERSIMPAN ==========
         async function loadExistingPayments() {
             try {
-                // Ambil semua transaksi pemasukan untuk jenis iuran ini yang memiliki santriId dan bulanIdx
                 const transaksiSnap = await db.collection('transaksi')
                     .where('jenis_iuran', '==', jenis)
                     .where('tipe', '==', 'pemasukan')
@@ -199,6 +198,7 @@
             } catch(err) { console.error(err); return new Map(); }
         }
 
+        // ========== UPDATE paidMonthsMap = Firebase + transaksi sementara ==========
         async function updatePaidMonthsMap() {
             const firebaseMap = await loadExistingPayments();
             const newMap = new Map();
@@ -215,6 +215,7 @@
             paidMonthsMap = newMap;
         }
 
+        // ========== RENDER CHECKLIST BULAN ==========
         function renderBulanChecklist() {
             const santriId = selectedSantriId.value;
             if (!santriId) {
@@ -242,6 +243,7 @@
                 `;
                 container.appendChild(div);
             }
+            // Pasang event listener untuk checkbox yang tidak disabled
             document.querySelectorAll('.bulanCb:not([disabled])').forEach(cb => cb.addEventListener('change', hitungTotalSantri));
             hitungTotalSantri();
         }
@@ -260,6 +262,7 @@
             document.getElementById('totalSantri').value = formatRupiah(total);
         }
 
+        // ========== LOAD DATA MASTER ==========
         async function loadData() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -285,7 +288,7 @@
             } catch(err) { console.error(err); showToast('Gagal memuat data', true); }
         }
 
-        // Autocomplete untuk santri
+        // ========== AUTOCOMPLETE SANTRI ==========
         function filterSantri(keyword) {
             if (!keyword.trim()) return [];
             const lower = keyword.toLowerCase();
@@ -306,7 +309,8 @@
                     santriInput.value = `${s.nis} | ${s.nama}`;
                     selectedSantriId.value = s.id;
                     santriAutocomplete.classList.add('hidden');
-                    onSantriChange();
+                    // Setelah santri dipilih, render checklist berdasarkan paidMonthsMap
+                    renderBulanChecklist();
                 });
                 santriAutocomplete.appendChild(div);
             });
@@ -326,19 +330,11 @@
             showAutocomplete(filtered);
         }
 
-        function onSantriChange() {
-            if (!selectedSantriId.value) {
-                document.getElementById('bulanChecklist').innerHTML = '<div class="text-gray-400">Pilih santri terlebih dahulu</div>';
-                document.getElementById('totalSantri').value = '';
-                return;
-            }
-            renderBulanChecklist();
-        }
-
         function onKelasChange() {
             if (selectedSantriId.value) renderBulanChecklist();
         }
 
+        // ========== TAMBAH TRANSAKSI PEMASUKAN ==========
         async function tambahTransaksiPemasukan() {
             const isSantri = pembayaranSantriCheck.checked;
             const tgl = isSantri ? document.getElementById('tglSantri').value : document.getElementById('tglUmum').value;
@@ -400,16 +396,21 @@
                 santriInput.value = '';
                 selectedSantriId.value = '';
                 document.getElementById('kelasSelect').value = '7';
-                renderBulanChecklist();
+                renderBulanChecklist(); // akan menampilkan pesan "Pilih santri"
                 document.getElementById('totalSantri').value = '';
                 lastTanggalPemasukan = tgl;
                 setDatePemasukan();
             }
             await updatePaidMonthsMap();
             renderDaftarTransaksi();
-            renderBulanChecklist();
+            // Jika form santri masih aktif dan ada santri terpilih, perlu render ulang checklist? Tapi setelah reset, santri kosong, jadi tidak perlu.
+            // Namun jika ada kasus lain, kita pastikan:
+            if (pembayaranSantriCheck.checked && selectedSantriId.value) {
+                renderBulanChecklist();
+            }
         }
 
+        // ========== PENGELUARAN ==========
         function tambahPengeluaran() {
             const rows = document.querySelectorAll('.pengeluaran-row');
             if (rows.length === 0) { showToast('Tidak ada baris pengeluaran', true); return; }
@@ -438,6 +439,7 @@
             renderDaftarTransaksi();
         }
 
+        // ========== RENDER DAFTAR TRANSAKSI SEMENTARA ==========
         function renderDaftarTransaksi() {
             if (daftarTransaksi.length === 0) {
                 daftarDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Belum ada transaksi</div>';
@@ -461,11 +463,14 @@
                     daftarTransaksi.splice(idx, 1);
                     await updatePaidMonthsMap();
                     renderDaftarTransaksi();
-                    renderBulanChecklist();
+                    if (pembayaranSantriCheck.checked && selectedSantriId.value) {
+                        renderBulanChecklist(); // update checklist jika masih ada santri terpilih
+                    }
                 });
             });
         }
 
+        // ========== SIMPAN SEMUA TRANSAKSI KE FIREBASE ==========
         async function simpanSemua() {
             if (daftarTransaksi.length === 0) { showToast('Tidak ada transaksi untuk disimpan', true); return; }
             showToast('Menyimpan...');
@@ -493,10 +498,13 @@
                 daftarTransaksi = [];
                 await updatePaidMonthsMap();
                 renderDaftarTransaksi();
-                renderBulanChecklist();
+                if (pembayaranSantriCheck.checked && selectedSantriId.value) {
+                    renderBulanChecklist(); // update checklist dengan data terbaru dari Firebase
+                }
             } catch(err) { showToast('Gagal simpan: '+err.message, true); }
         }
 
+        // ========== PENGELUARAN TABLE ROW ==========
         function tambahBarisPengeluaranHandler(useLastDate = true) {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'pengeluaran-row grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b pb-2 mb-2';
@@ -522,7 +530,9 @@
             formUmum.classList.toggle('hidden', isSantri);
             formSantri.classList.toggle('hidden', !isSantri);
             setDatePemasukan();
-            // Jika form santri ditampilkan, jangan otomatis render checklist karena santri belum dipilih
+            if (isSantri && selectedSantriId.value) {
+                renderBulanChecklist();
+            }
         }
         function showToast(msg, isError=false) {
             const toast = document.getElementById('toast');
@@ -532,6 +542,7 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
+        // EVENT LISTENERS
         radioPemasukan.addEventListener('change', togglePanel);
         radioPengeluaran.addEventListener('change', togglePanel);
         pembayaranSantriCheck.addEventListener('change', toggleFormSantri);
