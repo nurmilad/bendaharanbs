@@ -16,19 +16,19 @@
         .riwayat-table th, .riwayat-table td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: middle; }
         .riwayat-table th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
         /* Atur lebar kolom */
-        .riwayat-table th:nth-child(1), .riwayat-table td:nth-child(1) { width: 110px; } /* Tanggal */
-        .riwayat-table th:nth-child(2), .riwayat-table td:nth-child(2) { min-width: 400px; } /* Uraian */
-        .riwayat-table th:nth-child(3), .riwayat-table td:nth-child(3) { width: 130px; } /* Pemasukan */
-        .riwayat-table th:nth-child(4), .riwayat-table td:nth-child(4) { width: 130px; } /* Pengeluaran */
-        .riwayat-table th:nth-child(5), .riwayat-table td:nth-child(5) { min-width: 150px; } /* Keterangan */
-        .riwayat-table th:nth-child(6), .riwayat-table td:nth-child(6) { width: 60px; } /* Aksi */
+        .riwayat-table th:nth-child(1), .riwayat-table td:nth-child(1) { width: 40px; text-align: center; } /* checkbox */
+        .riwayat-table th:nth-child(2), .riwayat-table td:nth-child(2) { width: 110px; } /* Tanggal */
+        .riwayat-table th:nth-child(3), .riwayat-table td:nth-child(3) { min-width: 400px; } /* Uraian */
+        .riwayat-table th:nth-child(4), .riwayat-table td:nth-child(4) { width: 130px; } /* Pemasukan */
+        .riwayat-table th:nth-child(5), .riwayat-table td:nth-child(5) { width: 130px; } /* Pengeluaran */
+        .riwayat-table th:nth-child(6), .riwayat-table td:nth-child(6) { min-width: 150px; } /* Keterangan */
+        .riwayat-table th:nth-child(7), .riwayat-table td:nth-child(7) { width: 60px; } /* Aksi */
         
         .editable-input, .editable-select { width: 100%; border: none; background: transparent; padding: 4px; }
         .editable-input:focus, .editable-select:focus { outline: none; background: #fefce8; border-radius: 4px; }
         .disabled-input { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
         .saving-indicator { position: fixed; bottom: 20px; left: 20px; background: #10b981; color: white; padding: 4px 12px; font-size: 0.7rem; z-index: 999; border-radius: 16px; }
-        .refresh-btn { background: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -53,12 +53,25 @@
     <main class="p-4 md:p-6 max-w-7xl mx-auto">
         <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center">Memproses...</div>
 
-        <!-- Filter Tanggal -->
+        <!-- Filter Tanggal & Pencarian & Hapus Terpilih -->
         <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
-            <div><label class="text-sm font-medium">Dari Tanggal</label><input type="date" id="filterDari" class="border rounded p-2"></div>
-            <div><label class="text-sm font-medium">Sampai Tanggal</label><input type="date" id="filterSampai" class="border rounded p-2"></div>
+            <div>
+                <label class="text-sm font-medium">Dari Tanggal</label>
+                <input type="date" id="filterDari" class="border rounded p-2">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Sampai Tanggal</label>
+                <input type="date" id="filterSampai" class="border rounded p-2">
+            </div>
+            <div>
+                <label class="text-sm font-medium">Cari (Uraian)</label>
+                <input type="text" id="searchInput" class="border rounded p-2 w-64" placeholder="Ketik kata kunci...">
+            </div>
             <button id="filterBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Filter</button>
             <button id="resetFilterBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Reset</button>
+            <button id="deleteSelectedBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                <i class="fas fa-trash-alt"></i> Hapus Terpilih
+            </button>
         </div>
 
         <!-- Tabel Riwayat -->
@@ -66,7 +79,10 @@
             <div class="table-container">
                 <table class="riwayat-table" id="riwayatTable">
                     <thead>
-                        <tr><th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Keterangan</th><th>Aksi</th></tr>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllCheckbox" class="rounded"></th>
+                            <th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Keterangan</th><th>Aksi</th>
+                        </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
@@ -81,7 +97,7 @@
         </div>
     </main>
 
-    <!-- Modal Import Multi -->
+    <!-- Modal Import Multi (sama seperti sebelumnya) -->
     <div id="importModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg w-full max-w-3xl mx-4">
             <div class="flex justify-between items-center border-b p-3">
@@ -89,13 +105,8 @@
                 <button id="closeImportBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4">
-                <p class="text-sm text-gray-600 mb-2">Tempel data dari spreadsheet (format: Tanggal, Uraian, Pemasukan, Pengeluaran). Pisahkan TAB atau spasi. Contoh:</p>
-                <pre class="bg-gray-100 p-2 text-xs mb-3">2026-03-31	Pembayaran Santri: 2425018 | MUHAMMAD RAIHAN - MAR (8)	300000	0
-2026-03-31	Pembayaran Santri: 2024011 | NURUL ANISAH - MAR (11)	450000	0
-2026-03-31	ENJEL 	1500000	0
-2026-03-31	ADRIAN ADE GATRA	2000000	0
-2026-03-01	ayam 30 ekor	0	4500000</pre>
-                <textarea id="importData" rows="10" class="w-full border rounded p-2 font-mono text-sm" placeholder="Tempel data di sini..."></textarea>
+                <p class="text-sm text-gray-600 mb-2">Tempel data dari spreadsheet (format: Tanggal, Uraian, Pemasukan, Pengeluaran). Pisahkan TAB atau spasi.</p>
+                <textarea id="importData" rows="10" class="w-full border rounded p-2 font-mono text-sm"></textarea>
                 <div class="flex justify-end gap-2 mt-3">
                     <button id="cancelImportBtn" class="px-3 py-1 border rounded">Batal</button>
                     <button id="processImportBtn" class="px-3 py-1 bg-emerald-600 text-white rounded">Proses & Import</button>
@@ -122,17 +133,15 @@
         const urlParams = new URLSearchParams(window.location.search);
         const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
         document.getElementById('jenisInfo').innerHTML = `📌 Riwayat transaksi untuk <strong>Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}</strong>`;
-
-        // Back link dinamis
         document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
 
         let allTransactions = [];
         let filteredTransactions = [];
         let santriList = [];
-        let iuranMap = new Map(); // key: santriId, value: array 72 bulan
-
+        let iuranMap = new Map();
         let saveTimeout = null;
         let isSaving = false;
+        let selectedRows = new Set(); // untuk menyimpan index baris yang dipilih
 
         const tbody = document.getElementById('tableBody');
         const totalPemasukanSpan = document.getElementById('totalPemasukan');
@@ -140,9 +149,12 @@
         const saldoSpan = document.getElementById('saldo');
         const filterDari = document.getElementById('filterDari');
         const filterSampai = document.getElementById('filterSampai');
+        const searchInput = document.getElementById('searchInput');
         const filterBtn = document.getElementById('filterBtn');
         const resetFilterBtn = document.getElementById('resetFilterBtn');
         const refreshDataBtn = document.getElementById('refreshDataBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
 
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
@@ -156,34 +168,28 @@
         }
         function parseRupiah(str) {
             if (!str) return 0;
-            let cleaned = str.replace(/\./g, '').replace(/[^0-9]/g, '');
-            return parseInt(cleaned) || 0;
+            return parseInt(str.replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
         }
 
         async function loadMasterData() {
             try {
                 const santriSnap = await db.collection('santri').get();
                 santriList = [];
-                santriSnap.forEach(doc => {
-                    const d = doc.data();
-                    santriList.push({ id: doc.id, nis: d.nis || '', nama: d.nama || '', angkatan: d.angkatan || '' });
-                });
+                santriSnap.forEach(doc => santriList.push({ id: doc.id, nis: doc.data().nis || '', nama: doc.data().nama || '' }));
                 const iuranSnap = await db.collection(jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok').get();
                 iuranMap.clear();
                 iuranSnap.forEach(doc => {
-                    const d = doc.data();
-                    if (d.santriId) {
+                    if (doc.data().santriId) {
                         const arr = new Array(72).fill(0);
-                        for (let i=0;i<72;i++) if (d[`bulan_${i}`]) arr[i] = d[`bulan_${i}`];
-                        iuranMap.set(d.santriId, arr);
+                        for (let i=0;i<72;i++) arr[i] = doc.data()[`bulan_${i}`] || 0;
+                        iuranMap.set(doc.data().santriId, arr);
                     }
                 });
-            } catch(err) { console.error(err); showToast('Gagal memuat data santri', true); }
+            } catch(err) { console.error(err); showToast('Gagal memuat data master', true); }
         }
 
-        // Mendapatkan nominal iuran berdasarkan santriId dan bulanIdx
         function getIuranNominal(santriId, bulanIdx) {
-            if (!santriId || bulanIdx === null || bulanIdx === undefined) return 0;
+            if (!santriId || bulanIdx === null) return 0;
             const iuranData = iuranMap.get(santriId);
             return iuranData ? iuranData[bulanIdx] : 0;
         }
@@ -192,12 +198,8 @@
             try {
                 let snap;
                 try {
-                    snap = await db.collection('transaksi')
-                        .where('jenis_iuran', '==', jenis)
-                        .orderBy('tanggal', 'asc')
-                        .get();
+                    snap = await db.collection('transaksi').where('jenis_iuran', '==', jenis).orderBy('tanggal', 'asc').get();
                 } catch(e) {
-                    console.warn('Query filtered gagal, ambil semua transaksi');
                     snap = await db.collection('transaksi').orderBy('tanggal', 'asc').get();
                 }
                 const transactions = [];
@@ -209,32 +211,27 @@
                     const dataJenis = data.jenis_iuran || jenis;
                     if (dataJenis !== jenis) return;
                     transactions.push({
-                        id: doc.id,
-                        tanggal: tgl,
-                        uraian: data.uraian || '',
-                        pemasukan: data.pemasukan || 0,
-                        pengeluaran: data.pengeluaran || 0,
-                        keterangan: data.keterangan || '',
-                        santriId: data.santriId || null,
-                        bulanIdx: data.bulanIdx !== undefined ? data.bulanIdx : null
+                        id: doc.id, tanggal: tgl, uraian: data.uraian || '', pemasukan: data.pemasukan || 0,
+                        pengeluaran: data.pengeluaran || 0, keterangan: data.keterangan || '',
+                        santriId: data.santriId || null, bulanIdx: data.bulanIdx !== undefined ? data.bulanIdx : null
                     });
                 });
                 allTransactions = transactions;
                 applyFilter();
-                setTimeout(() => {
-                    const container = document.querySelector('.table-container');
-                    if (container) container.scrollTop = container.scrollHeight;
-                }, 100);
+                setTimeout(() => { const c = document.querySelector('.table-container'); if (c) c.scrollTop = c.scrollHeight; }, 100);
             } catch(err) { showToast('Gagal memuat transaksi: ' + err.message, true); }
         }
 
         function applyFilter() {
             let filtered = [...allTransactions];
-            const dari = filterDari.value;
-            const sampai = filterSampai.value;
+            const dari = filterDari.value, sampai = filterSampai.value;
+            const keyword = searchInput.value.toLowerCase();
             if (dari) filtered = filtered.filter(t => t.tanggal >= dari);
             if (sampai) filtered = filtered.filter(t => t.tanggal <= sampai);
+            if (keyword) filtered = filtered.filter(t => t.uraian.toLowerCase().includes(keyword));
             filteredTransactions = filtered;
+            selectedRows.clear();
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
             renderTable();
             updateTotal();
         }
@@ -243,13 +240,10 @@
             const regex = /^Pembayaran Santri:\s*(\S+)\s*\|\s*([^-]+)\s*-\s*(\w+)\s*\((\d+)\)$/;
             const match = uraian.match(regex);
             if (!match) return { valid: false, error: 'Format tidak sesuai' };
-            const nis = match[1].trim();
-            const nama = match[2].trim();
-            const bulanSingkat = match[3].trim();
-            const kelas = parseInt(match[4]);
+            const nis = match[1].trim(), nama = match[2].trim(), bulanSingkat = match[3].trim(), kelas = parseInt(match[4]);
             if (isNaN(kelas) || kelas < 7 || kelas > 12) return { valid: false, error: 'Kelas tidak valid' };
             const santri = santriList.find(s => s.nis === nis && s.nama === nama);
-            if (!santri) return { valid: false, error: `Santri dengan NIS ${nis} dan nama ${nama} tidak ditemukan` };
+            if (!santri) return { valid: false, error: `Santri ${nis} | ${nama} tidak ditemukan` };
             const bulanMap = { JUL:0, AGU:1, SEP:2, OKT:3, NOV:4, DES:5, JAN:6, FEB:7, MAR:8, APR:9, MEI:10, JUN:11 };
             const monthIdx = bulanMap[bulanSingkat.toUpperCase()];
             if (monthIdx === undefined) return { valid: false, error: `Bulan ${bulanSingkat} tidak dikenal` };
@@ -258,28 +252,25 @@
             const nominalIuran = getIuranNominal(santri.id, bulanIdx);
             if (nominalIuran === 0) return { valid: false, error: `Iuran untuk ${bulanSingkat} (kelas ${kelas}) belum ditetapkan` };
             const existingTrans = allTransactions.filter(t => t.id !== transaksiId && t.santriId === santri.id && t.bulanIdx === bulanIdx);
-            if (existingTrans.length > 0) return { valid: false, error: `Sudah ada pembayaran untuk ${bulanSingkat} (kelas ${kelas}) atas nama ${nama}` };
+            if (existingTrans.length > 0) return { valid: false, error: `Sudah ada pembayaran untuk ${bulanSingkat} (kelas ${kelas})` };
             return { valid: true, santriId: santri.id, bulanIdx, nominal: nominalIuran };
         }
 
         function renderTable() {
             if (!tbody) return;
-            if (filteredTransactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Tidak ada transaksi<\/td></tr>';
+            if (!filteredTransactions.length) {
+                tbody.innerHTML = '<td><td colspan="7" class="text-center py-8">Tidak ada transaksi<\/td></tr>';
                 return;
             }
             let html = '';
             filteredTransactions.forEach((tr, idx) => {
-                let isValid = true;
-                let errorMsg = '';
+                let isValid = true, errorMsg = '';
                 const isSantriPayment = tr.uraian.startsWith('Pembayaran Santri:');
                 let actualPemasukan = tr.pemasukan;
-                // Jika pembayaran santri, ambil nominal dari iuranMap (pastikan sinkron)
                 if (isSantriPayment && tr.santriId && tr.bulanIdx !== null) {
                     const currentNominal = getIuranNominal(tr.santriId, tr.bulanIdx);
                     if (currentNominal !== tr.pemasukan) {
                         actualPemasukan = currentNominal;
-                        // Sinkronkan di array allTransactions agar tidak double
                         const transIdx = allTransactions.findIndex(t => t.id === tr.id);
                         if (transIdx !== -1) allTransactions[transIdx].pemasukan = currentNominal;
                         tr.pemasukan = currentNominal;
@@ -288,16 +279,14 @@
                 }
                 if (isSantriPayment) {
                     const result = validateSantriUraian(tr.uraian, tr.id, tr.santriId, tr.bulanIdx);
-                    if (!result.valid) {
-                        isValid = false;
-                        errorMsg = result.error;
-                    }
+                    if (!result.valid) { isValid = false; errorMsg = result.error; }
                 }
                 const rowClass = isValid ? '' : 'invalid';
-                html += `<tr class="${rowClass}" data-id="${tr.id}" data-santri-id="${tr.santriId || ''}" data-bulan-idx="${tr.bulanIdx !== null ? tr.bulanIdx : ''}">`;
+                const isChecked = selectedRows.has(idx) ? 'checked' : '';
+                html += `<tr class="${rowClass}" data-id="${tr.id}" data-index="${idx}">`;
+                html += `<td class="text-center"><input type="checkbox" class="row-checkbox" data-index="${idx}" ${isChecked}></td>`;
                 html += `<td><input type="date" class="editable-input" data-field="tanggal" value="${tr.tanggal}"></td>`;
                 html += `<td><input type="text" class="editable-input" data-field="uraian" value="${escapeHtml(tr.uraian)}" style="width:100%;"></td>`;
-                // Kolom pemasukan: jika pembayaran santri, disabled dan nilainya dari iuran
                 if (isSantriPayment) {
                     html += `<td><input type="text" class="editable-input disabled-input" value="${formatRupiah(actualPemasukan)}" disabled></td>`;
                 } else {
@@ -311,45 +300,89 @@
             tbody.innerHTML = html;
 
             // Attach event listeners untuk kolom yang bisa diedit
-            document.querySelectorAll('.editable-input:not(.disabled-input)').forEach(input => {
-                input.removeEventListener('change', handleEdit);
-                input.addEventListener('change', handleEdit);
+            document.querySelectorAll('.editable-input:not(.disabled-input)').forEach(inp => {
+                inp.removeEventListener('change', handleEdit);
+                inp.addEventListener('change', handleEdit);
             });
-            document.querySelectorAll('.rupiah-input:not(.disabled-input)').forEach(input => {
-                input.removeEventListener('input', formatInputRupiah);
-                input.addEventListener('input', formatInputRupiah);
+            document.querySelectorAll('.rupiah-input:not(.disabled-input)').forEach(inp => {
+                inp.removeEventListener('input', formatInputRupiah);
+                inp.addEventListener('input', formatInputRupiah);
             });
             document.querySelectorAll('.hapus-btn').forEach(btn => {
                 btn.removeEventListener('click', handleHapus);
                 btn.addEventListener('click', handleHapus);
             });
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
+            // Attach event untuk checkbox baris
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.removeEventListener('change', handleRowCheckbox);
+                cb.addEventListener('change', handleRowCheckbox);
             });
+            // Update select all state
+            updateSelectAllState();
         }
 
-        function formatInputRupiah(e) {
-            let raw = e.target.value.replace(/\./g, '');
-            let num = parseInt(raw) || 0;
-            e.target.value = formatRupiah(num);
+        function handleRowCheckbox(e) {
+            const idx = parseInt(e.target.dataset.index);
+            if (e.target.checked) selectedRows.add(idx);
+            else selectedRows.delete(idx);
+            updateSelectAllState();
         }
+
+        function updateSelectAllState() {
+            if (!selectAllCheckbox) return;
+            const total = filteredTransactions.length;
+            const selectedCount = selectedRows.size;
+            if (selectedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedCount === total && total > 0) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        selectAllCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                for (let i = 0; i < filteredTransactions.length; i++) selectedRows.add(i);
+            } else {
+                selectedRows.clear();
+            }
+            renderTable(); // re-render untuk menampilkan centang
+        });
+
+        async function deleteSelected() {
+            if (selectedRows.size === 0) {
+                showToast('Tidak ada transaksi terpilih', true);
+                return;
+            }
+            if (!confirm(`Hapus ${selectedRows.size} transaksi yang dipilih?`)) return;
+            const idsToDelete = Array.from(selectedRows).map(idx => filteredTransactions[idx].id);
+            try {
+                const batch = db.batch();
+                for (const id of idsToDelete) {
+                    batch.delete(db.collection('transaksi').doc(id));
+                }
+                await batch.commit();
+                // Hapus dari array allTransactions
+                allTransactions = allTransactions.filter(t => !idsToDelete.includes(t.id));
+                selectedRows.clear();
+                applyFilter(); // filter ulang
+                showToast(`${idsToDelete.length} transaksi dihapus`);
+            } catch(err) { showToast('Gagal hapus: '+err.message, true); }
+        }
+
+        deleteSelectedBtn.addEventListener('click', deleteSelected);
+
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+        function formatInputRupiah(e) { let raw = e.target.value.replace(/\./g, ''); let num = parseInt(raw) || 0; e.target.value = formatRupiah(num); }
 
         async function handleEdit(e) {
-            const input = e.target;
-            const row = input.closest('tr');
-            const docId = row.dataset.id;
-            const field = input.dataset.field;
+            const input = e.target, row = input.closest('tr'), docId = row.dataset.id, field = input.dataset.field;
             let newValue = input.value;
-            if (field === 'pemasukan' || field === 'pengeluaran') {
-                newValue = parseRupiah(newValue);
-            }
+            if (field === 'pemasukan' || field === 'pengeluaran') newValue = parseRupiah(newValue);
             const transIndex = allTransactions.findIndex(t => t.id === docId);
             if (transIndex === -1) return;
             let updated = { ...allTransactions[transIndex], [field]: newValue };
@@ -358,17 +391,12 @@
             if (field === 'pemasukan') updated.pemasukan = newValue;
             if (field === 'pengeluaran') updated.pengeluaran = newValue;
             if (field === 'keterangan') updated.keterangan = newValue;
-
-            // Untuk pembayaran santri, kita tidak mengubah pemasukan dari sini, tapi bisa mengubah uraian.
-            // Jika uraian berubah, kita perlu update santriId dan bulanIdx.
             if (updated.uraian.startsWith('Pembayaran Santri:')) {
                 const result = validateSantriUraian(updated.uraian, docId, updated.santriId, updated.bulanIdx);
                 if (result.valid) {
                     updated.santriId = result.santriId;
                     updated.bulanIdx = result.bulanIdx;
-                    updated.pemasukan = result.nominal; // override sesuai iuran
-                } else {
-                    // Jika tidak valid, tetap simpan tapi nanti akan tampil merah
+                    updated.pemasukan = result.nominal;
                 }
             }
             allTransactions[transIndex] = updated;
@@ -379,41 +407,25 @@
         }
 
         async function handleHapus(e) {
-            const row = e.target.closest('tr');
-            const docId = row.dataset.id;
+            const row = e.target.closest('tr'), docId = row.dataset.id;
             if (!confirm('Hapus transaksi ini?')) return;
             try {
                 await db.collection('transaksi').doc(docId).delete();
                 allTransactions = allTransactions.filter(t => t.id !== docId);
-                filteredTransactions = filteredTransactions.filter(t => t.id !== docId);
-                renderTable();
-                updateTotal();
+                applyFilter();
                 showToast('Transaksi dihapus');
             } catch(err) { showToast('Gagal hapus: '+err.message, true); }
         }
 
-        function triggerAutoSave() {
-            if (saveTimeout) clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => autoSaveAll(), 1000);
-        }
-
+        function triggerAutoSave() { if (saveTimeout) clearTimeout(saveTimeout); saveTimeout = setTimeout(autoSaveAll, 1000); }
         async function autoSaveAll() {
             if (isSaving) return;
-            isSaving = true;
-            showSaving(true);
+            isSaving = true; showSaving(true);
             try {
                 const batch = db.batch();
                 for (const trans of allTransactions) {
                     const docRef = db.collection('transaksi').doc(trans.id);
-                    const data = {
-                        tanggal: trans.tanggal,
-                        uraian: trans.uraian,
-                        pemasukan: trans.pemasukan,
-                        pengeluaran: trans.pengeluaran,
-                        keterangan: trans.keterangan || '',
-                        jenis_iuran: jenis,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+                    const data = { tanggal: trans.tanggal, uraian: trans.uraian, pemasukan: trans.pemasukan, pengeluaran: trans.pengeluaran, keterangan: trans.keterangan || '', jenis_iuran: jenis, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                     if (trans.santriId) data.santriId = trans.santriId;
                     if (trans.bulanIdx !== undefined && trans.bulanIdx !== null) data.bulanIdx = trans.bulanIdx;
                     batch.set(docRef, data, { merge: true });
@@ -426,110 +438,64 @@
 
         function updateTotal() {
             let totalPemasukan = 0, totalPengeluaran = 0;
-            filteredTransactions.forEach(t => {
-                totalPemasukan += t.pemasukan || 0;
-                totalPengeluaran += t.pengeluaran || 0;
-            });
+            filteredTransactions.forEach(t => { totalPemasukan += t.pemasukan || 0; totalPengeluaran += t.pengeluaran || 0; });
             totalPemasukanSpan.innerText = `Rp ${formatRupiah(totalPemasukan)}`;
             totalPengeluaranSpan.innerText = `Rp ${formatRupiah(totalPengeluaran)}`;
             saldoSpan.innerText = `Rp ${formatRupiah(totalPemasukan - totalPengeluaran)}`;
         }
 
-        function showSaving(show) {
-            const el = document.getElementById('savingIndicator');
-            if (show) el.classList.remove('hidden');
-            else el.classList.add('hidden');
-        }
-        function showToast(msg, isError=false) {
-            const toast = document.getElementById('toast');
-            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
-            document.getElementById('toastMsg').innerText = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
+        function showSaving(show) { const el = document.getElementById('savingIndicator'); if (show) el.classList.remove('hidden'); else el.classList.add('hidden'); }
+        function showToast(msg, isError=false) { const toast = document.getElementById('toast'); toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400'; document.getElementById('toastMsg').innerText = msg; toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); }
 
-        // Refresh data (reload master dan transaksi)
-        async function refreshData() {
-            showToast('Memuat ulang data...');
-            await loadMasterData();
-            await loadTransactions();
-        }
+        async function refreshData() { showToast('Memuat ulang data...'); await loadMasterData(); await loadTransactions(); }
 
-        // IMPORT MULTI (sama seperti sebelumnya)
-        const importModal = document.getElementById('importModal');
-        const importData = document.getElementById('importData');
+        // Import Multi (sama seperti sebelumnya, tidak diubah)
+        const importModal = document.getElementById('importModal'), importData = document.getElementById('importData');
         function openImport() { importData.value = ''; importModal.classList.remove('hidden'); }
         function closeImport() { importModal.classList.add('hidden'); }
-
         async function processImport() {
             const raw = importData.value;
             if (!raw.trim()) { showToast('Tidak ada data', true); closeImport(); return; }
             const lines = raw.split(/\r?\n/);
-            const newTransactions = [];
-            let errors = [];
+            const newTransactions = []; let errors = [];
             for (let line of lines) {
-                line = line.trim();
-                if (line === '') continue;
+                line = line.trim(); if (line === '') continue;
                 const parts = line.split(/\s+/);
                 if (parts.length < 4) { errors.push(`Baris tidak lengkap: ${line.substring(0,50)}`); continue; }
-                let tanggal = parts[0];
-                let uraian = parts.slice(1, -2).join(' ');
-                let pemasukanRaw = parts[parts.length-2];
-                let pengeluaranRaw = parts[parts.length-1];
-                let pemasukan = parseRupiah(pemasukanRaw);
-                let pengeluaran = parseRupiah(pengeluaranRaw);
+                let tanggal = parts[0], uraian = parts.slice(1, -2).join(' ');
+                let pemasukanRaw = parts[parts.length-2], pengeluaranRaw = parts[parts.length-1];
+                let pemasukan = parseRupiah(pemasukanRaw), pengeluaran = parseRupiah(pengeluaranRaw);
                 if (!tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) { errors.push(`Tanggal tidak valid: ${tanggal}`); continue; }
                 let santriId = null, bulanIdx = null;
                 if (uraian.startsWith('Pembayaran Santri:')) {
                     const result = validateSantriUraian(uraian);
-                    if (!result.valid) {
-                        errors.push(`[${uraian}] ${result.error}`);
-                        continue;
-                    }
-                    santriId = result.santriId;
-                    bulanIdx = result.bulanIdx;
-                    pemasukan = result.nominal;
+                    if (!result.valid) { errors.push(`[${uraian}] ${result.error}`); continue; }
+                    santriId = result.santriId; bulanIdx = result.bulanIdx; pemasukan = result.nominal;
                 } else {
                     if (pemasukan === 0 && pengeluaran === 0) { errors.push(`Nominal tidak valid: ${line}`); continue; }
                 }
-                newTransactions.push({
-                    tanggal, uraian, pemasukan, pengeluaran,
-                    keterangan: '',
-                    jenis_iuran: jenis,
-                    santriId, bulanIdx
-                });
+                newTransactions.push({ tanggal, uraian, pemasukan, pengeluaran, keterangan: '', jenis_iuran: jenis, santriId, bulanIdx });
             }
-            if (errors.length > 0) {
-                alert(`Gagal import:\n${errors.join('\n')}`);
-                return;
-            }
+            if (errors.length > 0) { alert(`Gagal import:\n${errors.join('\n')}`); return; }
             if (newTransactions.length === 0) { showToast('Tidak ada transaksi valid', true); closeImport(); return; }
             try {
                 const batch = db.batch();
                 for (const tr of newTransactions) {
                     const docRef = db.collection('transaksi').doc();
-                    const data = {
-                        tanggal: tr.tanggal,
-                        uraian: tr.uraian,
-                        pemasukan: tr.pemasukan,
-                        pengeluaran: tr.pengeluaran,
-                        keterangan: tr.keterangan,
-                        jenis_iuran: tr.jenis_iuran,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+                    const data = { tanggal: tr.tanggal, uraian: tr.uraian, pemasukan: tr.pemasukan, pengeluaran: tr.pengeluaran, keterangan: tr.keterangan, jenis_iuran: tr.jenis_iuran, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                     if (tr.santriId) data.santriId = tr.santriId;
                     if (tr.bulanIdx !== null) data.bulanIdx = tr.bulanIdx;
                     batch.set(docRef, data);
                 }
                 await batch.commit();
                 showToast(`${newTransactions.length} transaksi berhasil diimport`);
-                await refreshData(); // refresh setelah import
+                await refreshData();
                 closeImport();
             } catch(err) { showToast('Gagal import: '+err.message, true); }
         }
 
         filterBtn.addEventListener('click', applyFilter);
-        resetFilterBtn.addEventListener('click', () => { filterDari.value = ''; filterSampai.value = ''; applyFilter(); });
+        resetFilterBtn.addEventListener('click', () => { filterDari.value = ''; filterSampai.value = ''; searchInput.value = ''; applyFilter(); });
         refreshDataBtn.addEventListener('click', refreshData);
         document.getElementById('importExcelBtn').addEventListener('click', openImport);
         document.getElementById('closeImportBtn').addEventListener('click', closeImport);
@@ -537,10 +503,7 @@
         document.getElementById('processImportBtn').addEventListener('click', processImport);
         importModal.addEventListener('click', (e) => { if (e.target === importModal) closeImport(); });
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            await loadMasterData();
-            await loadTransactions();
-        });
+        window.addEventListener('DOMContentLoaded', async () => { await loadMasterData(); await loadTransactions(); });
     </script>
 </body>
 </html>
