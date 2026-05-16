@@ -16,6 +16,14 @@
         .autocomplete-item { padding: 6px; cursor: pointer; border-bottom: 1px solid #eee; }
         .autocomplete-item:hover { background-color: #e9e9e9; }
         .relative { position: relative; }
+        /* Style untuk checkbox disabled */
+        input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .line-through {
+            text-decoration: line-through;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -174,6 +182,7 @@
 
         async function loadExistingPayments() {
             try {
+                // Ambil semua transaksi pemasukan untuk jenis iuran ini yang memiliki santriId dan bulanIdx
                 const transaksiSnap = await db.collection('transaksi')
                     .where('jenis_iuran', '==', jenis)
                     .where('tipe', '==', 'pemasukan')
@@ -297,7 +306,6 @@
                     santriInput.value = `${s.nis} | ${s.nama}`;
                     selectedSantriId.value = s.id;
                     santriAutocomplete.classList.add('hidden');
-                    // Trigger change event untuk update checklist
                     onSantriChange();
                 });
                 santriAutocomplete.appendChild(div);
@@ -362,7 +370,6 @@
                 const santri = santriList.find(s => s.id === santriId);
                 if (!santri) return;
                 const kelas = document.getElementById('kelasSelect').value;
-                const startIdx = (parseInt(kelas) - 7) * 12;
                 const iuranData = iuranDataMap.get(santriId) || new Array(72).fill(0);
                 const checkboxes = document.querySelectorAll('.bulanCb:checked');
                 if (checkboxes.length === 0) { showToast('Pilih minimal satu bulan yang belum lunas', true); return; }
@@ -515,9 +522,7 @@
             formUmum.classList.toggle('hidden', isSantri);
             formSantri.classList.toggle('hidden', !isSantri);
             setDatePemasukan();
-            if (isSantri) {
-                // Jangan otomatis render checklist karena santri belum dipilih
-            }
+            // Jika form santri ditampilkan, jangan otomatis render checklist karena santri belum dipilih
         }
         function showToast(msg, isError=false) {
             const toast = document.getElementById('toast');
