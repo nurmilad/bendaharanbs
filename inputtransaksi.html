@@ -127,7 +127,7 @@
         let santriList = [];
         let iuranDataMap = new Map();
         let daftarTransaksi = [];
-        let paidMonthsMap = new Map(); // key: santriId, value: Set bulanIdx yang sudah dibayar (dari Firebase + transaksi sementara)
+        let paidMonthsMap = new Map(); // key: santriId, value: Set of bulanIdx yang sudah lunas (dari Firebase + transaksi sementara)
 
         let lastTanggalPemasukan = getTodayDate();
         let lastTanggalPengeluaran = getTodayDate();
@@ -205,6 +205,7 @@
             for (let [sid, setBulan] of firebaseMap.entries()) {
                 newMap.set(sid, new Set(setBulan));
             }
+            // Tambahkan dari daftarTransaksi (belum tersimpan) untuk mencegah double payment di sesi yang sama
             for (const tr of daftarTransaksi) {
                 if (tr.detail && tr.detail.type === 'santri' && tr.detail.santriId && tr.detail.bulanIdx !== undefined) {
                     const sid = tr.detail.santriId;
@@ -403,8 +404,7 @@
             }
             await updatePaidMonthsMap();
             renderDaftarTransaksi();
-            // Jika form santri masih aktif dan ada santri terpilih, perlu render ulang checklist? Tapi setelah reset, santri kosong, jadi tidak perlu.
-            // Namun jika ada kasus lain, kita pastikan:
+            // Jika form santri masih aktif dan ada santri terpilih, perlu render ulang checklist (setelah reset tidak ada santri)
             if (pembayaranSantriCheck.checked && selectedSantriId.value) {
                 renderBulanChecklist();
             }
@@ -496,7 +496,7 @@
                 await batch.commit();
                 showToast(`${daftarTransaksi.length} transaksi berhasil disimpan`);
                 daftarTransaksi = [];
-                await updatePaidMonthsMap();
+                await updatePaidMonthsMap(); // refresh status lunas setelah simpan
                 renderDaftarTransaksi();
                 if (pembayaranSantriCheck.checked && selectedSantriId.value) {
                     renderBulanChecklist(); // update checklist dengan data terbaru dari Firebase
