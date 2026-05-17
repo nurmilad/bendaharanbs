@@ -16,10 +16,7 @@
         .autocomplete-item { padding: 6px; cursor: pointer; border-bottom: 1px solid #eee; }
         .autocomplete-item:hover { background-color: #e9e9e9; }
         .relative { position: relative; }
-        input[type="checkbox"]:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        input[type="checkbox"]:disabled { opacity: 0.5; cursor: not-allowed; }
         .line-through { text-decoration: line-through; }
     </style>
 </head>
@@ -65,7 +62,7 @@
                 <div><label class="block text-sm font-medium">Jumlah (Rp)</label><input type="text" id="jumlahUmum" class="w-full border rounded-lg p-2 rupiah-input" placeholder="0"></div>
             </div>
 
-            <!-- Form Khusus Santri -->
+            <!-- Form Khusus Santri (dengan autocomplete) -->
             <div id="formSantri" class="hidden space-y-3">
                 <div><label class="block text-sm font-medium">Tanggal Transaksi</label><input type="date" id="tglSantri" class="w-full border rounded-lg p-2"></div>
                 <div class="relative">
@@ -84,7 +81,7 @@
             <button id="tambahTransaksiBtn" class="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg w-full md:w-auto">+ Tambah ke Daftar</button>
         </div>
 
-        <!-- Panel Pengeluaran (sama seperti sebelumnya) -->
+        <!-- Panel Pengeluaran -->
         <div id="panelPengeluaran" class="hidden bg-white rounded-xl shadow p-4 mb-6">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-semibold">Daftar Pengeluaran</h3>
@@ -132,7 +129,6 @@
         let lastTanggalPemasukan = getTodayDate();
         let lastTanggalPengeluaran = getTodayDate();
 
-        // DOM elements
         const radioPemasukan = document.querySelector('input[value="pemasukan"]');
         const radioPengeluaran = document.querySelector('input[value="pengeluaran"]');
         const panelPemasukan = document.getElementById('panelPemasukan');
@@ -153,7 +149,6 @@
         const refreshBtn = document.getElementById('refreshBtn');
         const kelasSelect = document.getElementById('kelasSelect');
 
-        // Helper functions
         function getTodayDate() { return new Date().toISOString().slice(0,10); }
         function setDatePemasukan() {
             document.getElementById('tglUmum').value = lastTanggalPemasukan;
@@ -171,8 +166,7 @@
         }
         function parseRupiah(str) {
             if (!str) return 0;
-            let cleaned = str.replace(/\./g, '').replace(/[^0-9]/g, '');
-            return parseInt(cleaned) || 0;
+            return parseInt(str.replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
         }
         function attachRupiahFormat(el) {
             if (!el) return;
@@ -190,7 +184,6 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
-        // ========== LOAD DATA SANTRI & IURAN ==========
         async function loadMaster() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -215,22 +208,25 @@
             } catch(err) { console.error(err); showToast('Gagal muat data master', true); }
         }
 
-        // ========== LOAD STATUS PEMBAYARAN (LUNAS) ==========
+        // ========== PERBAIKAN UTAMA: load status pembayaran (lunas) dari Firebase, tanpa filter 'tipe' ==========
         async function loadPaidStatus() {
             try {
                 const transSnap = await db.collection('transaksi')
                     .where('jenis_iuran', '==', jenis)
-                    .where('tipe', '==', 'pemasukan')
                     .get();
                 const newPaid = new Map();
                 transSnap.forEach(doc => {
                     const data = doc.data();
                     if (data.santriId && data.bulanIdx !== undefined) {
-                        if (!newPaid.has(data.santriId)) newPaid.set(data.santriId, new Set());
-                        newPaid.get(data.santriId).add(data.bulanIdx);
+                        // Cek apakah ini transaksi pemasukan (tipe 'pemasukan' atau pemasukan > 0)
+                        const isPemasukan = (data.tipe === 'pemasukan') || (data.pemasukan > 0);
+                        if (isPemasukan) {
+                            if (!newPaid.has(data.santriId)) newPaid.set(data.santriId, new Set());
+                            newPaid.get(data.santriId).add(data.bulanIdx);
+                        }
                     }
                 });
-                // Tambahkan transaksi sementara (belum tersimpan) agar tidak double di sesi ini
+                // Tambahkan transaksi sementara (belum tersimpan) untuk mencegah double di sesi yang sama
                 for (const tr of daftarTransaksi) {
                     if (tr.detail && tr.detail.type === 'santri' && tr.detail.santriId && tr.detail.bulanIdx !== undefined) {
                         const sid = tr.detail.santriId;
@@ -242,7 +238,6 @@
             } catch(err) { console.error(err); showToast('Gagal muat status pembayaran', true); }
         }
 
-        // ========== RENDER CHECKLIST BULAN ==========
         function renderBulanChecklist() {
             const santriId = selectedSantriId.value;
             if (!santriId) {
@@ -270,7 +265,6 @@
                 `;
                 container.appendChild(div);
             }
-            // hitung total otomatis
             const checkboxes = document.querySelectorAll('.bulanCb:checked');
             hitungTotalSantri(checkboxes);
             document.querySelectorAll('.bulanCb:not([disabled])').forEach(cb => cb.addEventListener('change', function() {
@@ -291,7 +285,6 @@
             document.getElementById('totalSantri').value = formatRupiah(total);
         }
 
-        // ========== AUTOCOMPLETE ==========
         function filterSantri(keyword) {
             if (!keyword.trim()) return [];
             const lower = keyword.toLowerCase();
@@ -311,7 +304,7 @@
                     santriInput.value = `${s.nis} | ${s.nama}`;
                     selectedSantriId.value = s.id;
                     santriAutocomplete.classList.add('hidden');
-                    await loadPaidStatus();  // refresh status lunas (terutama jika ada transaksi baru di sesi ini)
+                    await loadPaidStatus();   // refresh status lunas
                     renderBulanChecklist();
                 });
                 santriAutocomplete.appendChild(div);
@@ -336,7 +329,6 @@
             }
         }
 
-        // ========== TAMBAH TRANSAKSI PEMASUKAN ==========
         async function tambahTransaksiPemasukan() {
             const isSantri = pembayaranSantriCheck.checked;
             const tgl = isSantri ? document.getElementById('tglSantri').value : document.getElementById('tglUmum').value;
@@ -367,7 +359,6 @@
                 if (!santriId) { showToast('Pilih santri', true); return; }
                 const santri = santriList.find(s => s.id === santriId);
                 if (!santri) return;
-                const kelas = kelasSelect.value;
                 const iuranData = iuranDataMap.get(santriId) || new Array(72).fill(0);
                 const checkboxes = document.querySelectorAll('.bulanCb:checked');
                 if (checkboxes.length === 0) { showToast('Pilih minimal satu bulan yang belum lunas', true); return; }
@@ -394,7 +385,6 @@
                 }
                 if (addedCount === 0) showToast('Tidak ada bulan dengan nominal iuran > 0', true);
                 else showToast(`${addedCount} transaksi pembayaran santri ditambahkan`);
-                // reset form santri
                 santriInput.value = '';
                 selectedSantriId.value = '';
                 renderBulanChecklist();
@@ -402,11 +392,10 @@
                 lastTanggalPemasukan = tgl;
                 setDatePemasukan();
             }
-            await loadPaidStatus(); // update status lunas (karena daftarTransaksi berisi transaksi sementara)
+            await loadPaidStatus();
             renderDaftarTransaksi();
         }
 
-        // ========== PENGELUARAN ==========
         function tambahPengeluaran() {
             const rows = document.querySelectorAll('.pengeluaran-row');
             if (rows.length === 0) { showToast('Tidak ada baris pengeluaran', true); return; }
@@ -435,7 +424,6 @@
             renderDaftarTransaksi();
         }
 
-        // ========== RENDER DAFTAR TRANSAKSI SEMENTARA ==========
         function renderDaftarTransaksi() {
             if (daftarTransaksi.length === 0) {
                 daftarDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Belum ada transaksi</div>';
@@ -466,7 +454,6 @@
             });
         }
 
-        // ========== SIMPAN SEMUA TRANSAKSI ==========
         async function simpanSemua() {
             if (daftarTransaksi.length === 0) { showToast('Tidak ada transaksi untuk disimpan', true); return; }
             showToast('Menyimpan...');
@@ -492,7 +479,7 @@
                 await batch.commit();
                 showToast(`${daftarTransaksi.length} transaksi berhasil disimpan`);
                 daftarTransaksi = [];
-                await loadPaidStatus(); // refresh status lunas
+                await loadPaidStatus();
                 renderDaftarTransaksi();
                 if (pembayaranSantriCheck.checked && selectedSantriId.value) {
                     renderBulanChecklist();
@@ -500,7 +487,6 @@
             } catch(err) { showToast('Gagal simpan: '+err.message, true); }
         }
 
-        // ========== PENGELUARAN TABLE ROW ==========
         function tambahBarisPengeluaranHandler(useLastDate = true) {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'pengeluaran-row grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-b pb-2 mb-2';
@@ -515,7 +501,6 @@
             rowDiv.querySelector('.hapusBarisPengeluaran').addEventListener('click', () => rowDiv.remove());
         }
 
-        // ========== TOGGLE PANEL ==========
         function togglePanel() {
             const isPemasukan = radioPemasukan.checked;
             panelPemasukan.classList.toggle('hidden', !isPemasukan);
@@ -540,7 +525,6 @@
             showToast('Data diperbarui');
         }
 
-        // ========== EVENT LISTENERS ==========
         radioPemasukan.addEventListener('change', togglePanel);
         radioPengeluaran.addEventListener('change', togglePanel);
         pembayaranSantriCheck.addEventListener('change', toggleFormSantri);
