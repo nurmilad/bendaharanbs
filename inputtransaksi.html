@@ -33,6 +33,11 @@
                 <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
                 <h1 class="font-bold text-gray-800 text-lg">Input Transaksi</h1>
             </div>
+            <div>
+                <button id="refreshTransaksiBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">
+                    <i class="fas fa-sync-alt"></i> Refresh Data Pembayaran
+                </button>
+            </div>
         </div>
     </header>
 
@@ -127,11 +132,12 @@
         let santriList = [];
         let iuranDataMap = new Map();
         let daftarTransaksi = [];
-        let paidMonthsMap = new Map(); // key: santriId, value: Set of bulanIdx yang sudah lunas (dari Firebase + transaksi sementara)
+        let paidMonthsMap = new Map(); // key: santriId, value: Set of bulanIdx yang sudah lunas
 
         let lastTanggalPemasukan = getTodayDate();
         let lastTanggalPengeluaran = getTodayDate();
 
+        // DOM elements
         const radioPemasukan = document.querySelector('input[value="pemasukan"]');
         const radioPengeluaran = document.querySelector('input[value="pengeluaran"]');
         const panelPemasukan = document.getElementById('panelPemasukan');
@@ -149,6 +155,7 @@
         const santriInput = document.getElementById('santriInput');
         const santriAutocomplete = document.getElementById('santriAutocomplete');
         const selectedSantriId = document.getElementById('selectedSantriId');
+        const refreshTransaksiBtn = document.getElementById('refreshTransaksiBtn');
 
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '';
@@ -179,7 +186,7 @@
             document.getElementById('tglSantri').value = lastTanggalPemasukan;
         }
 
-        // ========== AMBIL TRANSAKSI PEMBAYARAN SANTRI YANG SUDAH TERSIMPAN ==========
+        // ========== AMBIL SEMUA TRANSAKSI PEMBAYARAN SANTRI (lunas) ==========
         async function loadExistingPayments() {
             try {
                 const transaksiSnap = await db.collection('transaksi')
@@ -205,7 +212,6 @@
             for (let [sid, setBulan] of firebaseMap.entries()) {
                 newMap.set(sid, new Set(setBulan));
             }
-            // Tambahkan dari daftarTransaksi (belum tersimpan) untuk mencegah double payment di sesi yang sama
             for (const tr of daftarTransaksi) {
                 if (tr.detail && tr.detail.type === 'santri' && tr.detail.santriId && tr.detail.bulanIdx !== undefined) {
                     const sid = tr.detail.santriId;
@@ -214,9 +220,13 @@
                 }
             }
             paidMonthsMap = newMap;
+            // Jika ada santri yang sedang dipilih, refresh checklist
+            if (selectedSantriId.value) {
+                renderBulanChecklist();
+            }
         }
 
-        // ========== RENDER CHECKLIST BULAN ==========
+        // ========== RENDER CHECKLIST BULAN (dengan disabled jika lunas) ==========
         function renderBulanChecklist() {
             const santriId = selectedSantriId.value;
             if (!santriId) {
@@ -244,7 +254,6 @@
                 `;
                 container.appendChild(div);
             }
-            // Pasang event listener untuk checkbox yang tidak disabled
             document.querySelectorAll('.bulanCb:not([disabled])').forEach(cb => cb.addEventListener('change', hitungTotalSantri));
             hitungTotalSantri();
         }
@@ -263,7 +272,7 @@
             document.getElementById('totalSantri').value = formatRupiah(total);
         }
 
-        // ========== LOAD DATA MASTER ==========
+        // ========== LOAD DATA MASTER (santri, iuran, dan status pembayaran) ==========
         async function loadData() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -285,7 +294,7 @@
                         iuranDataMap.set(sid, arr);
                     }
                 });
-                await updatePaidMonthsMap();
+                await updatePaidMonthsMap(); // important: load status pembayaran
             } catch(err) { console.error(err); showToast('Gagal memuat data', true); }
         }
 
@@ -306,11 +315,12 @@
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
                 div.textContent = `${s.nis} | ${s.nama}`;
-                div.addEventListener('click', () => {
+                div.addEventListener('click', async () => {
                     santriInput.value = `${s.nis} | ${s.nama}`;
                     selectedSantriId.value = s.id;
                     santriAutocomplete.classList.add('hidden');
-                    // Setelah santri dipilih, render checklist berdasarkan paidMonthsMap
+                    // Pastikan paidMonthsMap sudah terupdate
+                    await updatePaidMonthsMap();
                     renderBulanChecklist();
                 });
                 santriAutocomplete.appendChild(div);
@@ -331,8 +341,11 @@
             showAutocomplete(filtered);
         }
 
-        function onKelasChange() {
-            if (selectedSantriId.value) renderBulanChecklist();
+        async function onKelasChange() {
+            if (selectedSantriId.value) {
+                await updatePaidMonthsMap(); // refresh status lunas mungkin berubah per kelas? Tidak, karena bulanIdx tergantung kelas, tapi data lunas tetap sama. Namun kita tetap update untuk jaga-jaga.
+                renderBulanChecklist();
+            }
         }
 
         // ========== TAMBAH TRANSAKSI PEMASUKAN ==========
@@ -402,9 +415,8 @@
                 lastTanggalPemasukan = tgl;
                 setDatePemasukan();
             }
-            await updatePaidMonthsMap();
+            await updatePaidMonthsMap(); // update status lunas (karena daftarTransaksi berubah)
             renderDaftarTransaksi();
-            // Jika form santri masih aktif dan ada santri terpilih, perlu render ulang checklist (setelah reset tidak ada santri)
             if (pembayaranSantriCheck.checked && selectedSantriId.value) {
                 renderBulanChecklist();
             }
@@ -464,7 +476,7 @@
                     await updatePaidMonthsMap();
                     renderDaftarTransaksi();
                     if (pembayaranSantriCheck.checked && selectedSantriId.value) {
-                        renderBulanChecklist(); // update checklist jika masih ada santri terpilih
+                        renderBulanChecklist();
                     }
                 });
             });
@@ -499,7 +511,7 @@
                 await updatePaidMonthsMap(); // refresh status lunas setelah simpan
                 renderDaftarTransaksi();
                 if (pembayaranSantriCheck.checked && selectedSantriId.value) {
-                    renderBulanChecklist(); // update checklist dengan data terbaru dari Firebase
+                    renderBulanChecklist();
                 }
             } catch(err) { showToast('Gagal simpan: '+err.message, true); }
         }
@@ -542,6 +554,16 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
+        // Refresh data pembayaran manual (tombol)
+        async function refreshPaymentData() {
+            showToast('Memuat ulang data pembayaran...');
+            await updatePaidMonthsMap();
+            if (selectedSantriId.value) {
+                renderBulanChecklist();
+            }
+            showToast('Data pembayaran diperbarui');
+        }
+
         // EVENT LISTENERS
         radioPemasukan.addEventListener('change', togglePanel);
         radioPengeluaran.addEventListener('change', togglePanel);
@@ -553,6 +575,7 @@
         tambahBarisPengeluaran.addEventListener('click', () => tambahBarisPengeluaranHandler(true));
         santriInput.addEventListener('input', onSantriInput);
         document.getElementById('kelasSelect').addEventListener('change', onKelasChange);
+        refreshTransaksiBtn.addEventListener('click', refreshPaymentData);
         attachRupiahFormat(document.getElementById('jumlahUmum'));
         attachRupiahFormat(document.getElementById('totalSantri'));
 
