@@ -6,6 +6,7 @@
     <title>Pondok Pesantren Nurmilad | Sistem Keuangan Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -19,6 +20,36 @@
         .fade-in { animation: fadeIn 0.8s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .jenis-modal { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .chart-container { position: relative; height: 250px; width: 100%; }
+        .stat-card { transition: transform 0.2s ease; }
+        .stat-card:hover { transform: translateY(-3px); }
+        /* Modal Statistik */
+        .stat-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .stat-modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .stat-modal-content {
+            background: #f3f4f6;
+            max-width: 1200px;
+            width: 95%;
+            margin: 30px auto;
+            border-radius: 20px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
@@ -67,13 +98,71 @@
         </div>
     </div>
 
+    <!-- ======================= MODAL STATISTIK ======================= -->
+    <div id="statModal" class="stat-modal">
+        <div class="stat-modal-content p-4 md:p-6">
+            <div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-100 p-3 rounded-lg">
+                <h2 class="text-xl font-bold text-gray-800">📊 Statistik Keuangan Pesantren</h2>
+                <button id="closeStatModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <!-- Filter Tahun dan Bulan -->
+            <div class="bg-white rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-center shadow">
+                <div>
+                    <label class="text-sm font-medium">Tahun</label>
+                    <select id="statTahun" class="ml-2 border rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Bulan</label>
+                    <select id="statBulan" class="ml-2 border rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                        <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                        <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                </div>
+                <button id="statFilterBtn" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm">Terapkan</button>
+            </div>
+
+            <!-- Ringkasan Kartu -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-r from-emerald-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pemasukan (Tahun)</p><p class="text-2xl font-bold text-emerald-700" id="statPemasukanTahunan">Rp 0</p></div>
+                <div class="bg-gradient-to-r from-red-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pengeluaran (Tahun)</p><p class="text-2xl font-bold text-red-700" id="statPengeluaranTahunan">Rp 0</p></div>
+                <div class="bg-gradient-to-r from-blue-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pemasukan (Bulan)</p><p class="text-2xl font-bold text-blue-700" id="statPemasukanBulanan">Rp 0</p></div>
+                <div class="bg-gradient-to-r from-purple-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pengeluaran (Bulan)</p><p class="text-2xl font-bold text-purple-700" id="statPengeluaranBulanan">Rp 0</p></div>
+            </div>
+
+            <!-- Jumlah Santri Membayar -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-amber-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Santri Membayar Bulan Ini</p><p class="text-3xl font-bold text-amber-700" id="statJumlahSantriBulan">0</p><p class="text-xs text-gray-500" id="statPersentaseBulan">0% dari total santri</p></div>
+                <div class="bg-emerald-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Total Santri Aktif</p><p class="text-3xl font-bold text-emerald-700" id="statTotalSantri">0</p></div>
+                <div class="bg-sky-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Total Transaksi</p><p class="text-3xl font-bold text-sky-700" id="statTotalTransaksi">0</p></div>
+            </div>
+
+            <!-- Statistik per Kelas -->
+            <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+                <h3 class="font-bold text-gray-800 text-lg mb-3"><i class="fas fa-chart-bar text-emerald-600 mr-2"></i> Total Pembayaran Iuran per Kelas (Tahun Ini)</h3>
+                <div class="chart-container" style="height: 280px;"><canvas id="statKelasChart"></canvas></div>
+            </div>
+
+            <!-- Statistik Bulanan -->
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <h3 class="font-bold text-gray-800 text-lg mb-3"><i class="fas fa-calendar-alt text-emerald-600 mr-2"></i> Statistik Bulanan (Tahun <span id="statTahunLabel"></span>)</h3>
+                <div class="chart-container" style="height: 280px;"><canvas id="statBulananChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ======================= KONTEN UTAMA ======================= -->
     <div id="mainContent" style="display: none;">
 
         <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-100">
             <div class="container mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
-                    <!-- Logo gambar diganti dengan logo.png -->
                     <div class="bg-emerald-100 p-2 rounded-xl flex items-center justify-center">
                         <img src="logo.png" alt="Logo Pesantren" class="h-8 w-auto object-contain">
                     </div>
@@ -95,6 +184,7 @@
                             <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition" id="laporanBulananLink"><i class="fas fa-chart-line mr-2 w-5"></i> Laporan Bulanan</a>
                         </div>
                     </div>
+                    <button id="statistikLink" class="text-gray-600 hover:text-emerald-600 font-medium transition">Statistik</button>
                     <a href="info.html?mode=informasi" class="text-gray-600 hover:text-emerald-600">Informasi</a>
                     <a href="info.html?mode=bantuan" class="text-gray-600 hover:text-emerald-600">Bantuan</a>
                 </nav>
@@ -105,27 +195,31 @@
                 <a href="submenu.html?jenis=konsumsi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-utensils text-emerald-600 w-5"></i> Iuran Konsumsi</a>
                 <a href="submenu.html?jenis=pondok" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-home text-emerald-600 w-5"></i> Iuran Pondok</a>
                 <button id="catatanBendaharaBtnMobile" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600 text-left flex items-center gap-2"><i class="fas fa-book text-emerald-600 w-5"></i> Catatan Bendahara</button>
+                <button id="mobileStatistikLink" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600 text-left flex items-center gap-2"><i class="fas fa-chart-line text-emerald-600 w-5"></i> Statistik</button>
                 <a href="info.html?mode=informasi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-info-circle text-emerald-600 w-5"></i> Informasi</a>
                 <a href="info.html?mode=bantuan" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-question-circle text-emerald-600 w-5"></i> Bantuan</a>
                 <a href="#" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600" id="mobileLaporanLink"><i class="fas fa-chart-simple mr-2"></i> Laporan</a>
             </div>
         </header>
 
-        <!-- KONTEN SELANJUTNYA (statistik, menu, dll) TIDAK BERUBAH -->
         <main>
-            <!-- Hero, Statistik, 4 Menu, Konten Populer, Kata Bijak (sama persis seperti sebelumnya) -->
+            <!-- Hero -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
                         <span class="inline-block bg-emerald-100 text-emerald-700 text-sm font-semibold px-4 py-1 rounded-full mb-4">✨ Manajemen Keuangan Modern</span>
                         <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-800 leading-tight">Mengabdikan Diri sebagai <span class="text-emerald-600">Pengelolah Keuangan Pesantren</span></h1>
                         <p class="text-gray-500 text-base md:text-lg mt-4 max-w-lg mx-auto md:mx-0">Transparansi, akuntabilitas, dan digitalisasi penuh untuk Pondok Pesantren Nurmilad. Akses data santri, iuran, dan laporan real-time.</p>
-                        <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start"><a href="#menu-utama" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"><i class="fas fa-arrow-right"></i> Mulai Kelola</a><a href="#statistik" class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl transition shadow-sm">Lihat Statistik</a></div>
+                        <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
+                            <a href="#menu-utama" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition flex items-center gap-2"><i class="fas fa-arrow-right"></i> Mulai Kelola</a>
+                            <button id="heroStatistikBtn" class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl transition shadow-sm">Lihat Statistik</button>
+                        </div>
                     </div>
                     <div class="md:w-1/2 flex justify-center"><div class="relative w-64 md:w-80 lg:w-96"><img src="https://illustrations.popsy.com/illustrations/finance-amico.svg" alt="ilustrasi keuangan islami" class="w-full drop-shadow-xl" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2921/2921222.png'"><div class="absolute -bottom-4 -left-5 bg-emerald-100 rounded-full w-20 h-20 blur-2xl opacity-50"></div></div></div>
                 </div>
             </section>
 
+            <!-- Statistik Ringkasan -->
             <section id="statistik" class="py-12 md:py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><h2 class="text-2xl md:text-3xl font-bold text-gray-800">📊 Statistik Keuangan <span class="text-emerald-600">Pesantren</span></h2><p class="text-gray-500 mt-2">Sistem online, data realtime</p></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -136,6 +230,7 @@
                 </div></div>
             </section>
 
+            <!-- Menu Utama -->
             <section id="menu-utama" class="py-12 md:py-16 bg-gray-50">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Akses Cepat</span><h2 class="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Menu Utama Aplikasi</h2><p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -147,6 +242,7 @@
                 <p class="text-center text-xs text-gray-400 mt-8 italic">* Catatan Bendahara memudahkan input multi‑bulan dan transaksi umum.</p></div>
             </section>
 
+            <!-- Konten Populer -->
             <section class="py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8"><div class="flex justify-between items-end flex-wrap gap-3 mb-10"><div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-7">
@@ -156,6 +252,7 @@
                 </div></div>
             </section>
 
+            <!-- Kata Bijak -->
             <section class="py-16 bg-emerald-50/40">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💡 Kata Bijak Keuangan Berkah</h2><p class="text-gray-600">Nasihat penuh keberkahan untuk mengelola harta</p></div>
                 <div class="testimonial-slider-container max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative"><div class="overflow-hidden"><div id="wisdomTrack" class="testimonial-track flex flex-nowrap"></div></div><div class="flex justify-center gap-2 mt-6" id="wisdomDots"></div></div></div>
@@ -171,7 +268,6 @@
     </div>
 
     <script>
-        // SCRIPT (login, statistik, slider, modal, dll) PERSIS SEPERTI SEBELUMNYA
         const firebaseConfig = {
             apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
             authDomain: "bendaharanbs.firebaseapp.com",
@@ -183,6 +279,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        let allTransaksi = [];
+        let allSantri = [];
+        let chartInstances = {};
+
+        // Login
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
@@ -197,11 +298,13 @@
                 loadAllStats();
                 loadWisdomSlider();
                 attachMobileMenu();
+                loadStatistikData();
             } else {
                 loginModal.style.display = 'flex';
                 mainContent.style.display = 'none';
             }
         }
+
         function login() {
             if (passwordInput.value === CORRECT_PASSWORD) {
                 sessionStorage.setItem('pesantren_logged_in', 'true');
@@ -211,6 +314,7 @@
                 loadAllStats();
                 loadWisdomSlider();
                 attachMobileMenu();
+                loadStatistikData();
             } else {
                 loginError.classList.remove('hidden');
                 passwordInput.value = '';
@@ -260,6 +364,7 @@
             } catch(err) { console.error(err); }
         }
 
+        // Kata Bijak Slider
         const wisdomList = [
             "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
             "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
@@ -294,6 +399,7 @@
 
         function attachMobileMenu() { const mobileBtn = document.getElementById('mobileMenuBtn'); const mobilePanel = document.getElementById('mobileMenuPanel'); if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden'); }
 
+        // Modal Jenis Iuran dan Catatan Bendahara (sama seperti sebelumnya)
         const jenisModal = document.getElementById('jenisModal');
         let pendingTarget = null;
         function showJenisModal(target) { pendingTarget = target; jenisModal.classList.remove('hidden'); }
@@ -316,6 +422,127 @@
         catatanModal.addEventListener('click', (e) => { if (e.target === catatanModal) hideCatatanModal(); });
         const catatanButtons = ['catatanBendaharaBtnDesktop', 'catatanBendaharaBtnMobile', 'catatanBendaharaBtnGrid'];
         catatanButtons.forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', showCatatanModal); });
+
+        // ======================= STATISTIK MODAL =======================
+        const statModal = document.getElementById('statModal');
+        function openStatModal() { statModal.classList.add('active'); renderStatistik(); }
+        function closeStatModal() { statModal.classList.remove('active'); }
+
+        document.getElementById('statistikLink')?.addEventListener('click', (e) => { e.preventDefault(); openStatModal(); });
+        document.getElementById('mobileStatistikLink')?.addEventListener('click', (e) => { e.preventDefault(); openStatModal(); });
+        document.getElementById('heroStatistikBtn')?.addEventListener('click', openStatModal);
+        document.getElementById('closeStatModal')?.addEventListener('click', closeStatModal);
+        statModal.addEventListener('click', (e) => { if (e.target === statModal) closeStatModal(); });
+
+        async function loadStatistikData() {
+            try {
+                const santriSnap = await db.collection('santri').get();
+                allSantri = [];
+                santriSnap.forEach(doc => allSantri.push({ id: doc.id, nis: doc.data().nis || '' }));
+
+                const transSnap = await db.collection('transaksi').get();
+                allTransaksi = [];
+                transSnap.forEach(doc => {
+                    const data = doc.data();
+                    let tgl = data.tanggal;
+                    if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate();
+                    else if (tgl) tgl = new Date(tgl);
+                    if (tgl && !isNaN(tgl.getTime())) {
+                        allTransaksi.push({
+                            tanggal: tgl,
+                            pemasukan: data.pemasukan || 0,
+                            pengeluaran: data.pengeluaran || 0,
+                            tipe: data.tipe || (data.pemasukan > 0 ? 'pemasukan' : 'pengeluaran'),
+                            santriId: data.santriId || null,
+                            bulanIdx: data.bulanIdx !== undefined ? data.bulanIdx : null
+                        });
+                    }
+                });
+                if (statModal.classList.contains('active')) renderStatistik();
+            } catch(err) { console.error(err); }
+        }
+
+        function renderStatistik() {
+            const tahun = parseInt(document.getElementById('statTahun').value);
+            const bulan = parseInt(document.getElementById('statBulan').value);
+            const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][bulan-1];
+            document.getElementById('statTahunLabel').innerText = tahun;
+
+            let pemasukanTahun = 0, pengeluaranTahun = 0;
+            let pemasukanBulan = 0, pengeluaranBulan = 0;
+            let santriIdsBulan = new Set();
+
+            allTransaksi.forEach(t => {
+                if (t.tanggal && t.tanggal.getFullYear() === tahun) {
+                    if (t.tipe === 'pemasukan' || t.pemasukan > 0) pemasukanTahun += t.pemasukan;
+                    if (t.tipe === 'pengeluaran' || t.pengeluaran > 0) pengeluaranTahun += t.pengeluaran;
+                }
+                if (t.tanggal && t.tanggal.getFullYear() === tahun && (t.tanggal.getMonth() + 1) === bulan) {
+                    if (t.tipe === 'pemasukan' || t.pemasukan > 0) {
+                        pemasukanBulan += t.pemasukan;
+                        if (t.santriId) santriIdsBulan.add(t.santriId);
+                    }
+                    if (t.tipe === 'pengeluaran' || t.pengeluaran > 0) pengeluaranBulan += t.pengeluaran;
+                }
+            });
+
+            document.getElementById('statPemasukanTahunan').innerHTML = `Rp ${formatRupiah(pemasukanTahun)}`;
+            document.getElementById('statPengeluaranTahunan').innerHTML = `Rp ${formatRupiah(pengeluaranTahun)}`;
+            document.getElementById('statPemasukanBulanan').innerHTML = `Rp ${formatRupiah(pemasukanBulan)}`;
+            document.getElementById('statPengeluaranBulanan').innerHTML = `Rp ${formatRupiah(pengeluaranBulan)}`;
+            document.getElementById('statJumlahSantriBulan').innerText = santriIdsBulan.size;
+            document.getElementById('statTotalSantri').innerText = allSantri.length;
+            document.getElementById('statTotalTransaksi').innerText = allTransaksi.length;
+            const persen = allSantri.length ? ((santriIdsBulan.size / allSantri.length) * 100).toFixed(1) : 0;
+            document.getElementById('statPersentaseBulan').innerHTML = `${persen}% dari total santri`;
+
+            // Statistik per Kelas
+            const kelasMap = new Map();
+            allTransaksi.forEach(t => {
+                if ((t.tipe === 'pemasukan' || t.pemasukan > 0) && t.santriId && t.bulanIdx !== undefined && t.tanggal && t.tanggal.getFullYear() === tahun) {
+                    const kelas = Math.floor(t.bulanIdx / 12) + 7;
+                    if (kelas >= 7 && kelas <= 12) {
+                        kelasMap.set(kelas, (kelasMap.get(kelas) || 0) + t.pemasukan);
+                    }
+                }
+            });
+            const kelasLabels = ['Kelas 7', 'Kelas 8', 'Kelas 9', 'Kelas 10', 'Kelas 11', 'Kelas 12'];
+            const kelasData = [7,8,9,10,11,12].map(k => kelasMap.get(k) || 0);
+            if (chartInstances.kelasChart) chartInstances.kelasChart.destroy();
+            const ctxKelas = document.getElementById('statKelasChart').getContext('2d');
+            chartInstances.kelasChart = new Chart(ctxKelas, {
+                type: 'bar',
+                data: { labels: kelasLabels, datasets: [{ label: `Total Pembayaran Iuran (Tahun ${tahun})`, data: kelasData, backgroundColor: '#8b5cf6' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `Rp ${formatRupiah(ctx.raw)}` } } } }
+            });
+
+            // Statistik Bulanan per Tahun
+            const monthlyMap = new Map();
+            for (let i=1; i<=12; i++) monthlyMap.set(i, { pemasukan: 0, pengeluaran: 0 });
+            allTransaksi.forEach(t => {
+                if (t.tanggal && t.tanggal.getFullYear() === tahun) {
+                    const month = t.tanggal.getMonth() + 1;
+                    const monthData = monthlyMap.get(month);
+                    if (t.tipe === 'pemasukan' || t.pemasukan > 0) monthData.pemasukan += t.pemasukan;
+                    if (t.tipe === 'pengeluaran' || t.pengeluaran > 0) monthData.pengeluaran += t.pengeluaran;
+                }
+            });
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const pemasukanBulanan = Array.from({length:12}, (_,i) => monthlyMap.get(i+1).pemasukan);
+            const pengeluaranBulanan = Array.from({length:12}, (_,i) => monthlyMap.get(i+1).pengeluaran);
+            if (chartInstances.bulananChart) chartInstances.bulananChart.destroy();
+            const ctxBulanan = document.getElementById('statBulananChart').getContext('2d');
+            chartInstances.bulananChart = new Chart(ctxBulanan, {
+                type: 'bar',
+                data: { labels: monthNames, datasets: [
+                    { label: 'Pemasukan', data: pemasukanBulanan, backgroundColor: '#10b981' },
+                    { label: 'Pengeluaran', data: pengeluaranBulanan, backgroundColor: '#ef4444' }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `Rp ${formatRupiah(ctx.raw)}` } } } }
+            });
+        }
+
+        document.getElementById('statFilterBtn').addEventListener('click', renderStatistik);
 
         checkLoginStatus();
     </script>
