@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Lebar kolom tetap dan rapi */
+        /* Lebar kolom tetap di layar (seperti semula) */
         .bku-table {
             border-collapse: collapse;
             width: 100%;
@@ -27,9 +27,9 @@
             font-weight: 600;
             text-align: center;
         }
-        /* Lebar sesuai permintaan: Tanggal 120px, Pemasukan & Pengeluaran 110px, Saldo 160px */
+        /* Lebar untuk tampilan layar (opsional, tidak mengganggu print) */
         .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; }
-        .bku-table th:nth-child(2), .bku-table td:nth-child(2) { } /* Uraian menyesuaikan */
+        .bku-table th:nth-child(2), .bku-table td:nth-child(2) { }
         .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; }
         .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 110px; text-align: right; }
         .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 160px; text-align: right; }
@@ -42,13 +42,17 @@
             font-weight: 600;
         }
 
-        /* Sembunyikan header & footer cetak saat di layar */
         .print-header, .print-footer {
             display: none;
         }
 
-        /* Tampilkan hanya saat print */
+        /* PERBAIKAN UNTUK CETAK */
         @media print {
+            /* Margin kertas A4 portrait 0.5 cm */
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
             body * {
                 visibility: hidden;
             }
@@ -61,7 +65,7 @@
                 left: 0;
                 width: 100%;
                 margin: 0;
-                padding: 20px;
+                padding: 0;
             }
             .no-print {
                 display: none;
@@ -69,8 +73,32 @@
             .print-header, .print-footer {
                 display: block;
             }
-            table {
+            /* Atur tabel agar lebar penuh dengan layout fixed */
+            .bku-table {
+                width: 100%;
+                table-layout: fixed;
                 font-size: 10pt;
+            }
+            /* Lebar kolom dalam persen (total 100%) */
+            .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 15%; } /* Tanggal */
+            .bku-table th:nth-child(2), .bku-table td:nth-child(2) { width: 35%; } /* Uraian */
+            .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 15%; } /* Pemasukan */
+            .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 15%; } /* Pengeluaran */
+            .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 20%; } /* Saldo */
+            /* Penyesuaian teks */
+            .bku-table th, .bku-table td {
+                word-break: break-word;
+                white-space: normal;
+                padding: 6px;
+            }
+            .bku-table td {
+                text-align: right;
+            }
+            .bku-table td:nth-child(1), .bku-table th:nth-child(1) {
+                text-align: center;
+            }
+            .bku-table td:nth-child(2), .bku-table th:nth-child(2) {
+                text-align: left;
             }
             .print-header {
                 text-align: center;
@@ -79,7 +107,7 @@
             .print-footer {
                 margin-top: 30px;
                 display: flex;
-                justify-content: space-between;
+                justify-content: flex-end;
             }
             .ttd-line {
                 border-top: 1px solid black;
@@ -140,9 +168,8 @@
             <button id="tampilkanBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Tampilkan</button>
         </div>
 
-        <!-- Area Cetak (tabel + header/footer) -->
+        <!-- Area Cetak -->
         <div class="print-area bg-white rounded-xl shadow overflow-hidden">
-            <!-- Header Cetak (hanya muncul saat print) -->
             <div class="print-header">
                 <h2 style="font-size: 1.2rem; font-weight: bold;">BUKU KAS UMUM</h2>
                 <h3 id="printJenisIuran" style="font-size: 1rem; font-weight: 600;"></h3>
@@ -156,12 +183,11 @@
                         <tr><th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Saldo (Rp)</th></tr>
                     </thead>
                     <tbody id="tableBody">
-                        <tr><td colspan="5" class="text-center py-10">Memuat data...</td></tr>
+                        <tr><td colspan="5" class="text-center py-10">Memuat data...<\/td></td>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Footer Cetak (hanya muncul saat print) -->
             <div class="print-footer">
                 <div>
                     <p>Lempong, <span id="printTanggalLaporan"></span></p>
@@ -263,7 +289,7 @@
         function renderBKU(tahun, bulan) {
             const tbody = document.getElementById('tableBody');
             if (!allTransactions.length) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10">Belum ada data transaksi</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10">Belum ada data transaksi<\/td></tr>`;
                 return;
             }
 
@@ -276,40 +302,38 @@
             let saldoBerjalan = saldoAwal;
             let html = '';
 
-            // Baris saldo awal
             html += `<tr class="saldo-awal-row">`;
-            html += `<td class="text-center">-</td><td><strong>Saldo Awal Bulan</strong></td>`;
-            html += `<td class="text-right">-</td><td class="text-right">-</td>`;
-            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}</strong></td></tr>`;
+            html += `<td class="text-center">-<\/td><td><strong>Saldo Awal Bulan<\/strong><\/td>`;
+            html += `<td class="text-right">-<\/td><td class="text-right">-<\/td>`;
+            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}<\/strong><\/td><\/tr>`;
 
             if (transBulanIni.length === 0) {
-                html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini</td></tr>`;
+                html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini<\/td><\/tr>`;
             } else {
                 for (const tr of transBulanIni) {
                     saldoBerjalan += (tr.pemasukan - tr.pengeluaran);
                     html += `<tr>`;
-                    html += `<td class="text-center">${tr.tanggal}</td>`;
-                    html += `<td>${escapeHtml(tr.uraian)}</td>`;
-                    html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}</td>`;
-                    html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}</td>`;
-                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
+                    html += `<td class="text-center">${tr.tanggal}<\/td>`;
+                    html += `<td>${escapeHtml(tr.uraian)}<\/td>`;
+                    html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}<\/td>`;
+                    html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}<\/td>`;
+                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}<\/td><\/tr>`;
                 }
             }
 
             const totalMasuk = transBulanIni.reduce((sum, t) => sum + t.pemasukan, 0);
             const totalKeluar = transBulanIni.reduce((sum, t) => sum + t.pengeluaran, 0);
             html += `<tr class="total-row">`;
-            html += `<td colspan="2" class="text-right">Total Bulan Ini</td>`;
-            html += `<td class="text-right">${formatRupiah(totalMasuk)}</td>`;
-            html += `<td class="text-right">${formatRupiah(totalKeluar)}</td>`;
-            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}</td></tr>`;
+            html += `<td colspan="2" class="text-right">Total Bulan Ini<\/td>`;
+            html += `<td class="text-right">${formatRupiah(totalMasuk)}<\/td>`;
+            html += `<td class="text-right">${formatRupiah(totalKeluar)}<\/td>`;
+            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}<\/td><\/tr>`;
 
             tbody.innerHTML = html;
 
-            // Update informasi cetak (bulan/tahun dan tanggal laporan)
             const bulanNama = getNamaBulan(bulan);
             document.getElementById('printBulanTahun').innerHTML = `Bulan : ${bulanNama} ${tahun}`;
-            const tglLaporan = new Date(tahun, bulan, 0); // hari terakhir bulan
+            const tglLaporan = new Date(tahun, bulan, 0);
             const tglStr = `${tglLaporan.getDate()} ${getNamaBulan(tglLaporan.getMonth()+1)} ${tglLaporan.getFullYear()}`;
             document.getElementById('printTanggalLaporan').innerText = tglStr;
         }
