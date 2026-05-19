@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Lebar kolom tetap di layar (seperti semula) */
+        /* Lebar kolom tampilan layar (tetap seperti semula) */
         .bku-table {
             border-collapse: collapse;
             width: 100%;
@@ -27,7 +27,7 @@
             font-weight: 600;
             text-align: center;
         }
-        /* Lebar untuk tampilan layar (opsional, tidak mengganggu print) */
+        /* Lebar layar (tidak terpengaruh print) */
         .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; }
         .bku-table th:nth-child(2), .bku-table td:nth-child(2) { }
         .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; }
@@ -46,9 +46,8 @@
             display: none;
         }
 
-        /* PERBAIKAN UNTUK CETAK */
+        /* PERBAIKAN CETAK */
         @media print {
-            /* Margin kertas A4 portrait 0.5 cm */
             @page {
                 size: A4 portrait;
                 margin: 0.5cm;
@@ -73,32 +72,22 @@
             .print-header, .print-footer {
                 display: block;
             }
-            /* Atur tabel agar lebar penuh dengan layout fixed */
             .bku-table {
                 width: 100%;
                 table-layout: fixed;
                 font-size: 10pt;
             }
-            /* Lebar kolom dalam persen (total 100%) */
-            .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 15%; } /* Tanggal */
-            .bku-table th:nth-child(2), .bku-table td:nth-child(2) { width: 35%; } /* Uraian */
-            .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 15%; } /* Pemasukan */
-            .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 15%; } /* Pengeluaran */
-            .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 20%; } /* Saldo */
+            /* Lebar kolom persentase sesuai permintaan: Tanggal 12%, Uraian 47%, Pemasukan 12%, Pengeluaran 12%, Saldo 17% */
+            .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 12%; text-align: center; }
+            .bku-table th:nth-child(2), .bku-table td:nth-child(2) { width: 47%; text-align: left; }
+            .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 12%; text-align: right; }
+            .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 12%; text-align: right; }
+            .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 17%; text-align: right; }
             /* Penyesuaian teks */
             .bku-table th, .bku-table td {
                 word-break: break-word;
                 white-space: normal;
                 padding: 6px;
-            }
-            .bku-table td {
-                text-align: right;
-            }
-            .bku-table td:nth-child(1), .bku-table th:nth-child(1) {
-                text-align: center;
-            }
-            .bku-table td:nth-child(2), .bku-table th:nth-child(2) {
-                text-align: left;
             }
             .print-header {
                 text-align: center;
@@ -289,7 +278,7 @@
         function renderBKU(tahun, bulan) {
             const tbody = document.getElementById('tableBody');
             if (!allTransactions.length) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10">Belum ada data transaksi<\/td></tr>`;
+                tbody.innerHTML = `</table><td colspan="5" class="text-center py-10">Belum ada data transaksi<\/td></tr>`;
                 return;
             }
 
