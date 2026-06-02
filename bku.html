@@ -3,681 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Riwayat Transaksi - Pondok Pesantren Nurmilad</title>
+    <title>BKU - Buku Kas Umum | Pondok Pesantren Nurmilad</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        .rupiah-input { text-align: right; }
-        .transaksi-row.invalid { background-color: #fee2e2 !important; }
-        .group-row { background-color: #f0fdf4 !important; } /* hijau muda untuk grup */
-        .table-container { overflow-x: auto; max-height: 70vh; position: relative; }
-        .riwayat-table { border-collapse: collapse; width: 100%; min-width: 800px; }
-        .riwayat-table th, .riwayat-table td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: middle; }
-        .riwayat-table th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 10; }
-        .riwayat-table th:nth-child(1), .riwayat-table td:nth-child(1) { width: 40px; text-align: center; }
-        .riwayat-table th:nth-child(2), .riwayat-table td:nth-child(2) { width: 110px; }
-        .riwayat-table th:nth-child(3), .riwayat-table td:nth-child(3) { min-width: 400px; }
-        .riwayat-table th:nth-child(4), .riwayat-table td:nth-child(4) { width: 130px; }
-        .riwayat-table th:nth-child(5), .riwayat-table td:nth-child(5) { width: 130px; }
-        .riwayat-table th:nth-child(6), .riwayat-table td:nth-child(6) { min-width: 150px; }
-        .riwayat-table th:nth-child(7), .riwayat-table td:nth-child(7) { width: 60px; }
-        
-        .editable-input, .editable-select { width: 100%; border: none; background: transparent; padding: 4px; }
-        .editable-input:focus, .editable-select:focus { outline: none; background: #fefce8; border-radius: 4px; }
-        .disabled-input { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; }
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
-        .saving-indicator { position: fixed; bottom: 20px; left: 20px; background: #10b981; color: white; padding: 4px 12px; font-size: 0.7rem; z-index: 999; border-radius: 16px; }
+        .bku-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+        .bku-table th, .bku-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            vertical-align: top;
+        }
+        .bku-table th {
+            background-color: #f1f5f9;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            text-align: center;
+        }
+        .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 120px; text-align: center; }
+        .bku-table th:nth-child(2), .bku-table td:nth-child(2) { }
+        .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 110px; text-align: right; }
+        .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 110px; text-align: right; }
+        .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 160px; text-align: right; }
+
+        .saldo-awal-row {
+            background-color: #fefce8;
+        }
+        .total-row {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .print-header, .print-footer {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .print-header, .print-footer {
+                display: block;
+            }
+            .bku-table {
+                width: 100%;
+                table-layout: fixed;
+                font-size: 10pt;
+            }
+            .bku-table th:nth-child(1), .bku-table td:nth-child(1) { width: 12%; text-align: center; }
+            .bku-table th:nth-child(2), .bku-table td:nth-child(2) { width: 47%; text-align: left; }
+            .bku-table th:nth-child(3), .bku-table td:nth-child(3) { width: 12%; text-align: right; }
+            .bku-table th:nth-child(4), .bku-table td:nth-child(4) { width: 12%; text-align: right; }
+            .bku-table th:nth-child(5), .bku-table td:nth-child(5) { width: 17%; text-align: right; }
+            .bku-table th, .bku-table td {
+                word-break: break-word;
+                white-space: normal;
+                padding: 6px;
+            }
+            .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .print-footer {
+                margin-top: 30px;
+                display: flex;
+                justify-content: flex-end;
+            }
+            .ttd-line {
+                border-top: 1px solid black;
+                width: 200px;
+                margin-top: 30px;
+                text-align: center;
+            }
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
 
-<header class="bg-white shadow-sm sticky top-0 z-30 border-b">
-    <div class="px-4 md:px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
-            <h1 class="font-bold text-gray-800 text-lg">Riwayat Transaksi</h1>
-        </div>
-        <div class="flex gap-2">
-            <button id="refreshDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
-                <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-            <button id="importExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
-                <i class="fas fa-file-import"></i> Import Multi
-            </button>
-        </div>
-    </div>
-</header>
-
-<main class="p-4 md:p-6 max-w-7xl mx-auto">
-    <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center">Memproses...</div>
-
-    <!-- Filter & Aksi -->
-    <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
-        <div><label class="text-sm font-medium">Dari Tanggal</label><input type="date" id="filterDari" class="border rounded p-2"></div>
-        <div><label class="text-sm font-medium">Sampai Tanggal</label><input type="date" id="filterSampai" class="border rounded p-2"></div>
-        <div><label class="text-sm font-medium">Cari (Uraian)</label><input type="text" id="searchInput" class="border rounded p-2 w-64" placeholder="Ketik kata kunci..."></div>
-        <button id="filterBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Filter</button>
-        <button id="resetFilterBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Reset</button>
-        <button id="deleteSelectedBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2">
-            <i class="fas fa-trash-alt"></i> Hapus Terpilih
-        </button>
-    </div>
-
-    <!-- Tabel Riwayat -->
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <div class="table-container">
-            <table class="riwayat-table" id="riwayatTable">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="selectAllCheckbox" class="rounded"></th>
-                        <th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Keterangan</th><th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Total -->
-    <div class="bg-white rounded-xl shadow p-4 mt-4 flex justify-between">
-        <div>Total Pemasukan: <span id="totalPemasukan" class="font-bold text-emerald-700">Rp 0</span></div>
-        <div>Total Pengeluaran: <span id="totalPengeluaran" class="font-bold text-red-700">Rp 0</span></div>
-        <div>Saldo: <span id="saldo" class="font-bold text-blue-700">Rp 0</span></div>
-    </div>
-</main>
-
-<!-- Modal Import Multi -->
-<div id="importModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg w-full max-w-3xl mx-4">
-        <div class="flex justify-between items-center border-b p-3">
-            <h3 class="font-bold">Import Multi Transaksi</h3>
-            <button id="closeImportBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="p-4">
-            <p class="text-sm text-gray-600 mb-2">Tempel data dari spreadsheet (format: Tanggal, Uraian, Pemasukan, Pengeluaran). Pisahkan TAB atau spasi.</p>
-            <textarea id="importData" rows="10" class="w-full border rounded p-2 font-mono text-sm"></textarea>
-            <div class="flex justify-end gap-2 mt-3">
-                <button id="cancelImportBtn" class="px-3 py-1 border rounded">Batal</button>
-                <button id="processImportBtn" class="px-3 py-1 bg-emerald-600 text-white rounded">Proses & Import</button>
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b no-print">
+        <div class="px-4 md:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
+                <h1 class="font-bold text-gray-800 text-lg">Buku Kas Umum (BKU)</h1>
+            </div>
+            <div>
+                <button id="cetakBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    <i class="fas fa-print"></i> Cetak
+                </button>
             </div>
         </div>
-    </div>
-</div>
+    </header>
 
-<div id="toast" class="toast hidden"><i class="fas fa-check-circle text-emerald-400"></i> <span id="toastMsg"></span></div>
-<div id="savingIndicator" class="saving-indicator hidden"><i class="fas fa-spinner fa-pulse"></i> Menyimpan...</div>
+    <main class="p-4 md:p-6 max-w-7xl mx-auto">
+        <div id="jenisInfo" class="bg-emerald-50 p-2 rounded text-sm mb-4 text-center no-print">Memproses...</div>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
-        authDomain: "bendaharanbs.firebaseapp.com",
-        projectId: "bendaharanbs",
-        storageBucket: "bendaharanbs.firebasestorage.app",
-        messagingSenderId: "853301471376",
-        appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end no-print">
+            <div>
+                <label class="text-sm font-medium">Bulan</label>
+                <select id="bulanSelect" class="border rounded p-2">
+                    <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                    <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                    <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                    <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-sm font-medium">Tahun</label>
+                <select id="tahunSelect" class="border rounded p-2"></select>
+            </div>
+            <button id="tampilkanBtn" class="bg-emerald-600 text-white px-4 py-2 rounded">Tampilkan</button>
+        </div>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
-    document.getElementById('jenisInfo').innerHTML = `📌 Riwayat transaksi untuk <strong>Iuran ${jenis === 'konsumsi' ? 'Konsumsi' : 'Pondok'}</strong>`;
-    document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
+        <div class="print-area bg-white rounded-xl shadow overflow-hidden">
+            <div class="print-header">
+                <h2 style="font-size: 1.2rem; font-weight: bold;">BUKU KAS UMUM</h2>
+                <h3 id="printJenisIuran" style="font-size: 1rem; font-weight: 600;"></h3>
+                <p style="font-weight: 500;">PONDOK PESANTREN NURMILAD</p>
+                <p id="printBulanTahun" style="margin-top: 5px;"></p>
+            </div>
 
-    let allTransactions = [];      // array objek transaksi asli + objek grup
-    let filteredTransactions = [];
-    let santriList = [];
-    let iuranMap = new Map();      // key santriId, value array iuran 72 bulan
-    let saveTimeout = null;
-    let isSaving = false;
-    let selectedRows = new Set();  // menyimpan index baris yang dipilih
+            <div class="overflow-x-auto">
+                <table class="bku-table" id="bkuTable">
+                    <thead>
+                        <tr><th>Tanggal</th><th>Uraian</th><th>Pemasukan (Rp)</th><th>Pengeluaran (Rp)</th><th>Saldo (Rp)</th></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="5" class="text-center py-10">Memuat data...<\/td></tr>
+                    </tbody>
+                </table>
+            </div>
 
-    const tbody = document.getElementById('tableBody');
-    const totalPemasukanSpan = document.getElementById('totalPemasukan');
-    const totalPengeluaranSpan = document.getElementById('totalPengeluaran');
-    const saldoSpan = document.getElementById('saldo');
-    const filterDari = document.getElementById('filterDari');
-    const filterSampai = document.getElementById('filterSampai');
-    const searchInput = document.getElementById('searchInput');
-    const filterBtn = document.getElementById('filterBtn');
-    const resetFilterBtn = document.getElementById('resetFilterBtn');
-    const refreshDataBtn = document.getElementById('refreshDataBtn');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            <div class="print-footer">
+                <div>
+                    <p>Lempong, <span id="printTanggalLaporan"></span></p>
+                    <p>Bendahara</p>
+                    <div class="ttd-line"></div>
+                </div>
+            </div>
+        </div>
+    </main>
 
-    function formatRupiah(angka) {
-        if (!angka && angka !== 0) return '0';
-        let str = Math.floor(angka).toString();
-        let result = '';
-        for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
-            if (j > 0 && j % 3 === 0) result = '.' + result;
-            result = str[i] + result;
+    <div id="toast" class="toast hidden no-print"><i class="fas fa-info-circle"></i> <span id="toastMsg"></span></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
+        const jenisIuranText = jenis === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
+        document.getElementById('jenisInfo').innerHTML = `📌 Buku Kas Umum - ${jenisIuranText}`;
+        document.getElementById('backLink').href = `submenu.html?jenis=${jenis}`;
+        document.getElementById('printJenisIuran').innerText = jenisIuranText;
+
+        const tahunSelect = document.getElementById('tahunSelect');
+        const currentYear = new Date().getFullYear();
+        for (let y = 2009; y <= 2045; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentYear) opt.selected = true;
+            tahunSelect.appendChild(opt);
         }
-        return result;
-    }
 
-    function parseRupiah(str) {
-        if (!str) return 0;
-        return parseInt(str.replace(/\./g, '').replace(/[^0-9]/g, '')) || 0;
-    }
+        let allTransactions = []; // akan berisi transaksi yang sudah dikelompokkan
 
-    // ========== LOAD MASTER DATA (SANTRI & IURAN) ==========
-    async function loadMasterData() {
-        try {
-            const santriSnap = await db.collection('santri').get();
-            santriList = [];
-            santriSnap.forEach(doc => santriList.push({ id: doc.id, nis: doc.data().nis || '', nama: doc.data().nama || '' }));
-            const iuranSnap = await db.collection(jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok').get();
-            iuranMap.clear();
-            iuranSnap.forEach(doc => {
-                if (doc.data().santriId) {
-                    const arr = new Array(72).fill(0);
-                    for (let i = 0; i < 72; i++) arr[i] = doc.data()[`bulan_${i}`] || 0;
-                    iuranMap.set(doc.data().santriId, arr);
+        function parseDate(tanggalField) {
+            if (!tanggalField) return '';
+            if (typeof tanggalField === 'string') return tanggalField;
+            if (tanggalField.toDate) return tanggalField.toDate().toISOString().slice(0,10);
+            return '';
+        }
+
+        // Fungsi untuk mengelompokkan transaksi pembayaran santri berdasarkan tanggal dan santriId
+        function groupSantriPayments(transactions) {
+            const groups = new Map(); // key: `${tanggal}|${santriId}`
+            const nonSantri = [];
+
+            for (const t of transactions) {
+                // Jika bukan pembayaran santri atau tidak memiliki santriId/bulanIdx, masukkan ke nonSantri
+                if (!t.uraian.startsWith('Pembayaran Santri:') || !t.santriId || t.bulanIdx === undefined) {
+                    nonSantri.push(t);
+                    continue;
                 }
-            });
-        } catch (err) { console.error(err); showToast('Gagal memuat data master', true); }
-    }
-
-    function getIuranNominal(santriId, bulanIdx) {
-        if (!santriId || bulanIdx === null) return 0;
-        const iuranData = iuranMap.get(santriId);
-        return iuranData ? iuranData[bulanIdx] : 0;
-    }
-
-    // ========== PARSING URAIAN GABUNGAN (DENGAN KOMA) ==========
-    // Contoh: "Pembayaran Santri: 2024003 | SARTIKA - JUN (7), AGU (7)"
-    function parseCombinedUraian(uraian) {
-        const regex = /^Pembayaran Santri:\s*(\S+)\s*\|\s*([^-]+)\s*-\s*(.+)$/;
-        const match = uraian.match(regex);
-        if (!match) return null;
-        const nis = match[1].trim();
-        const nama = match[2].trim();
-        const bulanPart = match[3].trim();
-        const santri = santriList.find(s => s.nis === nis && s.nama === nama);
-        if (!santri) return null;
-        // Pecah bulan berdasarkan koma
-        const bulanItems = bulanPart.split(',').map(b => b.trim());
-        const bulanMap = { JUL:0, AGU:1, SEP:2, OKT:3, NOV:4, DES:5, JAN:6, FEB:7, MAR:8, APR:9, MEI:10, JUN:11 };
-        const results = [];
-        for (let item of bulanItems) {
-            const itemMatch = item.match(/^([A-Z]{3})\s*\((\d+)\)$/);
-            if (!itemMatch) continue;
-            const bulanSingkat = itemMatch[1];
-            const kelas = parseInt(itemMatch[2]);
-            if (isNaN(kelas) || kelas < 7 || kelas > 12) continue;
-            const monthIdx = bulanMap[bulanSingkat];
-            if (monthIdx === undefined) continue;
-            const startIdx = (kelas - 7) * 12;
-            const bulanIdx = startIdx + monthIdx;
-            const nominal = getIuranNominal(santri.id, bulanIdx);
-            if (nominal === 0) continue;
-            results.push({ santriId: santri.id, bulanIdx, nominal, kelas, bulanSingkat });
-        }
-        return results;
-    }
-
-    // ========== MEMBUAT URAIAN GABUNGAN DARI ARRAY BULAN ==========
-    function buildCombinedUraian(santri, bulanArray) {
-        // bulanArray: [{ kelas, bulanSingkat }]
-        const bulanStr = bulanArray.map(b => `${b.bulanSingkat} (${b.kelas})`).join(', ');
-        return `Pembayaran Santri: ${santri.nis} | ${santri.nama} - ${bulanStr}`;
-    }
-
-    // ========== VALIDASI SANTRI UNTUK SATU BULAN (TETAP DIGUNAKAN UNTUK IMPORT SINGLE) ==========
-    function validateSantriUraianSingle(uraian, transaksiId = null, currentSantriId = null, currentBulanIdx = null) {
-        const regex = /^Pembayaran Santri:\s*(\S+)\s*\|\s*([^-]+)\s*-\s*(\w+)\s*\((\d+)\)$/;
-        const match = uraian.match(regex);
-        if (!match) return { valid: false, error: 'Format tidak sesuai (harus: Pembayaran Santri: NIS | NAMA - BULAN (KELAS))' };
-        const nis = match[1].trim(), nama = match[2].trim(), bulanSingkat = match[3].trim(), kelas = parseInt(match[4]);
-        if (isNaN(kelas) || kelas < 7 || kelas > 12) return { valid: false, error: 'Kelas tidak valid' };
-        const santri = santriList.find(s => s.nis === nis && s.nama === nama);
-        if (!santri) return { valid: false, error: `Santri ${nis} | ${nama} tidak ditemukan` };
-        const bulanMap = { JUL:0, AGU:1, SEP:2, OKT:3, NOV:4, DES:5, JAN:6, FEB:7, MAR:8, APR:9, MEI:10, JUN:11 };
-        const monthIdx = bulanMap[bulanSingkat.toUpperCase()];
-        if (monthIdx === undefined) return { valid: false, error: `Bulan ${bulanSingkat} tidak dikenal` };
-        const startIdx = (kelas - 7) * 12;
-        const bulanIdx = startIdx + monthIdx;
-        const nominalIuran = getIuranNominal(santri.id, bulanIdx);
-        if (nominalIuran === 0) return { valid: false, error: `Iuran untuk ${bulanSingkat} (kelas ${kelas}) belum ditetapkan` };
-        // Cek duplikat (kecuali transaksi yang sedang diedit)
-        const existingTrans = allTransactions.filter(t => 
-            !t._isGroup && t.id !== transaksiId && t.santriId === santri.id && t.bulanIdx === bulanIdx
-        );
-        if (existingTrans.length > 0) return { valid: false, error: `Sudah ada pembayaran untuk ${bulanSingkat} (kelas ${kelas})` };
-        return { valid: true, santriId: santri.id, bulanIdx, nominal: nominalIuran, santri };
-    }
-
-    // ========== MENGELOMPOKKAN TRANSAKSI SANTRI BERDASARKAN TANGGAL DAN SANTRI ==========
-    function groupTransactions(transactions) {
-        const grouped = [];
-        const groups = new Map(); // key: `${tanggal}|${santriId}`
-        for (const t of transactions) {
-            // Hanya kelompokkan transaksi yang memenuhi kriteria: pembayaran santri, memiliki santriId dan bulanIdx
-            if (t.uraian && t.uraian.startsWith('Pembayaran Santri:') && t.santriId && t.bulanIdx !== null) {
                 const key = `${t.tanggal}|${t.santriId}`;
                 if (!groups.has(key)) {
                     groups.set(key, []);
                 }
                 groups.get(key).push(t);
-            } else {
-                // Transaksi biasa (bukan pembayaran santri) langsung dimasukkan
-                grouped.push(t);
             }
-        }
-        // Proses setiap grup
-        for (let [key, items] of groups.entries()) {
-            if (items.length === 1) {
-                // Hanya satu transaksi, tetap sebagai transaksi biasa
-                grouped.push(items[0]);
-            } else {
-                // Gabungkan
-                const first = items[0];
-                const santri = santriList.find(s => s.id === first.santriId);
-                if (!santri) {
-                    grouped.push(...items);
-                    continue;
-                }
-                // Kumpulkan bulan-bulan
-                const bulanList = [];
-                let totalPemasukan = 0;
-                for (const it of items) {
-                    const kelas = Math.floor(it.bulanIdx / 12) + 7;
-                    const monthIdx = it.bulanIdx % 12;
-                    const bulanSingkat = ['JUL','AGU','SEP','OKT','NOV','DES','JAN','FEB','MAR','APR','MEI','JUN'][monthIdx];
-                    bulanList.push({ kelas, bulanSingkat });
-                    totalPemasukan += it.pemasukan;
-                }
-                // Urutkan bulan berdasarkan index
-                bulanList.sort((a,b) => {
-                    const order = ['JUL','AGU','SEP','OKT','NOV','DES','JAN','FEB','MAR','APR','MEI','JUN'];
-                    return order.indexOf(a.bulanSingkat) - order.indexOf(b.bulanSingkat);
-                });
-                const combinedUraian = buildCombinedUraian(santri, bulanList);
-                const groupObj = {
-                    id: `group_${key}`,
-                    tanggal: first.tanggal,
-                    uraian: combinedUraian,
-                    pemasukan: totalPemasukan,
-                    pengeluaran: 0,
-                    keterangan: first.keterangan || '',
-                    _isGroup: true,
-                    _originalIds: items.map(it => it.id),
-                    _originalItems: items
-                };
-                grouped.push(groupObj);
-            }
-        }
-        // Urutkan berdasarkan tanggal
-        grouped.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
-        return grouped;
-    }
 
-    // ========== LOAD TRANSAKSI DARI FIREBASE ==========
-    async function loadTransactions() {
-        try {
-            let snap;
+            const grouped = [];
+            for (let [key, items] of groups.entries()) {
+                if (items.length === 1) {
+                    // Hanya satu, tetap sebagai transaksi biasa
+                    grouped.push(items[0]);
+                } else {
+                    // Gabungkan beberapa bulan dalam satu baris
+                    const first = items[0];
+                    // Urutkan items berdasarkan bulanIdx
+                    items.sort((a,b) => a.bulanIdx - b.bulanIdx);
+                    // Ekstrak nama bulan dan kelas dari setiap item
+                    const bulanKelasList = [];
+                    let totalPemasukan = 0;
+                    for (const it of items) {
+                        const kelas = Math.floor(it.bulanIdx / 12) + 7;
+                        const monthIdx = it.bulanIdx % 12;
+                        const bulanSingkat = ['JUL','AGU','SEP','OKT','NOV','DES','JAN','FEB','MAR','APR','MEI','JUN'][monthIdx];
+                        bulanKelasList.push(`${bulanSingkat} (${kelas})`);
+                        totalPemasukan += it.pemasukan;
+                    }
+                    // Ambil NIS dan Nama dari uraian pertama (format: Pembayaran Santri: NIS | NAMA - ...)
+                    const uraianFirst = first.uraian;
+                    const match = uraianFirst.match(/^Pembayaran Santri:\s*(\S+)\s*\|\s*([^-]+)/);
+                    let nis = '', nama = '';
+                    if (match) {
+                        nis = match[1].trim();
+                        nama = match[2].trim();
+                    } else {
+                        // fallback jika format tidak sesuai
+                        nis = items[0].santriId;
+                        nama = '';
+                    }
+                    const combinedUraian = `Pembayaran Santri: ${nis} | ${nama} - ${bulanKelasList.join(', ')}`;
+                    grouped.push({
+                        tanggal: first.tanggal,
+                        uraian: combinedUraian,
+                        pemasukan: totalPemasukan,
+                        pengeluaran: 0,
+                        _isGroup: true
+                    });
+                }
+            }
+            // Gabungkan dengan nonSantri lalu urutkan berdasarkan tanggal
+            const all = [...grouped, ...nonSantri];
+            all.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
+            return all;
+        }
+
+        async function loadAllTransactions() {
             try {
-                snap = await db.collection('transaksi').where('jenis_iuran', '==', jenis).orderBy('tanggal', 'asc').get();
-            } catch(e) {
-                snap = await db.collection('transaksi').orderBy('tanggal', 'asc').get();
-            }
-            const rawTransactions = [];
-            snap.forEach(doc => {
-                const data = doc.data();
-                let tgl = data.tanggal;
-                if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
-                if (!tgl || tgl === 'Invalid Date') tgl = '';
-                const dataJenis = data.jenis_iuran || jenis;
-                if (dataJenis !== jenis) return;
-                rawTransactions.push({
-                    id: doc.id,
-                    tanggal: tgl,
-                    uraian: data.uraian || '',
-                    pemasukan: data.pemasukan || 0,
-                    pengeluaran: data.pengeluaran || 0,
-                    keterangan: data.keterangan || '',
-                    santriId: data.santriId || null,
-                    bulanIdx: data.bulanIdx !== undefined ? data.bulanIdx : null
+                const snapshot = await db.collection('transaksi').get();
+                const rawTrans = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    let tgl = parseDate(data.tanggal);
+                    if (!tgl) return;
+                    const transJenis = data.jenis_iuran || '';
+                    if (transJenis && transJenis !== jenis) return;
+                    if (transJenis === '' || transJenis === jenis) {
+                        rawTrans.push({
+                            tanggal: tgl,
+                            uraian: data.uraian || '',
+                            pemasukan: data.pemasukan || 0,
+                            pengeluaran: data.pengeluaran || 0,
+                            santriId: data.santriId || null,
+                            bulanIdx: data.bulanIdx !== undefined ? data.bulanIdx : null
+                        });
+                    }
                 });
-            });
-            // Kelompokkan
-            allTransactions = groupTransactions(rawTransactions);
-            applyFilter();
-            setTimeout(() => { const c = document.querySelector('.table-container'); if (c) c.scrollTop = c.scrollHeight; }, 100);
-        } catch(err) { showToast('Gagal memuat transaksi: ' + err.message, true); }
-    }
-
-    // ========== FILTER ==========
-    function applyFilter() {
-        let filtered = [...allTransactions];
-        const dari = filterDari.value, sampai = filterSampai.value;
-        const keyword = searchInput.value.toLowerCase();
-        if (dari) filtered = filtered.filter(t => t.tanggal >= dari);
-        if (sampai) filtered = filtered.filter(t => t.tanggal <= sampai);
-        if (keyword) filtered = filtered.filter(t => t.uraian.toLowerCase().includes(keyword));
-        filteredTransactions = filtered;
-        selectedRows.clear();
-        if (selectAllCheckbox) selectAllCheckbox.checked = false;
-        renderTable();
-        updateTotal();
-    }
-
-    // ========== RENDER TABEL ==========
-    function renderTable() {
-        if (!tbody) return;
-        if (!filteredTransactions.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8">Tidak ada transaksi</td></tr>';
-            return;
-        }
-        let html = '';
-        filteredTransactions.forEach((tr, idx) => {
-            const isGroup = tr._isGroup === true;
-            const rowClass = isGroup ? 'group-row' : '';
-            const isChecked = selectedRows.has(idx) ? 'checked' : '';
-            // Untuk baris grup, kita tampilkan pemasukan sesuai total, kolom pengeluaran 0
-            let displayPemasukan = tr.pemasukan;
-            let displayPengeluaran = tr.pengeluaran;
-            let pemasukanDisabled = isGroup ? 'disabled' : '';
-            let pengeluaranDisabled = isGroup ? 'disabled' : '';
-            // Untuk grup, kolom uraian boleh diedit (akan memicu pemisahan)
-            html += `<tr class="${rowClass}" data-id="${tr.id}" data-index="${idx}" data-is-group="${isGroup}">`;
-            html += `<td class="text-center"><input type="checkbox" class="row-checkbox" data-index="${idx}" ${isChecked}></td>`;
-            html += `<td><input type="date" class="editable-input" data-field="tanggal" value="${tr.tanggal}"></td>`;
-            html += `<td><input type="text" class="editable-input" data-field="uraian" value="${escapeHtml(tr.uraian)}" style="width:100%;"></td>`;
-            html += `<td><input type="text" class="editable-input rupiah-input" data-field="pemasukan" value="${formatRupiah(displayPemasukan)}" ${pemasukanDisabled}></td>`;
-            html += `<td><input type="text" class="editable-input rupiah-input" data-field="pengeluaran" value="${formatRupiah(displayPengeluaran)}" ${pengeluaranDisabled}></td>`;
-            html += `<td><input type="text" class="editable-input" data-field="keterangan" value="${escapeHtml(tr.keterangan || '')}"></td>`;
-            html += `<td class="text-center"><button class="hapus-btn text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td>`;
-            html += `</tr>`;
-        });
-        tbody.innerHTML = html;
-
-        // Attach event listeners
-        document.querySelectorAll('.editable-input:not([disabled])').forEach(inp => {
-            inp.removeEventListener('change', handleEdit);
-            inp.addEventListener('change', handleEdit);
-        });
-        document.querySelectorAll('.rupiah-input:not([disabled])').forEach(inp => {
-            inp.removeEventListener('input', formatInputRupiah);
-            inp.addEventListener('input', formatInputRupiah);
-        });
-        document.querySelectorAll('.hapus-btn').forEach(btn => {
-            btn.removeEventListener('click', handleHapus);
-            btn.addEventListener('click', handleHapus);
-        });
-        document.querySelectorAll('.row-checkbox').forEach(cb => {
-            cb.removeEventListener('change', handleRowCheckbox);
-            cb.addEventListener('change', handleRowCheckbox);
-        });
-        updateSelectAllState();
-    }
-
-    function handleRowCheckbox(e) {
-        const idx = parseInt(e.target.dataset.index);
-        if (e.target.checked) selectedRows.add(idx);
-        else selectedRows.delete(idx);
-        updateSelectAllState();
-    }
-
-    function updateSelectAllState() {
-        if (!selectAllCheckbox) return;
-        const total = filteredTransactions.length;
-        const selectedCount = selectedRows.size;
-        if (selectedCount === 0) {
-            selectAllCheckbox.checked = false;
-            selectAllCheckbox.indeterminate = false;
-        } else if (selectedCount === total && total > 0) {
-            selectAllCheckbox.checked = true;
-            selectAllCheckbox.indeterminate = false;
-        } else {
-            selectAllCheckbox.checked = false;
-            selectAllCheckbox.indeterminate = true;
-        }
-    }
-
-    selectAllCheckbox.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            for (let i = 0; i < filteredTransactions.length; i++) selectedRows.add(i);
-        } else {
-            selectedRows.clear();
-        }
-        renderTable();
-    });
-
-    async function deleteSelected() {
-        if (selectedRows.size === 0) {
-            showToast('Tidak ada transaksi terpilih', true);
-            return;
-        }
-        if (!confirm(`Hapus ${selectedRows.size} transaksi yang dipilih?`)) return;
-        const idsToDelete = [];
-        for (let idx of selectedRows) {
-            const tr = filteredTransactions[idx];
-            if (tr._isGroup) {
-                idsToDelete.push(...tr._originalIds);
-            } else {
-                idsToDelete.push(tr.id);
+                // Kelompokkan transaksi pembayaran santri
+                allTransactions = groupSantriPayments(rawTrans);
+                console.log(`Loaded ${allTransactions.length} transaksi (setelah grouping)`);
+            } catch(err) {
+                console.error('Gagal ambil data:', err);
+                showToast('Gagal memuat data: ' + err.message, true);
             }
         }
-        try {
-            const batch = db.batch();
-            for (const id of idsToDelete) {
-                batch.delete(db.collection('transaksi').doc(id));
+
+        function formatRupiah(angka) {
+            if (angka === undefined || angka === null) return '0';
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
             }
-            await batch.commit();
-            // Refresh data
-            await loadTransactions();
-            showToast(`${idsToDelete.length} transaksi dihapus`);
-        } catch(err) { showToast('Gagal hapus: '+err.message, true); }
-    }
+            return result;
+        }
 
-    deleteSelectedBtn.addEventListener('click', deleteSelected);
+        function getSaldoSebelum(batasTanggal) {
+            let saldo = 0;
+            for (const t of allTransactions) {
+                if (t.tanggal < batasTanggal) saldo += (t.pemasukan - t.pengeluaran);
+                else break;
+            }
+            return saldo;
+        }
 
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
-    function formatInputRupiah(e) { let raw = e.target.value.replace(/\./g, ''); let num = parseInt(raw) || 0; e.target.value = formatRupiah(num); }
-
-    // ========== EDIT HANDLER (MENANGANI GRUP MAUPUN SINGLE) ==========
-    async function handleEdit(e) {
-        const input = e.target;
-        const row = input.closest('tr');
-        const docId = row.dataset.id;
-        const field = input.dataset.field;
-        let newValue = input.value;
-        if (field === 'pemasukan' || field === 'pengeluaran') newValue = parseRupiah(newValue);
-        
-        // Cari transaksi di filteredTransactions
-        const idx = filteredTransactions.findIndex(t => t.id === docId);
-        if (idx === -1) return;
-        const trans = filteredTransactions[idx];
-        const isGroup = trans._isGroup === true;
-        
-        if (isGroup && field === 'uraian') {
-            // Ubah grup menjadi beberapa transaksi baru sesuai uraian gabungan yang baru
-            const parsed = parseCombinedUraian(newValue);
-            if (!parsed || parsed.length === 0) {
-                showToast('Format uraian gabungan tidak valid. Contoh: Pembayaran Santri: NIS | NAMA - JUN (7), AGU (7)', true);
+        function renderBKU(tahun, bulan) {
+            const tbody = document.getElementById('tableBody');
+            if (!allTransactions.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10">Belum ada data transaksi<\/td></tr>`;
                 return;
             }
-            // Hapus transaksi asli grup
-            const batch = db.batch();
-            for (const oldId of trans._originalIds) {
-                batch.delete(db.collection('transaksi').doc(oldId));
-            }
-            // Buat transaksi baru untuk setiap bulan
-            const newIds = [];
-            for (const item of parsed) {
-                const newRef = db.collection('transaksi').doc();
-                const newData = {
-                    tanggal: trans.tanggal,
-                    uraian: `Pembayaran Santri: ${santriList.find(s => s.id === item.santriId).nis} | ${santriList.find(s => s.id === item.santriId).nama} - ${item.bulanSingkat} (${item.kelas})`,
-                    pemasukan: item.nominal,
-                    pengeluaran: 0,
-                    keterangan: trans.keterangan || '',
-                    jenis_iuran: jenis,
-                    santriId: item.santriId,
-                    bulanIdx: item.bulanIdx,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                batch.set(newRef, newData);
-                newIds.push(newRef.id);
-            }
-            await batch.commit();
-            showToast(`Grup diubah menjadi ${newIds.length} transaksi terpisah`);
-            await loadTransactions(); // refresh ulang
-        } 
-        else if (isGroup && (field === 'tanggal' || field === 'keterangan')) {
-            // Ubah tanggal atau keterangan untuk semua transaksi dalam grup
-            const batch = db.batch();
-            for (const oldId of trans._originalIds) {
-                const docRef = db.collection('transaksi').doc(oldId);
-                const updateData = {};
-                if (field === 'tanggal') updateData.tanggal = newValue;
-                if (field === 'keterangan') updateData.keterangan = newValue;
-                batch.update(docRef, updateData);
-            }
-            await batch.commit();
-            showToast(`Perubahan diterapkan ke ${trans._originalIds.length} transaksi`);
-            await loadTransactions();
-        }
-        else if (!isGroup) {
-            // Transaksi biasa (non-grup)
-            const transIndex = allTransactions.findIndex(t => !t._isGroup && t.id === docId);
-            if (transIndex === -1) return;
-            let updated = { ...allTransactions[transIndex], [field]: newValue };
-            if (field === 'tanggal') updated.tanggal = newValue;
-            if (field === 'uraian') updated.uraian = newValue;
-            if (field === 'pemasukan') updated.pemasukan = newValue;
-            if (field === 'pengeluaran') updated.pengeluaran = newValue;
-            if (field === 'keterangan') updated.keterangan = newValue;
-            
-            // Jika uraian adalah pembayaran santri (single), validasi
-            if (updated.uraian.startsWith('Pembayaran Santri:')) {
-                const result = validateSantriUraianSingle(updated.uraian, docId, updated.santriId, updated.bulanIdx);
-                if (!result.valid) {
-                    showToast(result.error, true);
-                    return;
-                }
-                updated.santriId = result.santriId;
-                updated.bulanIdx = result.bulanIdx;
-                updated.pemasukan = result.nominal;
-            }
-            // Simpan ke Firebase langsung
-            const docRef = db.collection('transaksi').doc(docId);
-            const dataToSave = {
-                tanggal: updated.tanggal,
-                uraian: updated.uraian,
-                pemasukan: updated.pemasukan,
-                pengeluaran: updated.pengeluaran,
-                keterangan: updated.keterangan || '',
-                jenis_iuran: jenis,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (updated.santriId) dataToSave.santriId = updated.santriId;
-            if (updated.bulanIdx !== undefined && updated.bulanIdx !== null) dataToSave.bulanIdx = updated.bulanIdx;
-            await docRef.set(dataToSave, { merge: true });
-            showToast('Perubahan tersimpan');
-            await loadTransactions(); // refresh
-        }
-    }
 
-    async function handleHapus(e) {
-        const row = e.target.closest('tr');
-        const docId = row.dataset.id;
-        const trans = filteredTransactions.find(t => t.id === docId);
-        if (!trans) return;
-        if (!confirm('Hapus transaksi ini?')) return;
-        try {
-            const batch = db.batch();
-            if (trans._isGroup) {
-                for (const id of trans._originalIds) {
-                    batch.delete(db.collection('transaksi').doc(id));
-                }
+            const startDate = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
+            const lastDay = new Date(tahun, bulan, 0).getDate();
+            const endDate = `${tahun}-${String(bulan).padStart(2,'0')}-${lastDay}`;
+
+            const transBulanIni = allTransactions.filter(t => t.tanggal >= startDate && t.tanggal <= endDate);
+            const saldoAwal = getSaldoSebelum(startDate);
+            let saldoBerjalan = saldoAwal;
+            let html = '';
+
+            html += `<tr class="saldo-awal-row">`;
+            html += `<td class="text-center">-<\/td><td><strong>Saldo Awal Bulan<\/strong><\/td>`;
+            html += `<td class="text-right">-<\/td><td class="text-right">-<\/td>`;
+            html += `<td class="text-right"><strong>${formatRupiah(saldoAwal)}<\/strong><\/td><\/tr>`;
+
+            if (transBulanIni.length === 0) {
+                html += `<tr><td colspan="5" class="text-center py-6 text-gray-400">Tidak ada transaksi pada bulan ini<\/td><\/tr>`;
             } else {
-                batch.delete(db.collection('transaksi').doc(docId));
+                for (const tr of transBulanIni) {
+                    saldoBerjalan += (tr.pemasukan - tr.pengeluaran);
+                    html += `<tr>`;
+                    html += `<td class="text-center">${tr.tanggal}<\/td>`;
+                    html += `<td>${escapeHtml(tr.uraian)}<\/td>`;
+                    html += `<td class="text-right">${tr.pemasukan ? formatRupiah(tr.pemasukan) : ''}<\/td>`;
+                    html += `<td class="text-right">${tr.pengeluaran ? formatRupiah(tr.pengeluaran) : ''}<\/td>`;
+                    html += `<td class="text-right">${formatRupiah(saldoBerjalan)}<\/td><\/tr>`;
+                }
             }
-            await batch.commit();
-            await loadTransactions();
-            showToast('Transaksi dihapus');
-        } catch(err) { showToast('Gagal hapus: '+err.message, true); }
-    }
 
-    function updateTotal() {
-        let totalPemasukan = 0, totalPengeluaran = 0;
-        filteredTransactions.forEach(t => { totalPemasukan += t.pemasukan || 0; totalPengeluaran += t.pengeluaran || 0; });
-        totalPemasukanSpan.innerText = `Rp ${formatRupiah(totalPemasukan)}`;
-        totalPengeluaranSpan.innerText = `Rp ${formatRupiah(totalPengeluaran)}`;
-        saldoSpan.innerText = `Rp ${formatRupiah(totalPemasukan - totalPengeluaran)}`;
-    }
+            const totalMasuk = transBulanIni.reduce((sum, t) => sum + t.pemasukan, 0);
+            const totalKeluar = transBulanIni.reduce((sum, t) => sum + t.pengeluaran, 0);
+            html += `<tr class="total-row">`;
+            html += `<td colspan="2" class="text-right">Total Bulan Ini<\/td>`;
+            html += `<td class="text-right">${formatRupiah(totalMasuk)}<\/td>`;
+            html += `<td class="text-right">${formatRupiah(totalKeluar)}<\/td>`;
+            html += `<td class="text-right">${formatRupiah(saldoBerjalan)}<\/td><\/tr>`;
 
-    function showSaving(show) { const el = document.getElementById('savingIndicator'); if (show) el.classList.remove('hidden'); else el.classList.add('hidden'); }
-    function showToast(msg, isError=false) { const toast = document.getElementById('toast'); toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400'; document.getElementById('toastMsg').innerText = msg; toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); }
+            tbody.innerHTML = html;
 
-    async function refreshData() { showToast('Memuat ulang data...'); await loadMasterData(); await loadTransactions(); }
-
-    // ========== IMPORT MULTI (TETAP MENGGUNAKAN VALIDASI SINGLE UNTUK SETIAP BARIS) ==========
-    const importModal = document.getElementById('importModal'), importData = document.getElementById('importData');
-    function openImport() { importData.value = ''; importModal.classList.remove('hidden'); }
-    function closeImport() { importModal.classList.add('hidden'); }
-    async function processImport() {
-        const raw = importData.value;
-        if (!raw.trim()) { showToast('Tidak ada data', true); closeImport(); return; }
-        const lines = raw.split(/\r?\n/);
-        const newTransactions = []; let errors = [];
-        for (let line of lines) {
-            line = line.trim(); if (line === '') continue;
-            const parts = line.split(/\s+/);
-            if (parts.length < 4) { errors.push(`Baris tidak lengkap: ${line.substring(0,50)}`); continue; }
-            let tanggal = parts[0], uraian = parts.slice(1, -2).join(' ');
-            let pemasukanRaw = parts[parts.length-2], pengeluaranRaw = parts[parts.length-1];
-            let pemasukan = parseRupiah(pemasukanRaw), pengeluaran = parseRupiah(pengeluaranRaw);
-            if (!tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) { errors.push(`Tanggal tidak valid: ${tanggal}`); continue; }
-            let santriId = null, bulanIdx = null;
-            if (uraian.startsWith('Pembayaran Santri:')) {
-                // Coba pars sebagai single dulu, jika gagal mungkin gabungan? Untuk import, kita treat sebagai single saja
-                const result = validateSantriUraianSingle(uraian);
-                if (!result.valid) { errors.push(`[${uraian}] ${result.error}`); continue; }
-                santriId = result.santriId; bulanIdx = result.bulanIdx; pemasukan = result.nominal;
-                newTransactions.push({ tanggal, uraian, pemasukan, pengeluaran, keterangan: '', jenis_iuran: jenis, santriId, bulanIdx });
-            } else {
-                if (pemasukan === 0 && pengeluaran === 0) { errors.push(`Nominal tidak valid: ${line}`); continue; }
-                newTransactions.push({ tanggal, uraian, pemasukan, pengeluaran, keterangan: '', jenis_iuran: jenis, santriId: null, bulanIdx: null });
-            }
+            const bulanNama = getNamaBulan(bulan);
+            document.getElementById('printBulanTahun').innerHTML = `Bulan : ${bulanNama} ${tahun}`;
+            const tglLaporan = new Date(tahun, bulan, 0);
+            const tglStr = `${tglLaporan.getDate()} ${getNamaBulan(tglLaporan.getMonth()+1)} ${tglLaporan.getFullYear()}`;
+            document.getElementById('printTanggalLaporan').innerText = tglStr;
         }
-        if (errors.length > 0) { alert(`Gagal import:\n${errors.join('\n')}`); return; }
-        if (newTransactions.length === 0) { showToast('Tidak ada transaksi valid', true); closeImport(); return; }
-        try {
-            const batch = db.batch();
-            for (const tr of newTransactions) {
-                const docRef = db.collection('transaksi').doc();
-                const data = { 
-                    tanggal: tr.tanggal, uraian: tr.uraian, pemasukan: tr.pemasukan, 
-                    pengeluaran: tr.pengeluaran, keterangan: tr.keterangan, 
-                    jenis_iuran: tr.jenis_iuran, createdAt: firebase.firestore.FieldValue.serverTimestamp() 
-                };
-                if (tr.santriId) data.santriId = tr.santriId;
-                if (tr.bulanIdx !== null) data.bulanIdx = tr.bulanIdx;
-                batch.set(docRef, data);
-            }
-            await batch.commit();
-            showToast(`${newTransactions.length} transaksi berhasil diimport`);
-            await refreshData();
-            closeImport();
-        } catch(err) { showToast('Gagal import: '+err.message, true); }
-    }
 
-    filterBtn.addEventListener('click', applyFilter);
-    resetFilterBtn.addEventListener('click', () => { filterDari.value = ''; filterSampai.value = ''; searchInput.value = ''; applyFilter(); });
-    refreshDataBtn.addEventListener('click', refreshData);
-    document.getElementById('importExcelBtn').addEventListener('click', openImport);
-    document.getElementById('closeImportBtn').addEventListener('click', closeImport);
-    document.getElementById('cancelImportBtn').addEventListener('click', closeImport);
-    document.getElementById('processImportBtn').addEventListener('click', processImport);
-    importModal.addEventListener('click', (e) => { if (e.target === importModal) closeImport(); });
+        function getNamaBulan(bln) {
+            const nama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            return nama[bln-1];
+        }
 
-    window.addEventListener('DOMContentLoaded', async () => { await loadMasterData(); await loadTransactions(); });
-</script>
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function showToast(msg, isError=false) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        async function tampilkan() {
+            const bulan = parseInt(document.getElementById('bulanSelect').value);
+            const tahun = parseInt(document.getElementById('tahunSelect').value);
+            if (allTransactions.length === 0) await loadAllTransactions();
+            renderBKU(tahun, bulan);
+        }
+
+        document.getElementById('cetakBtn').addEventListener('click', () => window.print());
+        document.getElementById('tampilkanBtn').addEventListener('click', tampilkan);
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadAllTransactions();
+            const now = new Date();
+            document.getElementById('bulanSelect').value = now.getMonth() + 1;
+            tampilkan();
+        });
+    </script>
 </body>
 </html>
