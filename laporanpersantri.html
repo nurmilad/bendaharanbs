@@ -28,6 +28,13 @@
             background-color: #fefce8;
             font-weight: 600;
         }
+        /* Tambahan style untuk tanggal kecil hijau */
+        .tgl-bayar {
+            font-size: 0.65rem;
+            color: #059669;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
         .print-header, .print-footer {
             display: none;
         }
@@ -38,6 +45,7 @@
             .no-print { display: none; }
             .print-header, .print-footer { display: block; }
             .laporan-table { width: 100%; font-size: 10pt; page-break-inside: avoid; }
+            .tgl-bayar { font-size: 0.7rem; color: #059669 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .print-header { text-align: center; margin-bottom: 20px; }
             .print-header h2 { font-size: 1.3rem; font-weight: bold; margin: 0; }
             .print-header h3 { font-size: 1rem; font-weight: 600; margin: 5px 0; }
@@ -129,6 +137,7 @@
         document.getElementById('printJenisIuran').innerText = jenisIuranText;
 
         let santriList = [];
+        // Struktur transaksi: { santriId, bulanIdx, nominal, tanggalFormatted (DD/MM/YY), timestamp (untuk sorting) }
         let allTransactions = [];
         let selectedSantri = null;
 
@@ -146,6 +155,15 @@
                 result = str[i] + result;
             }
             return result;
+        }
+
+        // Format tanggal dari string YYYY-MM-DD ke DD/MM/YY
+        function formatTanggalKecil(tanggalStr) {
+            if (!tanggalStr) return '';
+            const parts = tanggalStr.split('-');
+            if (parts.length !== 3) return '';
+            const tahun = parts[0].slice(-2);
+            return `${parts[2]}/${parts[1]}/${tahun}`;
         }
 
         async function loadSantri() {
@@ -185,10 +203,18 @@
                     if (dataJenis !== jenis) return;
                     // Cek apakah ini pembayaran santri (ada santriId dan bulanIdx, dan pemasukan > 0)
                     if (data.santriId && data.bulanIdx !== undefined && (data.pemasukan > 0 || (data.tipe === 'pemasukan' && data.pemasukan > 0))) {
+                        // Ambil tanggal transaksi
+                        let tgl = data.tanggal;
+                        if (tgl && typeof tgl.toDate === 'function') tgl = tgl.toDate().toISOString().slice(0,10);
+                        if (!tgl || tgl === 'Invalid Date') tgl = '';
+                        const tanggalFormatted = tgl ? formatTanggalKecil(tgl) : '';
+                        const timestamp = tgl ? new Date(tgl).getTime() : 0;
                         trans.push({
                             santriId: data.santriId,
                             bulanIdx: data.bulanIdx,
-                            nominal: data.pemasukan
+                            nominal: data.pemasukan,
+                            tanggalFormatted: tanggalFormatted,
+                            timestamp: timestamp
                         });
                     }
                 });
@@ -197,13 +223,11 @@
             } catch(err) { console.error(err); showToast('Gagal memuat transaksi', true); }
         }
 
-        // Fungsi refresh data: muat ulang santri dan transaksi
         async function refreshAllData() {
             showToast('Memuat ulang data...');
             await loadSantri();
             await loadTransactions();
             if (selectedSantri) {
-                // Jika sudah ada santri terpilih, render ulang laporan
                 renderLaporan();
             }
             showToast('Data berhasil dimuat ulang');
@@ -240,7 +264,6 @@
             selectedSantriInfo.innerHTML = `<i class="fas fa-check-circle text-emerald-600"></i> Terpilih: ${santri.nis} | ${santri.nama} (Angkatan ${santri.angkatan || '-'})`;
             tampilkanBtn.disabled = false;
             autocompleteList.classList.add('hidden');
-            // Langsung render laporan setelah pilih santri
             renderLaporan();
         }
 
@@ -266,7 +289,11 @@
         function renderLaporan() {
             if (!selectedSantri) return;
 
-            const matrix = Array(12).fill().map(() => Array(6).fill(0));
+            // Matrix untuk nominal dan tanggal (simpan tanggal terbaru berdasarkan timestamp)
+            const nominalMatrix = Array(12).fill().map(() => Array(6).fill(0));
+            const tglMatrix = Array(12).fill().map(() => Array(6).fill(''));
+            const tglTimestamp = Array(12).fill().map(() => Array(6).fill(0));
+
             const bulanNames = ['JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER', 'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI'];
             
             const transaksiSantri = allTransactions.filter(t => t.santriId === selectedSantri.id);
@@ -277,7 +304,13 @@
                 const kelas = Math.floor(bulanIdx / 12) + 7;
                 const monthIndex = bulanIdx % 12;
                 if (kelas >= 7 && kelas <= 12) {
-                    matrix[monthIndex][kelas - 7] = tr.nominal;
+                    const col = kelas - 7;
+                    // Jika belum ada nominal, atau tanggal lebih baru, update
+                    if (nominalMatrix[monthIndex][col] === 0 || tr.timestamp > tglTimestamp[monthIndex][col]) {
+                        nominalMatrix[monthIndex][col] = tr.nominal;
+                        tglMatrix[monthIndex][col] = tr.tanggalFormatted;
+                        tglTimestamp[monthIndex][col] = tr.timestamp;
+                    }
                 }
             }
 
@@ -288,9 +321,17 @@
                 bodyHtml += '<tr>';
                 bodyHtml += `<td class="font-medium">${bulanNames[i]}</td>`;
                 for (let k = 0; k < 6; k++) {
-                    const val = matrix[i][k];
+                    const val = nominalMatrix[i][k];
+                    const tgl = tglMatrix[i][k];
                     totalPerKelas[k] += val;
-                    bodyHtml += `<td class="text-right">${val ? formatRupiah(val) : ''}</td>`;
+                    if (val > 0) {
+                        bodyHtml += `<td class="text-right align-middle">
+                                        <div>${formatRupiah(val)}</div>
+                                        ${tgl ? `<div class="tgl-bayar">${tgl}</div>` : ''}
+                                     </td>`;
+                    } else {
+                        bodyHtml += `<td class="text-right"></td>`;
+                    }
                 }
                 bodyHtml += '</tr>';
             }
@@ -319,7 +360,6 @@
                 showToast('Pilih santri terlebih dahulu', true);
                 return;
             }
-            // Pastikan transaksi sudah dimuat, jika belum muat ulang
             if (allTransactions.length === 0) await loadTransactions();
             renderLaporan();
         }
@@ -338,7 +378,7 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadSantri();
-            await loadTransactions(); // preload transaksi
+            await loadTransactions();
         });
     </script>
 </body>
