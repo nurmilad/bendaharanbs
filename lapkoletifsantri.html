@@ -39,8 +39,8 @@
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b no-print">
         <div class="px-4 md:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <a href="index.html" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
-                <h1 class="font-bold text-gray-800 text-lg">Laporan Kolektif Santri</h1>
+                <a href="#" id="backLink" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
+                <h1 class="font-bold text-gray-800 text-lg" id="pageTitle">Laporan Kolektif Santri</h1>
             </div>
             <div>
                 <button id="refreshDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
@@ -54,15 +54,9 @@
     </header>
 
     <main class="p-4 md:p-6 max-w-full mx-auto">
+        <!-- Filter Angkatan dan Range Bulan (tanpa dropdown jenis iuran) -->
         <div class="bg-white rounded-xl shadow p-4 mb-4 no-print">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                <div>
-                    <label class="block text-sm font-medium">Jenis Iuran</label>
-                    <select id="jenisIuran" class="w-full border rounded-lg p-2">
-                        <option value="konsumsi">Iuran Konsumsi</option>
-                        <option value="pondok">Iuran Pondok</option>
-                    </select>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div>
                     <label class="block text-sm font-medium">Angkatan</label>
                     <select id="angkatanSelect" class="w-full border rounded-lg p-2">
@@ -101,8 +95,7 @@
 
         <div class="print-area bg-white rounded-xl shadow overflow-hidden">
             <div class="print-header">
-                <h2>LAPORAN KOLEKTIF PEMBAYARAN SANTRI</h2>
-                <h3 id="printJenisIuran"></h3>
+                <h2 id="printTitle">LAPORAN KOLEKTIF PEMBAYARAN SANTRI</h2>
                 <p id="printAngkatan"></p>
                 <p id="printRange"></p>
             </div>
@@ -137,11 +130,21 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // Ambil parameter jenis dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const jenis = urlParams.get('jenis') === 'pondok' ? 'pondok' : 'konsumsi';
+        const jenisIuranText = jenis === 'konsumsi' ? 'Iuran Konsumsi' : 'Iuran Pondok';
+        document.getElementById('pageTitle').innerText = `Laporan Kolektif ${jenisIuranText}`;
+        document.getElementById('printTitle').innerHTML = `LAPORAN KOLEKTIF ${jenisIuranText.toUpperCase()}`;
+        
+        // Set tombol kembali ke submenu dengan jenis yang sama
+        const backLink = document.getElementById('backLink');
+        backLink.href = `submenu.html?jenis=${jenis}`;
+
         let allSantri = [];            // { id, nis, nama, angkatan }
-        let iuranMap = new Map();      // key santriId -> array 72 (nilai iuran per bulanIdx)
+        let iuranMap = new Map();      // key santriId -> array 72
         let pembayaranMap = new Map(); // key santriId -> Map bulanIdx -> total bayar
 
-        // Helper
         function showToast(msg, isErr = false) {
             const toast = document.getElementById('toast');
             toast.querySelector('i').className = isErr ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
@@ -149,6 +152,7 @@
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
+
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
             let s = Math.floor(angka).toString();
@@ -159,6 +163,7 @@
             }
             return r;
         }
+
         function getNamaBulan(bln) { return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][bln-1]; }
 
         async function loadAngkatanList() {
@@ -171,11 +176,18 @@
             sorted.forEach(a => { const opt = document.createElement('option'); opt.value = a; opt.textContent = a; select.appendChild(opt); });
         }
 
-        // Memuat data iuran dan pembayaran berdasarkan jenis iuran yang dipilih
-        async function loadDataByJenis(jenis) {
+        async function loadAllData() {
             document.getElementById('loadingOverlay').classList.remove('hidden');
             try {
-                // Load iuran dari collection yang sesuai
+                // Load santri
+                const santriSnap = await db.collection('santri').get();
+                allSantri = [];
+                santriSnap.forEach(doc => {
+                    const d = doc.data();
+                    allSantri.push({ id: doc.id, nis: d.nis || '', nama: d.nama || '', angkatan: d.angkatan || '' });
+                });
+
+                // Load iuran berdasarkan jenis
                 const iuranColl = jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok';
                 const iuranSnap = await db.collection(iuranColl).get();
                 iuranMap.clear();
@@ -188,7 +200,7 @@
                     }
                 });
 
-                // Load pembayaran dari transaksi dengan jenis_iuran yang sesuai
+                // Load pembayaran dari transaksi dengan jenis yang sama
                 const transSnap = await db.collection('transaksi').get();
                 pembayaranMap.clear();
                 transSnap.forEach(doc => {
@@ -204,24 +216,12 @@
                         m.set(bulanIdx, (m.get(bulanIdx) || 0) + nominal);
                     }
                 });
-                console.log(`Data ${jenis} dimuat: iuran untuk ${iuranMap.size} santri, pembayaran untuk ${pembayaranMap.size} santri`);
+                console.log(`Data ${jenis} dimuat: ${allSantri.length} santri, iuran untuk ${iuranMap.size} santri, pembayaran untuk ${pembayaranMap.size} santri`);
+                showToast(`Data ${jenisIuranText} berhasil dimuat`);
             } catch(e) { showToast('Gagal muat data: '+e.message, true); }
             finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
         }
 
-        async function loadAllData(jenis) {
-            // Load santri sekali saja
-            if (allSantri.length === 0) {
-                const santriSnap = await db.collection('santri').get();
-                santriSnap.forEach(doc => {
-                    const d = doc.data();
-                    allSantri.push({ id: doc.id, nis: d.nis || '', nama: d.nama || '', angkatan: d.angkatan || '' });
-                });
-            }
-            await loadDataByJenis(jenis);
-        }
-
-        // Fungsi untuk mendapatkan bulanIdx berdasarkan angkatan, tahun, bulan
         function getBulanIdx(angkatan, tahun, bulan) {
             const tahunAjaran = bulan >= 7 ? tahun : tahun - 1;
             const kelas = tahunAjaran - parseInt(angkatan) + 7;
@@ -229,12 +229,10 @@
             let urutan;
             if (bulan >= 7) urutan = bulan - 7;
             else urutan = bulan + 5;
-            const bulanIdx = (kelas - 7) * 12 + urutan;
-            return bulanIdx;
+            return (kelas - 7) * 12 + urutan;
         }
 
         async function tampilkanLaporan() {
-            const jenis = document.getElementById('jenisIuran').value;
             const angkatan = document.getElementById('angkatanSelect').value;
             if (!angkatan) { showToast('Pilih angkatan', true); return; }
             let startM = parseInt(document.getElementById('startMonth').value);
@@ -245,18 +243,7 @@
 
             document.getElementById('loadingOverlay').classList.remove('hidden');
             try {
-                // Pastikan data iuran dan pembayaran sesuai jenis yang dipilih
-                if (allSantri.length === 0 || iuranMap.size === 0) {
-                    await loadAllData(jenis);
-                } else {
-                    // Jika jenis berubah, reload data
-                    const currentJenis = document.getElementById('jenisIuran').dataset.currentJenis;
-                    if (currentJenis !== jenis) {
-                        await loadDataByJenis(jenis);
-                        document.getElementById('jenisIuran').dataset.currentJenis = jenis;
-                    }
-                }
-                
+                if (allSantri.length === 0) await loadAllData();
                 const santriFilter = allSantri.filter(s => s.angkatan === angkatan);
                 if (!santriFilter.length) { 
                     document.getElementById('tableBody').innerHTML = `<tr><td colspan="2" class="text-center py-10">Tidak ada santri dengan angkatan ${angkatan}</td></tr>`;
@@ -264,7 +251,7 @@
                     return; 
                 }
 
-                // Buat daftar bulan dalam range
+                // Buat daftar bulan
                 const bulanList = [];
                 let cur = new Date(startY, startM-1, 1);
                 const end = new Date(endY, endM-1, 1);
@@ -273,21 +260,19 @@
                     cur.setMonth(cur.getMonth()+1);
                 }
 
-                // Header tabel
+                // Header
                 let headerHtml = '<thead><tr><th rowspan="2">NIS | NAMA</th>';
                 for (let b of bulanList) {
-                    const label = `${getNamaBulan(b.bulan)} ${b.tahun}`;
-                    headerHtml += `<th rowspan="2">${label}</th>`;
+                    headerHtml += `<th rowspan="2">${getNamaBulan(b.bulan)} ${b.tahun}</th>`;
                 }
-                headerHtml += '<th colspan="2">Ringkasan</th></tr><tr><th>Lunas</th><th>Belum</th></tr></thead>';
+                headerHtml += '<th colspan="2">Ringkasan</th></tr><td><th>Lunas</th><th>Belum</th></tr></thead>';
                 document.getElementById('tableHeader').innerHTML = headerHtml;
 
                 let bodyHtml = '';
                 let grandLunas = 0, grandBelum = 0;
                 for (let santri of santriFilter) {
-                    const sid = santri.id;
-                    const iuranArr = iuranMap.get(sid) || new Array(72).fill(0);
-                    const bayarMap = pembayaranMap.get(sid) || new Map();
+                    const iuranArr = iuranMap.get(santri.id) || new Array(72).fill(0);
+                    const bayarMap = pembayaranMap.get(santri.id) || new Map();
                     let rowLunas = 0, rowBelum = 0;
                     let cells = '';
                     for (let b of bulanList) {
@@ -299,38 +284,29 @@
                         }
                         const target = iuranArr[bulanIdx] || 0;
                         const dibayar = bayarMap.get(bulanIdx) || 0;
-                        // Jika target = 0, artinya tidak ada iuran, anggap tidak ada kewajiban? Kita anggap tidak termasuk hitungan.
-                        // Tapi kita tetap tampilkan '-' dan tidak dihitung lunas/belum? Biar konsisten: jika target=0, tidak dihitung.
                         if (target === 0) {
                             cells += `<td class="belum-lunas">-</td>`;
-                            // Tidak menambah rowLunas/rowBelum karena tidak ada kewajiban
                             continue;
                         }
                         const isLunas = (dibayar >= target);
                         if (isLunas) rowLunas++;
                         else rowBelum++;
-                        const nominalTampil = dibayar > 0 ? formatRupiah(dibayar) : '0';
-                        cells += `<td class="${isLunas ? 'lunas' : 'belum-lunas'}">${nominalTampil}</td>`;
+                        cells += `<td class="${isLunas ? 'lunas' : 'belum-lunas'}">${formatRupiah(dibayar)}</td>`;
                     }
                     grandLunas += rowLunas;
                     grandBelum += rowBelum;
                     bodyHtml += `<tr><td class="text-left">${santri.nis} | ${santri.nama}</td>${cells}<td class="font-bold">${rowLunas}</td><td class="font-bold">${rowBelum}</td></tr>`;
                 }
-                // Footer total
                 bodyHtml += `<tr class="total-row"><td class="font-bold">TOTAL</td>`;
                 for (let i=0; i<bulanList.length; i++) bodyHtml += `<td></td>`;
                 bodyHtml += `<td class="font-bold">${grandLunas}</td><td class="font-bold">${grandBelum}</td></tr>`;
                 document.getElementById('tableBody').innerHTML = bodyHtml;
 
-                // Set cetak header
-                document.getElementById('printJenisIuran').innerText = jenis === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
+                // Update bagian cetak
                 document.getElementById('printAngkatan').innerHTML = `Angkatan : ${angkatan}`;
-                const startLabel = `${getNamaBulan(startM)} ${startY}`;
-                const endLabel = `${getNamaBulan(endM)} ${endY}`;
-                document.getElementById('printRange').innerHTML = `Periode : ${startLabel} - ${endLabel}`;
+                document.getElementById('printRange').innerHTML = `Periode : ${getNamaBulan(startM)} ${startY} - ${getNamaBulan(endM)} ${endY}`;
                 const now = new Date();
-                const tglStr = `${now.getDate()} ${getNamaBulan(now.getMonth()+1)} ${now.getFullYear()}`;
-                document.getElementById('printTanggalLaporan').innerText = tglStr;
+                document.getElementById('printTanggalLaporan').innerText = `${now.getDate()} ${getNamaBulan(now.getMonth()+1)} ${now.getFullYear()}`;
             } catch(e) { showToast('Error: '+e.message, true); }
             finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
         }
@@ -349,26 +325,14 @@
             document.getElementById('endMonth').value = '6';
         }
 
-        // Event listeners
-        document.getElementById('refreshDataBtn').addEventListener('click', async () => {
-            const jenis = document.getElementById('jenisIuran').value;
-            await loadAllData(jenis);
-            showToast('Data di-refresh');
-        });
+        document.getElementById('refreshDataBtn').addEventListener('click', async () => { await loadAllData(); showToast('Data di-refresh'); });
         document.getElementById('tampilkanBtn').addEventListener('click', tampilkanLaporan);
         document.getElementById('cetakBtn').addEventListener('click', () => window.print());
-        // Saat jenis iuran berubah, reset data agar saat tampilkan ulang akan reload
-        document.getElementById('jenisIuran').addEventListener('change', () => {
-            // Hanya reset marker, data akan dimuat ulang saat tampilkanLaporan
-            document.getElementById('jenisIuran').dataset.currentJenis = '';
-        });
 
         window.addEventListener('DOMContentLoaded', async () => {
             initYears();
             await loadAngkatanList();
-            const initialJenis = document.getElementById('jenisIuran').value;
-            await loadAllData(initialJenis);
-            document.getElementById('jenisIuran').dataset.currentJenis = initialJenis;
+            await loadAllData();
         });
     </script>
 </body>
