@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Laporan Kolektif Santri - Pondok Pesantren Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        .laporan-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.7rem;
+        }
+        .laporan-table th, .laporan-table td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 4px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .laporan-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .lunas {
+            background-color: #d1fae5 !important;
+            color: #065f46;
+        }
+        .belum-lunas {
+            background-color: #fee2e2 !important;
+            color: #991b1b;
+        }
+        .total-row {
+            background-color: #fef3c7;
+            font-weight: 600;
+        }
+        .print-header, .print-footer {
+            display: none;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 20px; background: white; }
+            .no-print { display: none; }
+            .print-header, .print-footer { display: block; }
+            .laporan-table { width: 100%; font-size: 9pt; }
+            .lunas, .belum-lunas { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .print-header { text-align: center; margin-bottom: 20px; }
+            .print-footer { margin-top: 30px; display: flex; justify-content: flex-end; flex-direction: column; align-items: flex-end; }
+            .ttd-line { border-top: 1px solid black; width: 200px; margin-top: 20px; }
+            .print-footer p { margin: 5px 0; text-align: right; }
+        }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; gap: 8px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .table-container { overflow-x: auto; max-width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b no-print">
+        <div class="px-4 md:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="text-emerald-600 hover:text-emerald-700"><i class="fas fa-arrow-left text-lg"></i></a>
+                <h1 class="font-bold text-gray-800 text-lg">Laporan Kolektif Santri</h1>
+            </div>
+            <div>
+                <button id="refreshDataBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button id="cetakBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm flex items-center gap-2 ml-2">
+                    <i class="fas fa-print"></i> Cetak
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4 md:p-6 max-w-full mx-auto">
+        <div class="bg-white rounded-xl shadow p-4 mb-4 no-print">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium">Jenis Iuran</label>
+                    <select id="jenisIuran" class="w-full border rounded-lg p-2">
+                        <option value="konsumsi">Iuran Konsumsi</option>
+                        <option value="pondok">Iuran Pondok</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Angkatan</label>
+                    <select id="angkatanSelect" class="w-full border rounded-lg p-2">
+                        <option value="">-- Pilih Angkatan --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Bulan Awal</label>
+                    <div class="flex gap-2">
+                        <select id="startMonth" class="border rounded-lg p-2 w-1/2">
+                            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                            <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                            <option value="7">Jul</option><option value="8">Agu</option><option value="9">Sep</option>
+                            <option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                        </select>
+                        <select id="startYear" class="border rounded-lg p-2 w-1/2"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Bulan Akhir</label>
+                    <div class="flex gap-2">
+                        <select id="endMonth" class="border rounded-lg p-2 w-1/2">
+                            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                            <option value="4">Apr</option><option value="5">Mei</option><option value="6">Jun</option>
+                            <option value="7">Jul</option><option value="8">Agu</option><option value="9">Sep</option>
+                            <option value="10">Okt</option><option value="11">Nov</option><option value="12">Des</option>
+                        </select>
+                        <select id="endYear" class="border rounded-lg p-2 w-1/2"></select>
+                    </div>
+                </div>
+                <div>
+                    <button id="tampilkanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded w-full">Tampilkan</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="print-area bg-white rounded-xl shadow overflow-hidden">
+            <div class="print-header">
+                <h2>LAPORAN KOLEKTIF PEMBAYARAN SANTRI</h2>
+                <h3 id="printJenisIuran"></h3>
+                <p id="printAngkatan"></p>
+                <p id="printRange"></p>
+            </div>
+            <div class="table-container">
+                <table class="laporan-table" id="laporanTable">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="2" class="text-center py-10">Pilih filter dan klik Tampilkan</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="print-footer">
+                <p>Lempong, <span id="printTanggalLaporan"></span></p>
+                <p>Bendahara</p>
+                <div class="ttd-line"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast hidden no-print"><i class="fas fa-check-circle text-emerald-400"></i> <span id="toastMsg"></span></div>
+    <div id="loadingOverlay" class="loading-overlay hidden no-print"><div class="bg-white p-4 rounded-lg shadow-lg flex gap-3"><i class="fas fa-spinner fa-pulse text-emerald-600 text-2xl"></i><span>Memuat...</span></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+            authDomain: "bendaharanbs.firebaseapp.com",
+            projectId: "bendaharanbs",
+            storageBucket: "bendaharanbs.firebasestorage.app",
+            messagingSenderId: "853301471376",
+            appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let allSantri = [];            // { id, nis, nama, angkatan }
+        let iuranMap = new Map();      // key santriId -> array 72
+        let pembayaranMap = new Map(); // key santriId -> Map bulanIdx -> total bayar
+
+        // Helper
+        function showToast(msg, isErr = false) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('i').className = isErr ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+        function formatRupiah(angka) {
+            if (!angka && angka !== 0) return '0';
+            let s = Math.floor(angka).toString();
+            let r = '';
+            for (let i = s.length-1, j=0; i>=0; i--, j++) {
+                if (j>0 && j%3===0) r='.'+r;
+                r=s[i]+r;
+            }
+            return r;
+        }
+        function getNamaBulan(bln) { return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][bln-1]; }
+
+        async function loadAngkatanList() {
+            const snap = await db.collection('santri').get();
+            const set = new Set();
+            snap.forEach(doc => { if (doc.data().angkatan) set.add(doc.data().angkatan); });
+            const sorted = Array.from(set).sort();
+            const select = document.getElementById('angkatanSelect');
+            select.innerHTML = '<option value="">-- Pilih Angkatan --</option>';
+            sorted.forEach(a => { const opt = document.createElement('option'); opt.value = a; opt.textContent = a; select.appendChild(opt); });
+        }
+
+        async function loadAllData() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            try {
+                const santriSnap = await db.collection('santri').get();
+                allSantri = [];
+                santriSnap.forEach(doc => {
+                    const d = doc.data();
+                    allSantri.push({ id: doc.id, nis: d.nis || '', nama: d.nama || '', angkatan: d.angkatan || '' });
+                });
+                const jenis = document.getElementById('jenisIuran').value;
+                const iuranColl = jenis === 'konsumsi' ? 'iuran_konsumsi' : 'iuran_pondok';
+                const iuranSnap = await db.collection(iuranColl).get();
+                iuranMap.clear();
+                iuranSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.santriId) {
+                        const arr = new Array(72).fill(0);
+                        for (let i=0;i<72;i++) if (d[`bulan_${i}`]) arr[i] = d[`bulan_${i}`];
+                        iuranMap.set(d.santriId, arr);
+                    }
+                });
+                const transSnap = await db.collection('transaksi').get();
+                pembayaranMap.clear();
+                transSnap.forEach(doc => {
+                    const data = doc.data();
+                    const dataJenis = data.jenis_iuran || '';
+                    if (dataJenis !== jenis) return;
+                    if (data.santriId && data.bulanIdx !== undefined && (data.pemasukan > 0 || data.tipe === 'pemasukan')) {
+                        const sid = data.santriId;
+                        const bulanIdx = data.bulanIdx;
+                        const nominal = data.pemasukan || 0;
+                        if (!pembayaranMap.has(sid)) pembayaranMap.set(sid, new Map());
+                        const m = pembayaranMap.get(sid);
+                        m.set(bulanIdx, (m.get(bulanIdx) || 0) + nominal);
+                    }
+                });
+                showToast(`Data dimuat: ${allSantri.length} santri`);
+            } catch(e) { showToast('Gagal muat data: '+e.message, true); }
+            finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
+        }
+
+        // Untuk setiap bulan dalam range (tahun, bulan), kita hitung bulanIdx untuk santri tertentu
+        // Menggunakan rumus yang sama dengan laporanpersantri.html
+        function getBulanIdx(angkatan, tahun, bulan) {
+            // bulan: 1-12, tahun: YYYY
+            // Tahun ajaran: jika bulan >=7 -> tahunAjaran = tahun, else tahun-1
+            const tahunAjaran = bulan >= 7 ? tahun : tahun - 1;
+            const kelas = tahunAjaran - parseInt(angkatan) + 7;
+            if (kelas < 7 || kelas > 12) return null;
+            // Urutan bulan dalam tahun ajaran: JUL=0, AGU=1, ..., JUN=11
+            let urutan;
+            if (bulan >= 7) urutan = bulan - 7;
+            else urutan = bulan + 5; // Jan=6, Feb=7, ..., Jun=11
+            const bulanIdx = (kelas - 7) * 12 + urutan;
+            return bulanIdx;
+        }
+
+        async function tampilkanLaporan() {
+            const jenis = document.getElementById('jenisIuran').value;
+            const angkatan = document.getElementById('angkatanSelect').value;
+            if (!angkatan) { showToast('Pilih angkatan', true); return; }
+            let startM = parseInt(document.getElementById('startMonth').value);
+            let startY = parseInt(document.getElementById('startYear').value);
+            let endM = parseInt(document.getElementById('endMonth').value);
+            let endY = parseInt(document.getElementById('endYear').value);
+            if (startY > endY || (startY === endY && startM > endM)) { showToast('Range tidak valid', true); return; }
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            try {
+                if (allSantri.length === 0) await loadAllData();
+                const santriFilter = allSantri.filter(s => s.angkatan === angkatan);
+                if (!santriFilter.length) { tableBody.innerHTML = `<tr><td colspan="2">Tidak ada santri</td></tr>`; return; }
+
+                // Buat daftar bulan dalam range (urutan kronologis)
+                const bulanList = [];
+                let cur = new Date(startY, startM-1, 1);
+                const end = new Date(endY, endM-1, 1);
+                while (cur <= end) {
+                    bulanList.push({ tahun: cur.getFullYear(), bulan: cur.getMonth()+1 });
+                    cur.setMonth(cur.getMonth()+1);
+                }
+
+                // Header tabel
+                let headerHtml = '<thead><tr><th rowspan="2">NIS | NAMA</th>';
+                for (let b of bulanList) {
+                    const label = `${getNamaBulan(b.bulan)} ${b.tahun}`;
+                    headerHtml += `<th rowspan="2">${label}</th>`;
+                }
+                headerHtml += '<th colspan="2">Ringkasan</th></tr><tr><th>Lunas</th><th>Belum</th></tr></thead>';
+                document.getElementById('tableHeader').innerHTML = headerHtml;
+
+                let bodyHtml = '';
+                let grandLunas = 0, grandBelum = 0;
+                for (let santri of santriFilter) {
+                    const sid = santri.id;
+                    const iuranArr = iuranMap.get(sid) || new Array(72).fill(0);
+                    const bayarMap = pembayaranMap.get(sid) || new Map();
+                    let rowLunas = 0, rowBelum = 0;
+                    let cells = '';
+                    for (let b of bulanList) {
+                        const bulanIdx = getBulanIdx(santri.angkatan, b.tahun, b.bulan);
+                        if (bulanIdx === null) {
+                            cells += `<td class="belum-lunas">-</td>`;
+                            rowBelum++;
+                            continue;
+                        }
+                        const target = iuranArr[bulanIdx] || 0;
+                        const dibayar = bayarMap.get(bulanIdx) || 0;
+                        const isLunas = (dibayar >= target && target > 0);
+                        if (isLunas) rowLunas++;
+                        else rowBelum++;
+                        const kelas = Math.floor(bulanIdx / 12) + 7;
+                        const nominalTampil = dibayar > 0 ? formatRupiah(dibayar) : '0';
+                        cells += `<td class="${isLunas ? 'lunas' : 'belum-lunas'}">${nominalTampil}</td>`;
+                    }
+                    grandLunas += rowLunas;
+                    grandBelum += rowBelum;
+                    bodyHtml += `<tr><td class="text-left">${santri.nis} | ${santri.nama}</td>${cells}<td class="font-bold">${rowLunas}</td><td class="font-bold">${rowBelum}</td></tr>`;
+                }
+                // Footer total
+                bodyHtml += `<tr class="total-row"><td class="font-bold">TOTAL</td>`;
+                for (let i=0; i<bulanList.length; i++) bodyHtml += `<td></td>`;
+                bodyHtml += `<td class="font-bold">${grandLunas}</td><td class="font-bold">${grandBelum}</td></tr>`;
+                document.getElementById('tableBody').innerHTML = bodyHtml;
+
+                // Bagian cetak
+                document.getElementById('printJenisIuran').innerText = jenis === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
+                document.getElementById('printAngkatan').innerHTML = `Angkatan : ${angkatan}`;
+                const startLabel = `${getNamaBulan(startM)} ${startY}`;
+                const endLabel = `${getNamaBulan(endM)} ${endY}`;
+                document.getElementById('printRange').innerHTML = `Periode : ${startLabel} - ${endLabel}`;
+                const now = new Date();
+                const tglStr = `${now.getDate()} ${getNamaBulan(now.getMonth()+1)} ${now.getFullYear()}`;
+                document.getElementById('printTanggalLaporan').innerText = tglStr;
+            } catch(e) { showToast('Error: '+e.message, true); }
+            finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
+        }
+
+        // Inisialisasi tahun
+        function initYears() {
+            const startYear = document.getElementById('startYear');
+            const endYear = document.getElementById('endYear');
+            const current = new Date().getFullYear();
+            for (let y = 2010; y <= 2040; y++) {
+                let opt1 = new Option(y, y); if (y === current) opt1.selected = true;
+                let opt2 = new Option(y, y); if (y === current+1) opt2.selected = true;
+                startYear.appendChild(opt1);
+                endYear.appendChild(opt2);
+            }
+            document.getElementById('startMonth').value = '7';
+            document.getElementById('endMonth').value = '6';
+        }
+
+        document.getElementById('refreshDataBtn').addEventListener('click', async () => { await loadAllData(); showToast('Data di-refresh'); });
+        document.getElementById('tampilkanBtn').addEventListener('click', tampilkanLaporan);
+        document.getElementById('cetakBtn').addEventListener('click', () => window.print());
+        window.addEventListener('DOMContentLoaded', async () => {
+            initYears();
+            await loadAngkatanList();
+            await loadAllData();
+        });
+    </script>
+</body>
+</html>
