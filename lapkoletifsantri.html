@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         .table-scroll { overflow-x: auto; max-width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; background: white; }
-        .laporan-table { border-collapse: collapse; min-width: 600px; font-size: 0.7rem; }
+        .laporan-table { border-collapse: collapse; min-width: 600px; font-size: 0.7rem; width: 100%; }
         .laporan-table th, .laporan-table td { border: 1px solid #d1d5db; padding: 6px 5px; text-align: center; vertical-align: middle; white-space: nowrap; }
         .laporan-table th { background-color: #f1f5f9; font-weight: 600; position: sticky; top: 0; z-index: 10; }
         .laporan-table td:first-child, .laporan-table th:first-child { position: sticky; left: 0; background-color: white; z-index: 5; }
@@ -21,11 +21,13 @@
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #ccc; border-top-color: #10b981; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media print {
+            @page { size: A4 landscape; margin: 0.5cm; }
             body * { visibility: hidden; }
             .print-area, .print-area * { visibility: visible; }
-            .print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 20px; background: white; }
+            .print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 10px; background: white; }
             .no-print { display: none; }
-            .laporan-table { font-size: 8pt; }
+            .laporan-table { font-size: 7pt; width: 100%; }
+            .laporan-table th, .laporan-table td { padding: 3px 2px; }
         }
     </style>
 </head>
@@ -46,7 +48,7 @@
 
     <main class="p-4 md:p-6 max-w-full mx-auto">
         <div class="bg-white rounded-xl shadow-md p-5 mb-6 no-print">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Jenis Iuran</label>
                     <select id="jenisIuranSelect" class="w-full border rounded-lg px-3 py-2 bg-gray-50">
                         <option value="konsumsi">🍽️ Iuran Konsumsi</option>
@@ -56,27 +58,8 @@
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Angkatan (Tahun Masuk)</label>
                     <select id="angkatanSelect" class="w-full border rounded-lg px-3 py-2"><option value="">-- Semua Angkatan --</option></select>
                 </div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Bulan Awal</label>
-                    <div class="flex gap-2">
-                        <select id="bulanAwal" class="w-1/2 border rounded-lg px-2 py-2">
-                            <option value="0">Juli</option><option value="1">Agustus</option><option value="2">September</option>
-                            <option value="3">Oktober</option><option value="4">November</option><option value="5">Desember</option>
-                            <option value="6">Januari</option><option value="7">Februari</option><option value="8">Maret</option>
-                            <option value="9">April</option><option value="10">Mei</option><option value="11">Juni</option>
-                        </select>
-                        <select id="tahunAwal" class="w-1/2 border rounded-lg px-2 py-2"></select>
-                    </div>
-                </div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Bulan Akhir</label>
-                    <div class="flex gap-2">
-                        <select id="bulanAkhir" class="w-1/2 border rounded-lg px-2 py-2">
-                            <option value="0">Juli</option><option value="1">Agustus</option><option value="2">September</option>
-                            <option value="3">Oktober</option><option value="4">November</option><option value="5">Desember</option>
-                            <option value="6">Januari</option><option value="7">Februari</option><option value="8">Maret</option>
-                            <option value="9">April</option><option value="10">Mei</option><option value="11">Juni</option>
-                        </select>
-                        <select id="tahunAkhir" class="w-1/2 border rounded-lg px-2 py-2"></select>
-                    </div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Tahun Ajaran</label>
+                    <select id="tahunAjaranSelect" class="w-full border rounded-lg px-3 py-2"></select>
                 </div>
                 <div><button id="tampilkanBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg shadow flex items-center gap-2 justify-center"><i class="fas fa-chart-line"></i> Tampilkan</button></div>
             </div>
@@ -90,7 +73,7 @@
                 <p id="printAngkatanHeader" class="text-sm"></p>
             </div>
             <div id="loadingIndicator" class="text-center py-10 text-gray-400 hidden"><div class="loading-spinner mx-auto mb-2"></div><span>Memuat data laporan...</span></div>
-            <div class="table-scroll"><table class="laporan-table w-full" id="laporanTable"><thead id="tableHeader"></thead><tbody id="tableBody"><tr><td colspan="10" class="text-center py-8 text-gray-400">Pilih filter dan klik "Tampilkan Laporan"</td></tr></tbody></table</div>
+            <div class="table-scroll"><table class="laporan-table w-full" id="laporanTable"><thead id="tableHeader"></thead><tbody id="tableBody"><tr><td colspan="10" class="text-center py-8 text-gray-400">Pilih filter dan klik "Tampilkan Laporan"</td></tr></tbody></table></div>
             <div class="print-footer hidden print:flex justify-between items-center mt-6 px-4 pb-4"><div>Lempong, <span id="printTgl"></span></div><div>Bendahara<br><span class="mt-6 block border-t border-black w-32 text-center pt-1">(....................)</span></div></div>
         </div>
     </main>
@@ -114,12 +97,10 @@
             if (!nis || nis.length < 4) return parseInt(angkatan) || 2022;
             const empatDigit = parseInt(nis.substring(0,4));
             if (isNaN(empatDigit)) return parseInt(angkatan) || 2022;
-            // Jika 4 digit pertama >= 2100 (format 2223, 2324) berarti SMP
             if (empatDigit >= 2100) {
                 const duaDigit = parseInt(nis.substring(0,2));
                 return 2000 + duaDigit;
             } else {
-                // SMA: tahun masuk kelas 10, maka tahun mulai kelas 7 = tahun - 3
                 return empatDigit - 3;
             }
         }
@@ -127,7 +108,7 @@
         // Konversi (tahun kalender, indexBulan 0-11) ke absolut (Juli 2022 = 0)
         function getAbsolut(tahun, indexBulan) {
             let tahunAbs = tahun;
-            if (indexBulan >= 6) tahunAbs = tahun - 1; // Jan-Jun menggunakan tahun ajaran sebelumnya
+            if (indexBulan >= 6) tahunAbs = tahun - 1;
             return (tahunAbs - 2022) * 12 + indexBulan;
         }
 
@@ -140,7 +121,6 @@
             for (let abs = startAbs; abs <= endAbs; abs++) {
                 const tahunAbs = 2022 + Math.floor(abs / 12);
                 let indexBulan = abs % 12;
-                // Tampilkan tahun yang sesuai: untuk Jan-Jun, tahun yang ditampilkan adalah tahunAbs+1
                 let tahunTampil = tahunAbs;
                 if (indexBulan >= 6) tahunTampil = tahunAbs + 1;
                 kolom.push({
@@ -153,7 +133,7 @@
             return kolom;
         }
 
-        // Konversi absolut ke bulanIdx relatif terhadap tahunMulaiKelas7 (untuk pencocokan transaksi)
+        // Konversi absolut ke bulanIdx relatif terhadap tahunMulaiKelas7
         function getBulanIdx(tahunMulaiKelas7, absolut) {
             const tahunAbs = 2022 + Math.floor(absolut / 12);
             const indexBulan = absolut % 12;
@@ -161,12 +141,11 @@
         }
 
         let semuaSantri = [], semuaTransaksi = [], angkatanList = new Set();
+        let minAngkatan = Infinity, maxAngkatan = -Infinity;
+
         const angkatanSelect = document.getElementById('angkatanSelect');
         const jenisIuranSelect = document.getElementById('jenisIuranSelect');
-        const bulanAwal = document.getElementById('bulanAwal');
-        const bulanAkhir = document.getElementById('bulanAkhir');
-        const tahunAwal = document.getElementById('tahunAwal');
-        const tahunAkhir = document.getElementById('tahunAkhir');
+        const tahunAjaranSelect = document.getElementById('tahunAjaranSelect');
         const tampilkanBtn = document.getElementById('tampilkanBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const cetakBtn = document.getElementById('cetakBtn');
@@ -204,12 +183,21 @@
                 const santriSnap = await db.collection('santri').get();
                 semuaSantri = [];
                 angkatanList.clear();
+                minAngkatan = Infinity;
+                maxAngkatan = -Infinity;
                 for (const doc of santriSnap.docs) {
                     const d = doc.data();
                     const angkatan = d.angkatan ? d.angkatan.toString() : '';
                     const nis = d.nis || '';
                     const tahunMulai = getTahunMulaiKelas7(nis, angkatan);
-                    if (angkatan) angkatanList.add(angkatan);
+                    if (angkatan) {
+                        angkatanList.add(angkatan);
+                        const angkNum = parseInt(angkatan);
+                        if (!isNaN(angkNum)) {
+                            if (angkNum < minAngkatan) minAngkatan = angkNum;
+                            if (angkNum > maxAngkatan) maxAngkatan = angkNum;
+                        }
+                    }
                     semuaSantri.push({
                         id: doc.id,
                         nis: nis,
@@ -226,6 +214,23 @@
                     option.textContent = angk;
                     angkatanSelect.appendChild(option);
                 });
+
+                // Generate dropdown tahun ajaran berdasarkan rentang angkatan
+                if (minAngkatan !== Infinity && maxAngkatan !== -Infinity) {
+                    const startYear = minAngkatan; // misal 2020
+                    const endYear = maxAngkatan;   // misal 2025
+                    tahunAjaranSelect.innerHTML = '';
+                    for (let tahun = startYear; tahun <= endYear; tahun++) {
+                        const option = document.createElement('option');
+                        option.value = `${tahun}/${tahun+1}`;
+                        option.textContent = `${tahun}/${tahun+1}`;
+                        tahunAjaranSelect.appendChild(option);
+                    }
+                    // Set default ke tahun ajaran terakhir (maxAngkatan/maxAngkatan+1)
+                    tahunAjaranSelect.value = `${maxAngkatan}/${maxAngkatan+1}`;
+                } else {
+                    tahunAjaranSelect.innerHTML = '<option value="">Tidak ada data</option>';
+                }
 
                 const transSnap = await db.collection('transaksi').get();
                 semuaTransaksi = [];
@@ -261,21 +266,20 @@
         async function renderLaporan() {
             const jenisIuran = jenisIuranSelect.value;
             const selectedAngkatan = angkatanSelect.value;
-            const tahunAwalVal = parseInt(tahunAwal.value);
-            const bulanAwalIdx = parseInt(bulanAwal.value);
-            const tahunAkhirVal = parseInt(tahunAkhir.value);
-            const bulanAkhirIdx = parseInt(bulanAkhir.value);
-
+            const tahunAjaran = tahunAjaranSelect.value;
+            if (!tahunAjaran) {
+                showToast('Pilih tahun ajaran terlebih dahulu', true);
+                return;
+            }
+            const [tahunAwalStr, tahunAkhirStr] = tahunAjaran.split('/');
+            const tahunAwalVal = parseInt(tahunAwalStr);
+            const tahunAkhirVal = parseInt(tahunAkhirStr);
             if (isNaN(tahunAwalVal) || isNaN(tahunAkhirVal)) {
-                showToast('Pilih tahun awal dan akhir yang valid', true);
+                showToast('Tahun ajaran tidak valid', true);
                 return;
             }
-            const startAbs = getAbsolut(tahunAwalVal, bulanAwalIdx);
-            const endAbs = getAbsolut(tahunAkhirVal, bulanAkhirIdx);
-            if (startAbs > endAbs) {
-                showToast('Range bulan tidak valid (awal > akhir)', true);
-                return;
-            }
+            const bulanAwalIdx = 0; // Juli
+            const bulanAkhirIdx = 11; // Juni
 
             loadingDiv.classList.remove('hidden');
             tableBody.innerHTML = '';
@@ -294,7 +298,7 @@
 
                 const daftarKolom = getDaftarKolom(tahunAwalVal, bulanAwalIdx, tahunAkhirVal, bulanAkhirIdx);
                 if (daftarKolom.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-gray-400">Range bulan tidak menghasilkan data</td></tr>`;
+                    tableBody.innerHTML = `<td><td colspan="100" class="text-center py-8 text-gray-400">Range bulan tidak menghasilkan data</td></tr>`;
                     loadingDiv.classList.add('hidden');
                     return;
                 }
@@ -318,7 +322,6 @@
                     rows.push(row);
                 }
 
-                // Total per kolom
                 const totalPerKolom = new Array(daftarKolom.length).fill(0);
                 for (const row of rows) {
                     for (let i = 0; i < row.payments.length; i++) {
@@ -326,7 +329,6 @@
                     }
                 }
 
-                // Header tabel
                 let headerHtml = '<tr><th class="min-w-[200px]">NIS | NAMA</th>';
                 for (const kol of daftarKolom) {
                     headerHtml += `<th class="min-w-[85px]">${kol.label}</th>`;
@@ -334,7 +336,6 @@
                 headerHtml += '<th class="min-w-[90px]">TOTAL BAYAR</th></tr>';
                 tableHeader.innerHTML = headerHtml;
 
-                // Body tabel
                 let bodyHtml = '';
                 for (const row of rows) {
                     bodyHtml += '<tr>';
@@ -352,7 +353,6 @@
                     bodyHtml += `<td class="text-right font-bold">${formatRupiah(totalSantri)}</td>`;
                     bodyHtml += '</tr>';
                 }
-                // Baris total
                 bodyHtml += '<tr class="total-row">';
                 bodyHtml += '<td class="text-right font-bold">TOTAL PER BULAN</td>';
                 let grandTotal = 0;
@@ -364,7 +364,6 @@
                 bodyHtml += '</tr>';
                 tableBody.innerHTML = bodyHtml;
 
-                // Print header
                 const jenisText = jenisIuran === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
                 printJenisHeader.innerText = jenisText;
                 printRangeHeader.innerText = `Periode: ${daftarKolom[0].label} s.d. ${daftarKolom[daftarKolom.length-1].label}`;
@@ -378,20 +377,6 @@
             } finally {
                 loadingDiv.classList.add('hidden');
             }
-        }
-
-        function initTahunDropdown() {
-            const tahunOptions = ['2022','2023','2024','2025','2026','2027','2028'];
-            tahunAwal.innerHTML = '';
-            tahunAkhir.innerHTML = '';
-            tahunOptions.forEach(th => {
-                tahunAwal.appendChild(new Option(th, th));
-                tahunAkhir.appendChild(new Option(th, th));
-            });
-            tahunAwal.value = '2025';
-            tahunAkhir.value = '2026';
-            bulanAwal.value = '0';   // Juli
-            bulanAkhir.value = '11'; // Juni
         }
 
         function setJenisFromUrl() {
@@ -415,6 +400,8 @@
             await loadMasterData();
             loadingDiv.classList.add('hidden');
             showToast('Data berhasil dimuat ulang');
+            // Setelah refresh, tampilkan laporan default
+            renderLaporan();
         }
 
         function handleJenisChange() {
@@ -433,7 +420,6 @@
         jenisIuranSelect.addEventListener('change', handleJenisChange);
 
         window.addEventListener('DOMContentLoaded', async () => {
-            initTahunDropdown();
             setJenisFromUrl();
             await loadMasterData();
             renderLaporan();
