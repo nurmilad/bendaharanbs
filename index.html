@@ -145,7 +145,7 @@
             <!-- Akumulasi Pemasukan & Pengeluaran per Bulan (dengan dropdown) -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-6">
                 <div class="flex justify-between items-center flex-wrap gap-2 mb-3">
-                    <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-chart-line text-emerald-600 mr-2"></i> Akumulasi Pemasukan & Pengeluaran per Bulan</h3>
+                    <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-chart-line text-emerald-600 mr-2"></i> Akumulasi Pemasukan, Pengeluaran & Saldo Kumulatif per Bulan</h3>
                     <div>
                         <label class="text-sm font-medium mr-2">Tampilkan:</label>
                         <select id="statChartJenis" class="border rounded-lg px-3 py-1 text-sm bg-white">
@@ -158,7 +158,7 @@
                 <div class="chart-container" style="height: 280px;">
                     <canvas id="akumulasiChart"></canvas>
                 </div>
-                <p class="text-xs text-gray-400 text-center mt-2">* Data berdasarkan tahun yang dipilih</p>
+                <p class="text-xs text-gray-400 text-center mt-2">* Garis kuning = saldo kumulatif (akumulasi pemasukan - pengeluaran dari awal tahun)</p>
             </div>
 
             <!-- Detail Pembayaran Santri per Bulan -->
@@ -447,7 +447,7 @@
             if (pendingTarget === 'bku') url = `bku.html?jenis=${jenis}`;
             else if (pendingTarget === 'riwayat') url = `riwayat.html?jenis=${jenis}`;
             else if (pendingTarget === 'laporanpersantri') url = `laporanpersantri.html?jenis=${jenis}`;
-            else if (pendingTarget === 'lapkolektif') url = `lapkoletifsantri.html?jenis=${jenis}`;  // tambahan
+            else if (pendingTarget === 'lapkolektif') url = `lapkoletifsantri.html?jenis=${jenis}`;
             if (url) window.location.href = url;
         }
         document.querySelectorAll('.populer-card').forEach(card => card.addEventListener('click', () => { const t = card.dataset.target; if (t) showJenisModal(t); }));
@@ -516,7 +516,6 @@
             const bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][bulan-1];
             document.getElementById('detailBulan').innerText = bulanNama;
 
-            // Ringkasan Pemasukan/Pengeluaran (gabungan semua jenis)
             let pemasukanTahun = 0, pengeluaranTahun = 0;
             let pemasukanBulan = 0, pengeluaranBulan = 0;
             let santriIdsBulan = new Set();
@@ -545,7 +544,7 @@
             const persen = allSantri.length ? ((santriIdsBulan.size / allSantri.length) * 100).toFixed(1) : 0;
             document.getElementById('statPersentaseBulan').innerHTML = `${persen}% dari total santri`;
 
-            // Akumulasi Chart berdasarkan pilihan dropdown
+            // Akumulasi Chart dengan saldo kumulatif
             const chartJenis = document.getElementById('statChartJenis').value;
             const monthlyPemasukan = new Array(12).fill(0);
             const monthlyPengeluaran = new Array(12).fill(0);
@@ -561,25 +560,44 @@
                     if (t.tipe === 'pengeluaran' || t.pengeluaran > 0) monthlyPengeluaran[month] += t.pengeluaran;
                 }
             });
+            // Hitung saldo kumulatif
+            let saldoKumulatif = 0;
+            const monthlySaldoKumulatif = [];
+            for (let i = 0; i < 12; i++) {
+                saldoKumulatif += monthlyPemasukan[i] - monthlyPengeluaran[i];
+                monthlySaldoKumulatif.push(saldoKumulatif);
+            }
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             if (chartInstances.akumulasiChart) chartInstances.akumulasiChart.destroy();
             const ctxAkumulasi = document.getElementById('akumulasiChart').getContext('2d');
             chartInstances.akumulasiChart = new Chart(ctxAkumulasi, {
                 type: 'line',
-                data: { labels: monthNames, datasets: [
-                    { label: 'Total Pemasukan', data: monthlyPemasukan, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 },
-                    { label: 'Total Pengeluaran', data: monthlyPengeluaran, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.3 }
-                ]},
-                options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `Rp ${formatRupiah(ctx.raw)}` } } } }
+                data: {
+                    labels: monthNames,
+                    datasets: [
+                        { label: 'Pemasukan', data: monthlyPemasukan, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+                        { label: 'Pengeluaran', data: monthlyPengeluaran, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.3, pointRadius: 3 },
+                        { label: 'Saldo Kumulatif (Akhir Bulan)', data: monthlySaldoKumulatif, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: Rp ${formatRupiah(ctx.raw)}`
+                            }
+                        }
+                    }
+                }
             });
 
             // Detail Pembayaran Santri per Bulan (tetap)
             let totalSantriBayarBulan = new Set();
             let santriKonsumsiBulan = new Set();
             let santriPondokBulan = new Set();
-
             const bulanIuranMap = [7,8,9,10,11,12,1,2,3,4,5,6]; // JUL=7, AGU=8, ..., JUN=6
-
             allTransaksi.forEach(t => {
                 if (t.tanggal && t.tanggal.getFullYear() === tahun && (t.tanggal.getMonth() + 1) === bulan) {
                     if (t.santriId && t.bulanIdx !== undefined) {
@@ -606,12 +624,11 @@
                     }
                 }
             });
-
             document.getElementById('totalSantriBayarBulan').innerText = totalSantriBayarBulan.size;
             document.getElementById('santriBayarKonsumsi').innerText = santriKonsumsiBulan.size;
             document.getElementById('santriBayarPondok').innerText = santriPondokBulan.size;
 
-            // Statistik per Kelas (gabungan semua jenis)
+            // Statistik per Kelas
             const kelasMap = new Map();
             allTransaksi.forEach(t => {
                 if ((t.tipe === 'pemasukan' || t.pemasukan > 0) && t.santriId && t.bulanIdx !== undefined && t.tanggal && t.tanggal.getFullYear() === tahun) {
