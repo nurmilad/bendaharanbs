@@ -9,13 +9,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        .table-scroll { overflow-x: auto; max-width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; }
-        .laporan-table { border-collapse: collapse; min-width: 600px; font-size: 0.75rem; }
-        .laporan-table th, .laporan-table td { border: 1px solid #d1d5db; padding: 8px 6px; text-align: center; vertical-align: middle; white-space: nowrap; }
+        .table-scroll { overflow-x: auto; max-width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; background: white; }
+        .laporan-table { border-collapse: collapse; min-width: 600px; font-size: 0.7rem; }
+        .laporan-table th, .laporan-table td { border: 1px solid #d1d5db; padding: 6px 5px; text-align: center; vertical-align: middle; white-space: nowrap; }
         .laporan-table th { background-color: #f1f5f9; font-weight: 600; position: sticky; top: 0; z-index: 10; }
         .laporan-table td:first-child, .laporan-table th:first-child { position: sticky; left: 0; background-color: white; z-index: 5; }
         .laporan-table th:first-child { background-color: #f1f5f9; z-index: 11; }
         .total-row { background-color: #fefce8; font-weight: 600; }
+        .lunas { background-color: #d1fae5; color: #065f46; font-weight: 500; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 8px 14px; border-radius: 8px; z-index: 1000; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #ccc; border-top-color: #10b981; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -24,7 +25,7 @@
             .print-area, .print-area * { visibility: visible; }
             .print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 20px; background: white; }
             .no-print { display: none; }
-            .laporan-table { font-size: 9pt; }
+            .laporan-table { font-size: 8pt; }
         }
     </style>
 </head>
@@ -44,12 +45,12 @@
     </header>
 
     <main class="p-4 md:p-6 max-w-full mx-auto">
-        <!-- Panel Filter -->
         <div class="bg-white rounded-xl shadow-md p-5 mb-6 no-print">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Jenis Iuran</label>
                     <select id="jenisIuranSelect" class="w-full border rounded-lg px-3 py-2 bg-gray-50">
-                        <option value="konsumsi">🍽️ Iuran Konsumsi</option><option value="pondok">🏠 Iuran Pondok</option>
+                        <option value="konsumsi">🍽️ Iuran Konsumsi</option>
+                        <option value="pondok">🏠 Iuran Pondok</option>
                     </select>
                 </div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Angkatan (Tahun Masuk)</label>
@@ -77,15 +78,16 @@
                         <select id="tahunAkhir" class="w-1/2 border rounded-lg px-2 py-2"></select>
                     </div>
                 </div>
+                <div><button id="tampilkanBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg shadow flex items-center gap-2 justify-center"><i class="fas fa-chart-line"></i> Tampilkan</button></div>
             </div>
-            <div class="flex justify-end mt-5"><button id="tampilkanBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg shadow flex items-center gap-2"><i class="fas fa-chart-line"></i> Tampilkan Laporan</button></div>
         </div>
 
-        <!-- Area Laporan -->
         <div class="print-area bg-white rounded-xl shadow-md overflow-hidden">
             <div class="print-header hidden print:block text-center p-4 border-b">
                 <h2 class="text-xl font-bold">LAPORAN KOLEKTIF PEMBAYARAN SANTRI</h2>
-                <h3 id="printJenisHeader" class="text-md font-semibold"></h3><p id="printRangeHeader" class="text-sm"></p><p id="printAngkatanHeader" class="text-sm"></p>
+                <h3 id="printJenisHeader" class="text-md font-semibold"></h3>
+                <p id="printRangeHeader" class="text-sm"></p>
+                <p id="printAngkatanHeader" class="text-sm"></p>
             </div>
             <div id="loadingIndicator" class="text-center py-10 text-gray-400 hidden"><div class="loading-spinner mx-auto mb-2"></div><span>Memuat data laporan...</span></div>
             <div class="table-scroll"><table class="laporan-table w-full" id="laporanTable"><thead id="tableHeader"></thead><tbody id="tableBody"><tr><td colspan="10" class="text-center py-8 text-gray-400">Pilih filter dan klik "Tampilkan Laporan"</td></tr></tbody></table</div>
@@ -107,135 +109,335 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ======================= PATOKAN ABSOLUT: JULI 2022 = bulanIdx 0 =======================
-        // Konversi dari (tahun, indexBulan) ke bulanIdx
-        function getBulanIdx(tahun, indexBulan) {
-            return (tahun - 2022) * 12 + indexBulan;
+        // ======================= FUNGSI DETEKSI TAHUN MULAI KELAS 7 DARI NIS =======================
+        function getTahunMulaiKelas7(nis, angkatan) {
+            if (!nis || nis.length < 4) return parseInt(angkatan) || 2022;
+            const empatDigit = parseInt(nis.substring(0,4));
+            if (isNaN(empatDigit)) return parseInt(angkatan) || 2022;
+            // Jika 4 digit pertama >= 2100 (format 2223, 2324) berarti SMP
+            if (empatDigit >= 2100) {
+                const duaDigit = parseInt(nis.substring(0,2));
+                return 2000 + duaDigit;
+            } else {
+                // SMA: tahun masuk kelas 10, maka tahun mulai kelas 7 = tahun - 3
+                return empatDigit - 3;
+            }
         }
-        // Konversi dari bulanIdx ke (tahun, indexBulan, label)
-        function getDateFromBulanIdx(bulanIdx) {
-            const tahun = 2022 + Math.floor(bulanIdx / 12);
-            const indexBulan = bulanIdx % 12;
+
+        // Konversi (tahun kalender, indexBulan 0-11) ke absolut (Juli 2022 = 0)
+        function getAbsolut(tahun, indexBulan) {
+            let tahunAbs = tahun;
+            if (indexBulan >= 6) tahunAbs = tahun - 1; // Jan-Jun menggunakan tahun ajaran sebelumnya
+            return (tahunAbs - 2022) * 12 + indexBulan;
+        }
+
+        // Membuat daftar kolom dari range absolut (urutan benar)
+        function getDaftarKolom(tahunAwal, bulanAwalIdx, tahunAkhir, bulanAkhirIdx) {
             const bulanSingkat = ['JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN'];
-            return { tahun, indexBulan, label: `${bulanSingkat[indexBulan]} ${tahun}` };
+            const startAbs = getAbsolut(tahunAwal, bulanAwalIdx);
+            const endAbs = getAbsolut(tahunAkhir, bulanAkhirIdx);
+            const kolom = [];
+            for (let abs = startAbs; abs <= endAbs; abs++) {
+                const tahunAbs = 2022 + Math.floor(abs / 12);
+                let indexBulan = abs % 12;
+                // Tampilkan tahun yang sesuai: untuk Jan-Jun, tahun yang ditampilkan adalah tahunAbs+1
+                let tahunTampil = tahunAbs;
+                if (indexBulan >= 6) tahunTampil = tahunAbs + 1;
+                kolom.push({
+                    tahun: tahunTampil,
+                    indexBulan: indexBulan,
+                    label: `${bulanSingkat[indexBulan]} ${tahunTampil}`,
+                    absolut: abs
+                });
+            }
+            return kolom;
+        }
+
+        // Konversi absolut ke bulanIdx relatif terhadap tahunMulaiKelas7 (untuk pencocokan transaksi)
+        function getBulanIdx(tahunMulaiKelas7, absolut) {
+            const tahunAbs = 2022 + Math.floor(absolut / 12);
+            const indexBulan = absolut % 12;
+            return (tahunAbs - tahunMulaiKelas7) * 12 + indexBulan;
         }
 
         let semuaSantri = [], semuaTransaksi = [], angkatanList = new Set();
-        const angkatanSelect = document.getElementById('angkatanSelect'), jenisIuranSelect = document.getElementById('jenisIuranSelect');
-        const bulanAwal = document.getElementById('bulanAwal'), bulanAkhir = document.getElementById('bulanAkhir');
-        const tahunAwal = document.getElementById('tahunAwal'), tahunAkhir = document.getElementById('tahunAkhir');
-        const tampilkanBtn = document.getElementById('tampilkanBtn'), refreshBtn = document.getElementById('refreshBtn'), cetakBtn = document.getElementById('cetakBtn');
-        const backLink = document.getElementById('backLink'), loadingDiv = document.getElementById('loadingIndicator');
-        const tableHeader = document.getElementById('tableHeader'), tableBody = document.getElementById('tableBody');
-        const jenisInfo = document.getElementById('jenisInfo'), printJenisHeader = document.getElementById('printJenisHeader');
-        const printRangeHeader = document.getElementById('printRangeHeader'), printAngkatanHeader = document.getElementById('printAngkatanHeader'), printTgl = document.getElementById('printTgl');
+        const angkatanSelect = document.getElementById('angkatanSelect');
+        const jenisIuranSelect = document.getElementById('jenisIuranSelect');
+        const bulanAwal = document.getElementById('bulanAwal');
+        const bulanAkhir = document.getElementById('bulanAkhir');
+        const tahunAwal = document.getElementById('tahunAwal');
+        const tahunAkhir = document.getElementById('tahunAkhir');
+        const tampilkanBtn = document.getElementById('tampilkanBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const cetakBtn = document.getElementById('cetakBtn');
+        const backLink = document.getElementById('backLink');
+        const loadingDiv = document.getElementById('loadingIndicator');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+        const jenisInfo = document.getElementById('jenisInfo');
+        const printJenisHeader = document.getElementById('printJenisHeader');
+        const printRangeHeader = document.getElementById('printRangeHeader');
+        const printAngkatanHeader = document.getElementById('printAngkatanHeader');
+        const printTgl = document.getElementById('printTgl');
 
-        function formatRupiah(angka) { if (!angka && angka !== 0) return '0'; let str = Math.floor(angka).toString(), result = ''; for (let i = str.length - 1, j = 0; i >= 0; i--, j++) { if (j > 0 && j % 3 === 0) result = '.' + result; result = str[i] + result; } return result; }
-        function showToast(msg, isError = false) { const toast = document.getElementById('toast'); toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400'; document.getElementById('toastMsg').innerText = msg; toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); }
+        function formatRupiah(angka) {
+            if (!angka && angka !== 0) return '0';
+            let str = Math.floor(angka).toString();
+            let result = '';
+            for (let i = str.length - 1, j = 0; i >= 0; i--, j++) {
+                if (j > 0 && j % 3 === 0) result = '.' + result;
+                result = str[i] + result;
+            }
+            return result;
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-emerald-400';
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
 
         async function loadMasterData() {
             try {
                 const santriSnap = await db.collection('santri').get();
-                semuaSantri = []; angkatanList.clear();
-                santriSnap.forEach(doc => { const d = doc.data(); const angkatan = d.angkatan ? d.angkatan.toString() : ''; if (angkatan) angkatanList.add(angkatan); semuaSantri.push({ id: doc.id, nis: d.nis || '', nama: d.nama || '', angkatan: angkatan }); });
+                semuaSantri = [];
+                angkatanList.clear();
+                for (const doc of santriSnap.docs) {
+                    const d = doc.data();
+                    const angkatan = d.angkatan ? d.angkatan.toString() : '';
+                    const nis = d.nis || '';
+                    const tahunMulai = getTahunMulaiKelas7(nis, angkatan);
+                    if (angkatan) angkatanList.add(angkatan);
+                    semuaSantri.push({
+                        id: doc.id,
+                        nis: nis,
+                        nama: d.nama || '',
+                        angkatan: angkatan,
+                        tahunMulaiKelas7: tahunMulai
+                    });
+                }
                 semuaSantri.sort((a,b) => (parseInt(a.nis)||0) - (parseInt(b.nis)||0));
                 angkatanSelect.innerHTML = '<option value="">-- Semua Angkatan --</option>';
-                Array.from(angkatanList).sort().forEach(angk => { const option = document.createElement('option'); option.value = angk; option.textContent = angk; angkatanSelect.appendChild(option); });
+                Array.from(angkatanList).sort().forEach(angk => {
+                    const option = document.createElement('option');
+                    option.value = angk;
+                    option.textContent = angk;
+                    angkatanSelect.appendChild(option);
+                });
 
                 const transSnap = await db.collection('transaksi').get();
                 semuaTransaksi = [];
-                transSnap.forEach(doc => { const data = doc.data(); const tipe = data.tipe || (data.pemasukan > 0 ? 'pemasukan' : 'pengeluaran'); if ((tipe === 'pemasukan' || data.pemasukan > 0) && data.santriId && data.bulanIdx !== undefined) { semuaTransaksi.push({ santriId: data.santriId, bulanIdx: data.bulanIdx, nominal: data.pemasukan || 0, jenis_iuran: data.jenis_iuran || 'konsumsi' }); } });
-            } catch(err) { console.error(err); showToast('Gagal memuat data: ' + err.message, true); }
+                transSnap.forEach(doc => {
+                    const data = doc.data();
+                    const tipe = data.tipe || (data.pemasukan > 0 ? 'pemasukan' : 'pengeluaran');
+                    if ((tipe === 'pemasukan' || data.pemasukan > 0) && data.santriId && data.bulanIdx !== undefined) {
+                        semuaTransaksi.push({
+                            santriId: data.santriId,
+                            bulanIdx: data.bulanIdx,
+                            nominal: data.pemasukan || 0,
+                            jenis_iuran: data.jenis_iuran || 'konsumsi'
+                        });
+                    }
+                });
+            } catch(err) {
+                console.error(err);
+                showToast('Gagal memuat data: ' + err.message, true);
+            }
         }
 
         function buildPaymentMap(jenisIuran) {
             const map = new Map();
-            for (const tr of semuaTransaksi) if (tr.jenis_iuran === jenisIuran) { const key = `${tr.santriId}|${tr.bulanIdx}`; map.set(key, (map.get(key) || 0) + tr.nominal); }
+            for (const tr of semuaTransaksi) {
+                if (tr.jenis_iuran === jenisIuran) {
+                    const key = `${tr.santriId}|${tr.bulanIdx}`;
+                    map.set(key, (map.get(key) || 0) + tr.nominal);
+                }
+            }
             return map;
         }
 
         async function renderLaporan() {
             const jenisIuran = jenisIuranSelect.value;
             const selectedAngkatan = angkatanSelect.value;
-            const tahunAwalVal = parseInt(tahunAwal.value), bulanAwalIdx = parseInt(bulanAwal.value);
-            const tahunAkhirVal = parseInt(tahunAkhir.value), bulanAkhirIdx = parseInt(bulanAkhir.value);
-            if (isNaN(tahunAwalVal) || isNaN(tahunAkhirVal)) { showToast('Pilih tahun awal dan akhir yang valid', true); return; }
-            const minIdx = getBulanIdx(tahunAwalVal, bulanAwalIdx);
-            const maxIdx = getBulanIdx(tahunAkhirVal, bulanAkhirIdx);
-            if (minIdx > maxIdx) { showToast('Range bulan tidak valid', true); return; }
+            const tahunAwalVal = parseInt(tahunAwal.value);
+            const bulanAwalIdx = parseInt(bulanAwal.value);
+            const tahunAkhirVal = parseInt(tahunAkhir.value);
+            const bulanAkhirIdx = parseInt(bulanAkhir.value);
+
+            if (isNaN(tahunAwalVal) || isNaN(tahunAkhirVal)) {
+                showToast('Pilih tahun awal dan akhir yang valid', true);
+                return;
+            }
+            const startAbs = getAbsolut(tahunAwalVal, bulanAwalIdx);
+            const endAbs = getAbsolut(tahunAkhirVal, bulanAkhirIdx);
+            if (startAbs > endAbs) {
+                showToast('Range bulan tidak valid (awal > akhir)', true);
+                return;
+            }
 
             loadingDiv.classList.remove('hidden');
-            tableBody.innerHTML = ''; tableHeader.innerHTML = '';
+            tableBody.innerHTML = '';
+            tableHeader.innerHTML = '';
+
             try {
                 let santriFiltered = [...semuaSantri];
-                if (selectedAngkatan) santriFiltered = santriFiltered.filter(s => s.angkatan === selectedAngkatan);
-                if (santriFiltered.length === 0) { tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-gray-400">Tidak ada santri untuk angkatan yang dipilih</td></tr>`; loadingDiv.classList.add('hidden'); return; }
+                if (selectedAngkatan) {
+                    santriFiltered = santriFiltered.filter(s => s.angkatan === selectedAngkatan);
+                }
+                if (santriFiltered.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-gray-400">Tidak ada santri untuk angkatan yang dipilih</td></tr>`;
+                    loadingDiv.classList.add('hidden');
+                    return;
+                }
 
-                // Daftar kolom bulan berdasarkan range bulanIdx
-                const kolom = [];
-                for (let idx = minIdx; idx <= maxIdx; idx++) kolom.push({ idx, ...getDateFromBulanIdx(idx) });
-                if (kolom.length === 0) { tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-gray-400">Range bulan tidak valid</td></tr>`; loadingDiv.classList.add('hidden'); return; }
+                const daftarKolom = getDaftarKolom(tahunAwalVal, bulanAwalIdx, tahunAkhirVal, bulanAkhirIdx);
+                if (daftarKolom.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-gray-400">Range bulan tidak menghasilkan data</td></tr>`;
+                    loadingDiv.classList.add('hidden');
+                    return;
+                }
 
                 const paymentMap = buildPaymentMap(jenisIuran);
-                const santriRows = [];
+                const rows = [];
+
                 for (const santri of santriFiltered) {
-                    const row = { id: santri.id, nis: santri.nis, nama: santri.nama, payments: new Array(kolom.length).fill(0) };
-                    for (let i = 0; i < kolom.length; i++) {
-                        const key = `${santri.id}|${kolom[i].idx}`;
+                    const row = {
+                        id: santri.id,
+                        nis: santri.nis,
+                        nama: santri.nama,
+                        payments: new Array(daftarKolom.length).fill(0)
+                    };
+                    for (let i = 0; i < daftarKolom.length; i++) {
+                        const kol = daftarKolom[i];
+                        const targetBulanIdx = getBulanIdx(santri.tahunMulaiKelas7, kol.absolut);
+                        const key = `${santri.id}|${targetBulanIdx}`;
                         row.payments[i] = paymentMap.get(key) || 0;
                     }
-                    santriRows.push(row);
+                    rows.push(row);
                 }
 
                 // Total per kolom
-                const totalPerKolom = new Array(kolom.length).fill(0);
-                for (const row of santriRows) for (let i = 0; i < row.payments.length; i++) totalPerKolom[i] += row.payments[i];
+                const totalPerKolom = new Array(daftarKolom.length).fill(0);
+                for (const row of rows) {
+                    for (let i = 0; i < row.payments.length; i++) {
+                        totalPerKolom[i] += row.payments[i];
+                    }
+                }
 
-                // Header tabel: NIS | NAMA + kolom bulan
+                // Header tabel
                 let headerHtml = '<tr><th class="min-w-[200px]">NIS | NAMA</th>';
-                for (const col of kolom) headerHtml += `<th class="min-w-[90px]">${col.label}</th>`;
-                headerHtml += '<th class="min-w-[100px]">TOTAL</th></tr>';
+                for (const kol of daftarKolom) {
+                    headerHtml += `<th class="min-w-[85px]">${kol.label}</th>`;
+                }
+                headerHtml += '<th class="min-w-[90px]">TOTAL BAYAR</th></tr>';
                 tableHeader.innerHTML = headerHtml;
 
+                // Body tabel
                 let bodyHtml = '';
-                for (const row of santriRows) {
+                for (const row of rows) {
                     bodyHtml += '<tr>';
                     bodyHtml += `<td class="text-left font-mono">${row.nis} | ${row.nama}</td>`;
                     let totalSantri = 0;
                     for (let i = 0; i < row.payments.length; i++) {
                         totalSantri += row.payments[i];
-                        const display = row.payments[i] > 0 ? formatRupiah(row.payments[i]) : '-';
-                        bodyHtml += `<td class="text-right">${display}</td>`;
+                        const nominal = row.payments[i];
+                        if (nominal > 0) {
+                            bodyHtml += `<td class="text-right lunas">${formatRupiah(nominal)}</td>`;
+                        } else {
+                            bodyHtml += `<td class="text-right text-gray-400">—</td>`;
+                        }
                     }
-                    bodyHtml += `<td class="text-right font-bold">${formatRupiah(totalSantri)}</td></tr>`;
+                    bodyHtml += `<td class="text-right font-bold">${formatRupiah(totalSantri)}</td>`;
+                    bodyHtml += '</tr>';
                 }
                 // Baris total
-                bodyHtml += '<tr class="total-row"><td class="text-right font-bold">TOTAL PER BULAN</td>';
+                bodyHtml += '<tr class="total-row">';
+                bodyHtml += '<td class="text-right font-bold">TOTAL PER BULAN</td>';
                 let grandTotal = 0;
-                for (let i = 0; i < totalPerKolom.length; i++) { grandTotal += totalPerKolom[i]; bodyHtml += `<td class="text-right font-bold">${formatRupiah(totalPerKolom[i])}</td>`; }
-                bodyHtml += `<td class="text-right font-bold">${formatRupiah(grandTotal)}</td></tr>`;
+                for (let i = 0; i < totalPerKolom.length; i++) {
+                    grandTotal += totalPerKolom[i];
+                    bodyHtml += `<td class="text-right font-bold">${formatRupiah(totalPerKolom[i])}</td>`;
+                }
+                bodyHtml += `<td class="text-right font-bold">${formatRupiah(grandTotal)}</td>`;
+                bodyHtml += '</tr>';
                 tableBody.innerHTML = bodyHtml;
 
-                // Update print header
+                // Print header
                 const jenisText = jenisIuran === 'konsumsi' ? 'IURAN KONSUMSI' : 'IURAN PONDOK';
                 printJenisHeader.innerText = jenisText;
-                printRangeHeader.innerText = `Periode: ${kolom[0].label} s.d. ${kolom[kolom.length-1].label}`;
+                printRangeHeader.innerText = `Periode: ${daftarKolom[0].label} s.d. ${daftarKolom[daftarKolom.length-1].label}`;
                 printAngkatanHeader.innerText = selectedAngkatan ? `Angkatan: ${selectedAngkatan}` : 'Angkatan: Semua';
                 printTgl.innerText = new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
-                showToast(`Menampilkan ${santriRows.length} santri, ${kolom.length} bulan`);
-            } catch(err) { console.error(err); showToast('Gagal render laporan: ' + err.message, true); tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-red-500">Terjadi kesalahan</td></tr>`; }
-            finally { loadingDiv.classList.add('hidden'); }
+                showToast(`Menampilkan ${rows.length} santri, ${daftarKolom.length} bulan`);
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal render laporan: ' + err.message, true);
+                tableBody.innerHTML = `<tr><td colspan="100" class="text-center py-8 text-red-500">Terjadi kesalahan</td></tr>`;
+            } finally {
+                loadingDiv.classList.add('hidden');
+            }
         }
 
-        function initTahunDropdown() { const tahunOptions = ['2022','2023','2024','2025','2026','2027']; tahunAwal.innerHTML = ''; tahunAkhir.innerHTML = ''; tahunOptions.forEach(th => { tahunAwal.appendChild(new Option(th, th)); tahunAkhir.appendChild(new Option(th, th)); }); tahunAwal.value = '2025'; tahunAkhir.value = '2026'; bulanAwal.value = '0'; bulanAkhir.value = '11'; }
-        function setJenisFromUrl() { const urlParams = new URLSearchParams(window.location.search); const jenisParam = urlParams.get('jenis'); if (jenisParam === 'konsumsi' || jenisParam === 'pondok') jenisIuranSelect.value = jenisParam; jenisInfo.innerText = `Laporan Kolektif - ${jenisIuranSelect.value === 'konsumsi' ? 'Iuran Konsumsi' : 'Iuran Pondok'}`; backLink.href = `submenu.html?jenis=${jenisIuranSelect.value}`; }
-        async function onTampilkan() { if (semuaSantri.length === 0) { showToast('Data masih kosong, muat ulang dulu', true); await refreshAll(); } renderLaporan(); }
-        async function refreshAll() { loadingDiv.classList.remove('hidden'); await loadMasterData(); loadingDiv.classList.add('hidden'); showToast('Data berhasil dimuat ulang'); }
-        function handleJenisChange() { const jenis = jenisIuranSelect.value; backLink.href = `submenu.html?jenis=${jenis}`; jenisInfo.innerText = `Laporan Kolektif - ${jenis === 'konsumsi' ? 'Iuran Konsumsi' : 'Iuran Pondok'}`; }
-        function cetakLaporan() { window.print(); }
+        function initTahunDropdown() {
+            const tahunOptions = ['2022','2023','2024','2025','2026','2027','2028'];
+            tahunAwal.innerHTML = '';
+            tahunAkhir.innerHTML = '';
+            tahunOptions.forEach(th => {
+                tahunAwal.appendChild(new Option(th, th));
+                tahunAkhir.appendChild(new Option(th, th));
+            });
+            tahunAwal.value = '2025';
+            tahunAkhir.value = '2026';
+            bulanAwal.value = '0';   // Juli
+            bulanAkhir.value = '11'; // Juni
+        }
 
-        tampilkanBtn.addEventListener('click', onTampilkan); refreshBtn.addEventListener('click', refreshAll); cetakBtn.addEventListener('click', cetakLaporan); jenisIuranSelect.addEventListener('change', handleJenisChange);
-        window.addEventListener('DOMContentLoaded', async () => { initTahunDropdown(); setJenisFromUrl(); await loadMasterData(); });
+        function setJenisFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jenisParam = urlParams.get('jenis');
+            if (jenisParam === 'konsumsi' || jenisParam === 'pondok') jenisIuranSelect.value = jenisParam;
+            jenisInfo.innerText = `Laporan Kolektif - ${jenisIuranSelect.value === 'konsumsi' ? 'Iuran Konsumsi' : 'Iuran Pondok'}`;
+            backLink.href = `submenu.html?jenis=${jenisIuranSelect.value}`;
+        }
+
+        async function onTampilkan() {
+            if (semuaSantri.length === 0) {
+                showToast('Memuat data...', false);
+                await refreshAll();
+            }
+            renderLaporan();
+        }
+
+        async function refreshAll() {
+            loadingDiv.classList.remove('hidden');
+            await loadMasterData();
+            loadingDiv.classList.add('hidden');
+            showToast('Data berhasil dimuat ulang');
+        }
+
+        function handleJenisChange() {
+            const jenis = jenisIuranSelect.value;
+            backLink.href = `submenu.html?jenis=${jenis}`;
+            jenisInfo.innerText = `Laporan Kolektif - ${jenis === 'konsumsi' ? 'Iuran Konsumsi' : 'Iuran Pondok'}`;
+        }
+
+        function cetakLaporan() {
+            window.print();
+        }
+
+        tampilkanBtn.addEventListener('click', onTampilkan);
+        refreshBtn.addEventListener('click', refreshAll);
+        cetakBtn.addEventListener('click', cetakLaporan);
+        jenisIuranSelect.addEventListener('change', handleJenisChange);
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            initTahunDropdown();
+            setJenisFromUrl();
+            await loadMasterData();
+            renderLaporan();
+        });
     </script>
 </body>
 </html>
