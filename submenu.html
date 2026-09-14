@@ -27,10 +27,20 @@
                 <p class="text-gray-500 text-sm mt-1">Masukkan password untuk melanjutkan</p>
             </div>
             <div class="mb-4">
-                <input type="password" id="passwordInput" placeholder="Password" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-emerald-500 focus:border-emerald-500">
+                <input type="password" id="passwordInput" placeholder="Password" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-emerald-500 focus:border-emerald-500" autofocus>
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Password salah.</p>
             </div>
-            <button id="loginBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Masuk</button>
+            <button id="loginBtn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition">
+                <span id="loginBtnText">Memuat...</span>
+            </button>
+            <p id="loadingStatus" class="text-xs text-gray-500 text-center mt-3">
+                <i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...
+            </p>
+            <p id="retryText" class="text-xs text-center mt-2 hidden">
+                <button onclick="loadPassword()" class="text-emerald-600 hover:text-emerald-700 underline font-medium">
+                    <i class="fas fa-redo"></i> Coba Lagi
+                </button>
+            </p>
         </div>
     </div>
 
@@ -79,7 +89,6 @@
 
             <!-- Grid 4 kolom di desktop, 2 di tablet, 1 di mobile -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Iuran Bulanan Santri -->
                 <a href="#" id="menuIuranBulanan" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-emerald-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-200 transition">
                         <i class="fas fa-calendar-alt text-2xl text-emerald-700"></i>
@@ -89,7 +98,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Kelola <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Input Transaksi -->
                 <a href="#" id="menuInputTransaksi" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-amber-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition">
                         <i class="fas fa-plus-circle text-2xl text-amber-700"></i>
@@ -99,7 +107,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Input <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Riwayat Transaksi -->
                 <a href="#" id="menuRiwayat" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-sky-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-sky-200 transition">
                         <i class="fas fa-history text-2xl text-sky-700"></i>
@@ -109,7 +116,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Laporan Bulanan / BKU -->
                 <a href="#" id="menuBKU" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-purple-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition">
                         <i class="fas fa-chart-line text-2xl text-purple-700"></i>
@@ -119,7 +125,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Cetak <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Laporan per Santri -->
                 <a href="#" id="menuLaporanSantri" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-pink-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-pink-200 transition">
                         <i class="fas fa-file-alt text-2xl text-pink-700"></i>
@@ -129,7 +134,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Laporan Kolektif Santri (BARU) -->
                 <a href="#" id="menuLaporanKolektif" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-green-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition">
                         <i class="fas fa-users text-2xl text-green-700"></i>
@@ -139,7 +143,6 @@
                     <span class="inline-block mt-3 text-emerald-600 font-semibold text-xs">Lihat <i class="fas fa-arrow-right ml-1"></i></span>
                 </a>
 
-                <!-- Catatan Bendahara -->
                 <button id="catatanBendaharaBtn" class="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-5 text-center border border-gray-100 card-hover">
                     <div class="bg-indigo-100 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-200 transition">
                         <i class="fas fa-book text-2xl text-indigo-700"></i>
@@ -175,16 +178,75 @@
         }
         const jenisIuran = getJenisIuran();
 
-        // Login
+        // ======================= ELEMEN LOGIN =======================
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
         const loginError = document.getElementById('loginError');
-        const CORRECT_PASSWORD = "270909";
+        const loadingStatus = document.getElementById('loadingStatus');
+        const retryText = document.getElementById('retryText');
 
+        // ======================= STATE LOGIN =======================
+        let CORRECT_PASSWORD = null;
+        let passwordLoaded = false;
+
+        // ======================= MUAT PASSWORD DARI FIREBASE =======================
+        async function loadPassword() {
+            passwordLoaded = false;
+            CORRECT_PASSWORD = null;
+            loginBtn.disabled = true;
+            loginBtnText.innerText = "Memuat...";
+            retryText.classList.add('hidden');
+            loginError.classList.add('hidden');
+
+            loadingStatus.className = 'text-xs text-gray-500 text-center mt-3';
+            loadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...';
+
+            try {
+                const doc = await db.collection('password').doc('utama').get();
+
+                if (!doc.exists) {
+                    loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                    loadingStatus.innerHTML = '<i class="fas fa-times-circle"></i> Dokumen password/utama tidak ditemukan';
+                    retryText.classList.remove('hidden');
+                    return;
+                }
+
+                const data = doc.data();
+                let passValue = data.password;
+                if (passValue === undefined) passValue = data['password '];
+                if (passValue === undefined) passValue = data['password  '];
+                if (passValue === undefined) passValue = data[' password'];
+
+                if (passValue === undefined || passValue === null || passValue === '') {
+                    loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                    loadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Field password kosong';
+                    retryText.classList.remove('hidden');
+                    return;
+                }
+
+                CORRECT_PASSWORD = String(passValue);
+                passwordLoaded = true;
+                loginBtn.disabled = false;
+                loginBtnText.innerText = "Masuk";
+                loadingStatus.className = 'text-xs text-emerald-600 text-center mt-3';
+                loadingStatus.innerHTML = '<i class="fas fa-check-circle"></i> Sistem siap';
+
+            } catch (err) {
+                loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                let msg = '<i class="fas fa-times-circle"></i> Gagal: ' + (err.code || 'unknown');
+                if (err.code === 'permission-denied') msg = '<i class="fas fa-lock"></i> Akses ditolak';
+                loadingStatus.innerHTML = msg;
+                retryText.classList.remove('hidden');
+                console.error('Error:', err);
+            }
+        }
+
+        // ======================= CEK STATUS LOGIN =======================
         function checkLoginStatus() {
-            if (sessionStorage.getItem('pesantren_logged_in') === 'true') {
+            if (localStorage.getItem('pesantren_logged_in') === 'true') {
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
                 setupUIByJenis();
@@ -194,21 +256,32 @@
             }
         }
 
+        // ======================= PROSES LOGIN =======================
         function login() {
+            if (!passwordLoaded || CORRECT_PASSWORD === null) {
+                loginError.innerText = "Sistem belum siap. Tunggu atau klik 'Coba Lagi'.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
             if (passwordInput.value === CORRECT_PASSWORD) {
-                sessionStorage.setItem('pesantren_logged_in', 'true');
+                localStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
+                loginError.classList.add('hidden');
                 setupUIByJenis();
             } else {
+                loginError.innerText = "Password salah. Silakan coba lagi.";
                 loginError.classList.remove('hidden');
                 passwordInput.value = '';
                 passwordInput.focus();
             }
         }
+
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
+        // ======================= SETUP UI =======================
         function setupUIByJenis() {
             const titleElem = document.getElementById('submenuTitle');
             const descElem = document.getElementById('submenuDesc');
@@ -233,7 +306,7 @@
             document.getElementById('menuRiwayat').href = `riwayat.html?jenis=${jenisIuran}`;
             document.getElementById('menuBKU').href = `bku.html?jenis=${jenisIuran}`;
             document.getElementById('menuLaporanSantri').href = `laporanpersantri.html?jenis=${jenisIuran}`;
-            document.getElementById('menuLaporanKolektif').href = `lapkoletifsantri.html?jenis=${jenisIuran}`;  // TAMBAHKAN
+            document.getElementById('menuLaporanKolektif').href = `lapkoletifsantri.html?jenis=${jenisIuran}`;
 
             // Sesuaikan tombol pengeluaran di modal
             const pengeluaranBtn = document.getElementById('btnCatatanPengeluaran');
@@ -248,7 +321,7 @@
             }
         }
 
-        // Modal Catatan Bendahara
+        // ======================= MODAL CATATAN BENDAHARA =======================
         const catatanModal = document.getElementById('catatanModal');
         function showCatatanModal() { catatanModal.classList.remove('hidden'); }
         function hideCatatanModal() { catatanModal.classList.add('hidden'); }
@@ -268,7 +341,9 @@
 
         document.getElementById('catatanBendaharaBtn')?.addEventListener('click', showCatatanModal);
 
+        // ======================= START =======================
         checkLoginStatus();
+        loadPassword();
     </script>
 </body>
 </html>
