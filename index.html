@@ -82,7 +82,7 @@
         </div>
     </div>
 
-    <!-- Modal Pilihan Jenis Iuran untuk Konten Populer -->
+    <!-- Modal Pilihan Jenis Iuran -->
     <div id="jenisModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden jenis-modal transition-all">
         <div class="bg-white rounded-2xl w-full max-w-sm mx-4 p-6 shadow-2xl">
             <h3 class="text-xl font-bold text-center text-gray-800 mb-4">Pilih Jenis Iuran</h3>
@@ -321,7 +321,6 @@
         let allSantri = [];
         let chartInstances = {};
 
-        // ======================= ELEMEN LOGIN =======================
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
@@ -331,48 +330,59 @@
         const loadingStatus = document.getElementById('loadingStatus');
         const retryText = document.getElementById('retryText');
 
-        // ======================= STATE LOGIN =======================
-        // Tidak ada password di HTML. Password HANYA diambil dari Firebase.
         let CORRECT_PASSWORD = null;
         let passwordLoaded = false;
 
-        // ======================= MUAT PASSWORD DARI FIREBASE =======================
         async function loadPassword() {
-            // Reset tampilan
             passwordLoaded = false;
             CORRECT_PASSWORD = null;
             loginBtn.disabled = true;
             loginBtnText.innerText = "Memuat...";
-            loadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...';
-            loadingStatus.className = 'text-xs text-gray-500 text-center mt-3';
             retryText.classList.add('hidden');
+            loginError.classList.add('hidden');
+
+            loadingStatus.className = 'text-xs text-gray-500 text-center mt-3';
+            loadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...';
 
             try {
                 const doc = await db.collection('password').doc('utama').get();
 
-                if (doc.exists && doc.data().password) {
-                    CORRECT_PASSWORD = doc.data().password;
-                    passwordLoaded = true;
-                    loginBtn.disabled = false;
-                    loginBtnText.innerText = "Masuk";
-                    loadingStatus.innerHTML = '<i class="fas fa-check-circle"></i> Sistem siap';
-                    loadingStatus.className = 'text-xs text-emerald-600 text-center mt-3';
-                    console.log('✅ Password berhasil dimuat dari Firebase');
-                } else {
-                    loadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Password tidak ditemukan di server';
+                if (!doc.exists) {
                     loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                    loadingStatus.innerHTML = '<i class="fas fa-times-circle"></i> Dokumen password/utama tidak ditemukan';
                     retryText.classList.remove('hidden');
-                    console.error('❌ Dokumen password/utama tidak ada atau field kosong');
+                    return;
                 }
+
+                const data = doc.data();
+                let passValue = data.password;
+                if (passValue === undefined) passValue = data['password '];
+                if (passValue === undefined) passValue = data['password  '];
+                if (passValue === undefined) passValue = data[' password'];
+
+                if (passValue === undefined || passValue === null || passValue === '') {
+                    loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                    loadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Field password kosong. Fields: ' + Object.keys(data).join(', ');
+                    retryText.classList.remove('hidden');
+                    return;
+                }
+
+                CORRECT_PASSWORD = String(passValue);
+                passwordLoaded = true;
+                loginBtn.disabled = false;
+                loginBtnText.innerText = "Masuk";
+                loadingStatus.className = 'text-xs text-emerald-600 text-center mt-3';
+                loadingStatus.innerHTML = '<i class="fas fa-check-circle"></i> Sistem siap';
             } catch (err) {
-                loadingStatus.innerHTML = '<i class="fas fa-times-circle"></i> Gagal terhubung ke server';
                 loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                let msg = '<i class="fas fa-times-circle"></i> Gagal: ' + (err.code || 'unknown');
+                if (err.code === 'permission-denied') msg = '<i class="fas fa-lock"></i> Akses ditolak';
+                loadingStatus.innerHTML = msg;
                 retryText.classList.remove('hidden');
-                console.error('❌ Gagal memuat password:', err.message);
+                console.error('Error:', err);
             }
         }
 
-        // ======================= CEK STATUS LOGIN =======================
         function checkLoginStatus() {
             if (localStorage.getItem('pesantren_logged_in') === 'true') {
                 loginModal.style.display = 'none';
@@ -387,14 +397,12 @@
             }
         }
 
-        // ======================= PROSES LOGIN =======================
         function login() {
             if (!passwordLoaded || CORRECT_PASSWORD === null) {
-                loginError.innerText = "Sistem belum siap. Tunggu atau klik 'Coba Lagi'.";
+                loginError.innerText = "Sistem belum siap.";
                 loginError.classList.remove('hidden');
                 return;
             }
-
             if (passwordInput.value === CORRECT_PASSWORD) {
                 localStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
@@ -422,7 +430,6 @@
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
-        // ======================= FORMAT RUPIAH =======================
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
             let str = Math.floor(angka).toString();
@@ -434,7 +441,6 @@
             return result;
         }
 
-        // ======================= LOAD STATISTIK RINGKASAN =======================
         async function loadAllStats() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -464,7 +470,6 @@
             } catch(err) { console.error(err); }
         }
 
-        // ======================= KATA BIJAK SLIDER =======================
         const wisdomList = [
             "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
             "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
@@ -498,14 +503,12 @@
         function startWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); wisdomInterval = setInterval(() => { currentWisdomIdx = (currentWisdomIdx + 1) % wisdomList.length; updateWisdomSlider(); }, 5000); }
         function resetWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); startWisdomInterval(); }
 
-        // ======================= MOBILE MENU =======================
         function attachMobileMenu() {
             const mobileBtn = document.getElementById('mobileMenuBtn');
             const mobilePanel = document.getElementById('mobileMenuPanel');
             if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden');
         }
 
-        // ======================= MODAL JENIS IURAN =======================
         const jenisModal = document.getElementById('jenisModal');
         let pendingTarget = null;
         function showJenisModal(target) { pendingTarget = target; jenisModal.classList.remove('hidden'); }
@@ -526,7 +529,6 @@
         document.getElementById('laporanBulananLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
         document.getElementById('mobileLaporanLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
 
-        // ======================= MODAL CATATAN BENDAHARA =======================
         const catatanModal = document.getElementById('catatanModal');
         function showCatatanModal() { catatanModal.classList.remove('hidden'); }
         function hideCatatanModal() { catatanModal.classList.add('hidden'); }
@@ -538,7 +540,6 @@
         const catatanButtons = ['catatanBendaharaBtnDesktop', 'catatanBendaharaBtnMobile', 'catatanBendaharaBtnGrid'];
         catatanButtons.forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', showCatatanModal); });
 
-        // ======================= STATISTIK MODAL =======================
         const statModal = document.getElementById('statModal');
         function openStatModal() { statModal.classList.add('active'); renderStatistik(); }
         function closeStatModal() { statModal.classList.remove('active'); }
@@ -613,7 +614,6 @@
             const persen = allSantri.length ? ((santriIdsBulan.size / allSantri.length) * 100).toFixed(1) : 0;
             document.getElementById('statPersentaseBulan').innerHTML = `${persen}% dari total santri`;
 
-            // Chart Akumulasi
             const chartJenis = document.getElementById('statChartJenis').value;
             const monthlyPemasukan = new Array(12).fill(0);
             const monthlyPengeluaran = new Array(12).fill(0);
@@ -661,7 +661,6 @@
                 }
             });
 
-            // Detail Pembayaran Santri
             let totalSantriBayarBulan = new Set();
             let santriKonsumsiBulan = new Set();
             let santriPondokBulan = new Set();
@@ -676,8 +675,7 @@
                             if (t.pemasukan === 450000) santriKonsumsiBulan.add(t.santriId);
                             if (t.pemasukan === 150000) santriPondokBulan.add(t.santriId);
                         }
-                    } 
-                    else if (t.santriId && t.uraian && t.uraian.includes('Pembayaran Santri')) {
+                    } else if (t.santriId && t.uraian && t.uraian.includes('Pembayaran Santri')) {
                         const match = t.uraian.match(/- (\w+) \((\d+)\)$/);
                         if (match) {
                             const bulanUraian = match[1];
@@ -696,7 +694,6 @@
             document.getElementById('santriBayarKonsumsi').innerText = santriKonsumsiBulan.size;
             document.getElementById('santriBayarPondok').innerText = santriPondokBulan.size;
 
-            // Statistik per Kelas
             const kelasMap = new Map();
             allTransaksi.forEach(t => {
                 if ((t.tipe === 'pemasukan' || t.pemasukan > 0) && t.santriId && t.bulanIdx !== undefined && t.tanggal && t.tanggal.getFullYear() === tahun) {
@@ -722,11 +719,7 @@
             if (statModal.classList.contains('active')) renderStatistik();
         });
 
-        // ======================= START =======================
-        // Cek login dulu (dari localStorage, instant)
         checkLoginStatus();
-
-        // Muat password dari Firebase (async, tombol login disabled sampai siap)
         loadPassword();
     </script>
 </body>
