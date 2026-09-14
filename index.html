@@ -326,10 +326,27 @@
         const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
         const loginError = document.getElementById('loginError');
-        const CORRECT_PASSWORD = "270909";
+        let CORRECT_PASSWORD = null; // akan diisi dari Firebase
+
+        // ======================= FUNGSI BARU: muat password dari Firebase =======================
+        async function loadPassword() {
+            try {
+                const doc = await db.collection('password').doc('utama').get();
+                if (doc.exists) {
+                    CORRECT_PASSWORD = doc.data().password;
+                    console.log('Password berhasil dimuat dari Firebase');
+                } else {
+                    console.error('Dokumen password tidak ditemukan!');
+                    CORRECT_PASSWORD = null;
+                }
+            } catch (err) {
+                console.error('Gagal memuat password:', err);
+                CORRECT_PASSWORD = null;
+            }
+        }
 
         function checkLoginStatus() {
-            if (sessionStorage.getItem('pesantren_logged_in') === 'true') {
+            if (localStorage.getItem('pesantren_logged_in') === 'true') {
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
                 loadAllStats();
@@ -343,8 +360,13 @@
         }
 
         function login() {
+            if (!CORRECT_PASSWORD) {
+                loginError.innerText = "Sistem sedang memuat, coba lagi sebentar...";
+                loginError.classList.remove('hidden');
+                return;
+            }
             if (passwordInput.value === CORRECT_PASSWORD) {
-                sessionStorage.setItem('pesantren_logged_in', 'true');
+                localStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
                 mainContent.style.display = 'block';
                 loginError.classList.add('hidden');
@@ -353,6 +375,7 @@
                 attachMobileMenu();
                 loadStatistikData();
             } else {
+                loginError.innerText = "Password salah. Silakan coba lagi.";
                 loginError.classList.remove('hidden');
                 passwordInput.value = '';
                 passwordInput.focus();
@@ -360,6 +383,14 @@
         }
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+
+        // ======================= FUNGSI LOGOUT =======================
+        function logout() {
+            if (confirm('Yakin ingin keluar?')) {
+                localStorage.removeItem('pesantren_logged_in');
+                window.location.href = 'index.html';
+            }
+        }
 
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
@@ -650,11 +681,18 @@
         }
 
         document.getElementById('statFilterBtn').addEventListener('click', renderStatistik);
+        document.getElementById('statChartJenings')?.addEventListener('change', () => {
+            if (statModal.classList.contains('active')) renderStatistik();
+        });
         document.getElementById('statChartJenis').addEventListener('change', () => {
             if (statModal.classList.contains('active')) renderStatistik();
         });
 
-        checkLoginStatus();
+        // ======================= START: muat password dulu, baru cek login =======================
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadPassword();
+            checkLoginStatus();
+        });
     </script>
 </body>
 </html>
