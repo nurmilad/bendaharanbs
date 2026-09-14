@@ -67,9 +67,18 @@
                 <input type="password" id="passwordInput" placeholder="Password" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-emerald-500 focus:border-emerald-500" autofocus>
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Password salah. Silakan coba lagi.</p>
             </div>
-            <button id="loginBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-md">Masuk</button>
-            <p id="loadingStatus" class="text-xs text-gray-400 text-center mt-3">Memuat sistem keamanan...</p>
-            <p class="text-xs text-gray-400 text-center mt-1">* Sistem Keuangan Pesantren Nurmilad</p>
+            <button id="loginBtn" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition shadow-md">
+                <span id="loginBtnText">Memuat...</span>
+            </button>
+            <p id="loadingStatus" class="text-xs text-gray-500 text-center mt-3">
+                <i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...
+            </p>
+            <p id="retryText" class="text-xs text-center mt-2 hidden">
+                <button onclick="loadPassword()" class="text-emerald-600 hover:text-emerald-700 underline font-medium">
+                    <i class="fas fa-redo"></i> Coba Lagi
+                </button>
+            </p>
+            <p class="text-xs text-gray-400 text-center mt-4">* Sistem Keuangan Pesantren Nurmilad</p>
         </div>
     </div>
 
@@ -105,8 +114,7 @@
                 <h2 class="text-xl font-bold text-gray-800">📊 Statistik Keuangan Pesantren</h2>
                 <button id="closeStatModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            
-            <!-- Filter Tahun dan Bulan -->
+
             <div class="bg-white rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-center shadow">
                 <div>
                     <label class="text-sm font-medium">Tahun</label>
@@ -128,7 +136,6 @@
                 <button id="statFilterBtn" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm">Terapkan</button>
             </div>
 
-            <!-- Ringkasan Kartu -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-gradient-to-r from-emerald-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pemasukan (Tahun)</p><p class="text-2xl font-bold text-emerald-700" id="statPemasukanTahunan">Rp 0</p></div>
                 <div class="bg-gradient-to-r from-red-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pengeluaran (Tahun)</p><p class="text-2xl font-bold text-red-700" id="statPengeluaranTahunan">Rp 0</p></div>
@@ -136,14 +143,12 @@
                 <div class="bg-gradient-to-r from-purple-50 to-white rounded-xl shadow p-4 stat-card"><p class="text-gray-500 text-sm">Pengeluaran (Bulan)</p><p class="text-2xl font-bold text-purple-700" id="statPengeluaranBulanan">Rp 0</p></div>
             </div>
 
-            <!-- Jumlah Santri Membayar -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-amber-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Santri Membayar Bulan Ini</p><p class="text-3xl font-bold text-amber-700" id="statJumlahSantriBulan">0</p><p class="text-xs text-gray-500" id="statPersentaseBulan">0% dari total santri</p></div>
                 <div class="bg-emerald-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Total Santri Aktif</p><p class="text-3xl font-bold text-emerald-700" id="statTotalSantri">0</p></div>
                 <div class="bg-sky-50 rounded-xl p-4 text-center stat-card"><p class="text-gray-600 text-sm">Total Transaksi</p><p class="text-3xl font-bold text-sky-700" id="statTotalTransaksi">0</p></div>
             </div>
 
-            <!-- Akumulasi Pemasukan & Pengeluaran per Bulan (dengan dropdown) -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-6">
                 <div class="flex justify-between items-center flex-wrap gap-2 mb-3">
                     <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-chart-line text-emerald-600 mr-2"></i> Akumulasi Pemasukan, Pengeluaran & Saldo Kumulatif per Bulan</h3>
@@ -162,7 +167,6 @@
                 <p class="text-xs text-gray-400 text-center mt-2">* Garis kuning = saldo kumulatif (akumulasi pemasukan - pengeluaran dari awal tahun)</p>
             </div>
 
-            <!-- Detail Pembayaran Santri per Bulan -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-6">
                 <h3 class="font-bold text-gray-800 text-lg mb-3"><i class="fas fa-users text-emerald-600 mr-2"></i> Detail Pembayaran Santri</h3>
                 <div class="space-y-4">
@@ -186,7 +190,6 @@
                 </div>
             </div>
 
-            <!-- Statistik per Kelas -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-6">
                 <h3 class="font-bold text-gray-800 text-lg mb-3"><i class="fas fa-chart-bar text-emerald-600 mr-2"></i> Total Pembayaran Iuran per Kelas (Tahun Ini)</h3>
                 <div class="chart-container" style="height: 280px;"><canvas id="statKelasChart"></canvas></div>
@@ -242,7 +245,6 @@
         </header>
 
         <main>
-            <!-- Hero -->
             <section class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white py-12 md:py-20">
                 <div class="container mx-auto px-5 md:px-8 flex flex-col md:flex-row items-center justify-between gap-10">
                     <div class="md:w-1/2 text-center md:text-left">
@@ -258,7 +260,6 @@
                 </div>
             </section>
 
-            <!-- Statistik Ringkasan -->
             <section id="statistik" class="py-12 md:py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><h2 class="text-2xl md:text-3xl font-bold text-gray-800">📊 Statistik Keuangan <span class="text-emerald-600">Pesantren</span></h2><p class="text-gray-500 mt-2">Sistem online, data realtime</p></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -269,7 +270,6 @@
                 </div></div>
             </section>
 
-            <!-- Menu Utama -->
             <section id="menu-utama" class="py-12 md:py-16 bg-gray-50">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center max-w-2xl mx-auto mb-12"><span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Akses Cepat</span><h2 class="text-2xl md:text-3xl font-bold text-gray-800 mt-1">Menu Utama Aplikasi</h2><p class="text-gray-500 mt-2">Klik menu untuk mengelola data santri dan transaksi iuran</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -281,7 +281,6 @@
                 <p class="text-center text-xs text-gray-400 mt-8 italic">* Catatan Bendahara memudahkan input multi‑bulan dan transaksi umum.</p></div>
             </section>
 
-            <!-- Konten Populer (4 card) -->
             <section class="py-16 bg-white">
                 <div class="container mx-auto px-5 md:px-8"><div class="flex justify-between items-end flex-wrap gap-3 mb-10"><div><h2 class="text-2xl md:text-3xl font-bold text-gray-800">🔥 Konten Populer</h2><p class="text-gray-500">Fitur dan informasi yang sering diakses</p></div></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -292,7 +291,6 @@
                 </div></div>
             </section>
 
-            <!-- Kata Bijak -->
             <section class="py-16 bg-emerald-50/40">
                 <div class="container mx-auto px-5 md:px-8"><div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">💡 Kata Bijak Keuangan Berkah</h2><p class="text-gray-600">Nasihat penuh keberkahan untuk mengelola harta</p></div>
                 <div class="testimonial-slider-container max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative"><div class="overflow-hidden"><div id="wisdomTrack" class="testimonial-track flex flex-nowrap"></div></div><div class="flex justify-center gap-2 mt-6" id="wisdomDots"></div></div></div>
@@ -323,47 +321,58 @@
         let allSantri = [];
         let chartInstances = {};
 
-        // Login
+        // ======================= ELEMEN LOGIN =======================
         const loginModal = document.getElementById('loginModal');
         const mainContent = document.getElementById('mainContent');
         const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
         const loginError = document.getElementById('loginError');
         const loadingStatus = document.getElementById('loadingStatus');
+        const retryText = document.getElementById('retryText');
 
-        // Password default (fallback jika Firebase gagal)
-        const DEFAULT_PASSWORD = "270709";
-        let CORRECT_PASSWORD = DEFAULT_PASSWORD; // langsung pakai default dulu
+        // ======================= STATE LOGIN =======================
+        // Tidak ada password di HTML. Password HANYA diambil dari Firebase.
+        let CORRECT_PASSWORD = null;
+        let passwordLoaded = false;
 
         // ======================= MUAT PASSWORD DARI FIREBASE =======================
         async function loadPassword() {
+            // Reset tampilan
+            passwordLoaded = false;
+            CORRECT_PASSWORD = null;
+            loginBtn.disabled = true;
+            loginBtnText.innerText = "Memuat...";
+            loadingStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghubungkan ke server...';
+            loadingStatus.className = 'text-xs text-gray-500 text-center mt-3';
+            retryText.classList.add('hidden');
+
             try {
-                loadingStatus.innerText = "Menghubungkan ke server...";
                 const doc = await db.collection('password').doc('utama').get();
+
                 if (doc.exists && doc.data().password) {
                     CORRECT_PASSWORD = doc.data().password;
-                    loadingStatus.innerText = "✅ Sistem siap";
-                    loadingStatus.classList.remove('text-gray-400');
-                    loadingStatus.classList.add('text-emerald-600');
-                    console.log('✅ Password dimuat dari Firebase:', CORRECT_PASSWORD);
+                    passwordLoaded = true;
+                    loginBtn.disabled = false;
+                    loginBtnText.innerText = "Masuk";
+                    loadingStatus.innerHTML = '<i class="fas fa-check-circle"></i> Sistem siap';
+                    loadingStatus.className = 'text-xs text-emerald-600 text-center mt-3';
+                    console.log('✅ Password berhasil dimuat dari Firebase');
                 } else {
-                    // Firebase tidak punya dokumen, pakai default
-                    CORRECT_PASSWORD = DEFAULT_PASSWORD;
-                    loadingStatus.innerText = "⚠️ Menggunakan password default";
-                    loadingStatus.classList.remove('text-gray-400');
-                    loadingStatus.classList.add('text-amber-600');
-                    console.warn('⚠️ Dokumen password tidak ada, pakai default:', DEFAULT_PASSWORD);
+                    loadingStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Password tidak ditemukan di server';
+                    loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                    retryText.classList.remove('hidden');
+                    console.error('❌ Dokumen password/utama tidak ada atau field kosong');
                 }
             } catch (err) {
-                // Jika Firebase error, tetap pakai default supaya user bisa login
-                CORRECT_PASSWORD = DEFAULT_PASSWORD;
-                loadingStatus.innerText = "⚠️ Offline mode - password default";
-                loadingStatus.classList.remove('text-gray-400');
-                loadingStatus.classList.add('text-amber-600');
-                console.error('❌ Gagal memuat dari Firebase, pakai default:', err.message);
+                loadingStatus.innerHTML = '<i class="fas fa-times-circle"></i> Gagal terhubung ke server';
+                loadingStatus.className = 'text-xs text-red-600 text-center mt-3';
+                retryText.classList.remove('hidden');
+                console.error('❌ Gagal memuat password:', err.message);
             }
         }
 
+        // ======================= CEK STATUS LOGIN =======================
         function checkLoginStatus() {
             if (localStorage.getItem('pesantren_logged_in') === 'true') {
                 loginModal.style.display = 'none';
@@ -378,7 +387,14 @@
             }
         }
 
+        // ======================= PROSES LOGIN =======================
         function login() {
+            if (!passwordLoaded || CORRECT_PASSWORD === null) {
+                loginError.innerText = "Sistem belum siap. Tunggu atau klik 'Coba Lagi'.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
             if (passwordInput.value === CORRECT_PASSWORD) {
                 localStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
@@ -406,6 +422,7 @@
         loginBtn.addEventListener('click', login);
         passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
+        // ======================= FORMAT RUPIAH =======================
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
             let str = Math.floor(angka).toString();
@@ -417,6 +434,7 @@
             return result;
         }
 
+        // ======================= LOAD STATISTIK RINGKASAN =======================
         async function loadAllStats() {
             try {
                 const santriSnap = await db.collection('santri').get();
@@ -446,7 +464,7 @@
             } catch(err) { console.error(err); }
         }
 
-        // Kata Bijak Slider
+        // ======================= KATA BIJAK SLIDER =======================
         const wisdomList = [
             "Harta yang tidak dikelola dengan baik akan cepat habis, kelola dengan penuh keberkahan.",
             "Sedekah tidak akan mengurangi harta, justru melipatgandakan keberkahan.",
@@ -458,6 +476,7 @@
         ];
         let currentWisdomIdx = 0, wisdomInterval;
         const wisdomTrack = document.getElementById('wisdomTrack'), wisdomDots = document.getElementById('wisdomDots');
+
         function loadWisdomSlider() {
             if (!wisdomTrack) return;
             wisdomTrack.innerHTML = '';
@@ -479,9 +498,14 @@
         function startWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); wisdomInterval = setInterval(() => { currentWisdomIdx = (currentWisdomIdx + 1) % wisdomList.length; updateWisdomSlider(); }, 5000); }
         function resetWisdomInterval() { if (wisdomInterval) clearInterval(wisdomInterval); startWisdomInterval(); }
 
-        function attachMobileMenu() { const mobileBtn = document.getElementById('mobileMenuBtn'); const mobilePanel = document.getElementById('mobileMenuPanel'); if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden'); }
+        // ======================= MOBILE MENU =======================
+        function attachMobileMenu() {
+            const mobileBtn = document.getElementById('mobileMenuBtn');
+            const mobilePanel = document.getElementById('mobileMenuPanel');
+            if (mobileBtn && mobilePanel) mobileBtn.onclick = () => mobilePanel.classList.toggle('hidden');
+        }
 
-        // Modal Jenis Iuran untuk Konten Populer
+        // ======================= MODAL JENIS IURAN =======================
         const jenisModal = document.getElementById('jenisModal');
         let pendingTarget = null;
         function showJenisModal(target) { pendingTarget = target; jenisModal.classList.remove('hidden'); }
@@ -502,7 +526,7 @@
         document.getElementById('laporanBulananLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
         document.getElementById('mobileLaporanLink')?.addEventListener('click', (e) => { e.preventDefault(); showJenisModal('bku'); });
 
-        // Modal Catatan Bendahara
+        // ======================= MODAL CATATAN BENDAHARA =======================
         const catatanModal = document.getElementById('catatanModal');
         function showCatatanModal() { catatanModal.classList.remove('hidden'); }
         function hideCatatanModal() { catatanModal.classList.add('hidden'); }
@@ -589,7 +613,7 @@
             const persen = allSantri.length ? ((santriIdsBulan.size / allSantri.length) * 100).toFixed(1) : 0;
             document.getElementById('statPersentaseBulan').innerHTML = `${persen}% dari total santri`;
 
-            // Akumulasi Chart dengan saldo kumulatif
+            // Chart Akumulasi
             const chartJenis = document.getElementById('statChartJenis').value;
             const monthlyPemasukan = new Array(12).fill(0);
             const monthlyPengeluaran = new Array(12).fill(0);
@@ -637,7 +661,7 @@
                 }
             });
 
-            // Detail Pembayaran Santri per Bulan
+            // Detail Pembayaran Santri
             let totalSantriBayarBulan = new Set();
             let santriKonsumsiBulan = new Set();
             let santriPondokBulan = new Set();
@@ -699,10 +723,10 @@
         });
 
         // ======================= START =======================
-        // Cek login dulu (instan, tidak menunggu Firebase)
+        // Cek login dulu (dari localStorage, instant)
         checkLoginStatus();
 
-        // Muat password dari Firebase di background (untuk update password)
+        // Muat password dari Firebase (async, tombol login disabled sampai siap)
         loadPassword();
     </script>
 </body>
