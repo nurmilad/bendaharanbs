@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST Firebase - Nurmilad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+<div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6">
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">🔍 Test Koneksi Firebase</h1>
+    <p class="text-sm text-gray-500 mb-4">Halaman ini untuk mendiagnosa masalah password. Screenshot hasilnya dan kirim ke developer.</p>
+
+    <div id="debug" class="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono whitespace-pre-wrap overflow-auto" style="min-height: 200px;"></div>
+
+    <button onclick="location.reload()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">🔄 Test Ulang</button>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyD-8JKpTqvufYw5b1JHEbOPRiIrAfX4z9w",
+    authDomain: "bendaharanbs.firebaseapp.com",
+    projectId: "bendaharanbs",
+    storageBucket: "bendaharanbs.firebasestorage.app",
+    messagingSenderId: "853301471376",
+    appId: "1:853301471376:web:7ac52bdf8ea65bfc169015"
+};
+
+const debugEl = document.getElementById('debug');
+function log(msg) {
+    debugEl.innerHTML += msg + "\n";
+    debugEl.scrollTop = debugEl.scrollHeight;
+    console.log(msg);
+}
+
+(async function() {
+    log("🚀 TEST DIMULAI");
+    log("==================");
+    log("");
+
+    // 1. Cek Firebase SDK
+    log("1. Firebase SDK terdeteksi: " + (typeof firebase !== "undefined"));
+    log("   Firestore SDK: " + (typeof firebase !== "undefined" && firebase.firestore ? "YES" : "NO"));
+    log("");
+
+    // 2. Init Firebase
+    try {
+        firebase.initializeApp(firebaseConfig);
+        log("2. ✅ Firebase berhasil di-initialize");
+        log("   Project ID: " + firebase.app().options.projectId);
+        log("   Auth Domain: " + firebase.app().options.authDomain);
+    } catch (err) {
+        log("2. ❌ Firebase GAGAL di-init: " + err.message);
+        return;
+    }
+    log("");
+
+    const db = firebase.firestore();
+    log("3. Firestore object: " + (db ? "✅ OK" : "❌ NULL"));
+    log("");
+
+    // 4. Test baca collection 'santri' (untuk cek koneksi dasar)
+    log("4. TEST koneksi dasar - baca collection 'santri':");
+    try {
+        const santriSnap = await db.collection('santri').limit(3).get();
+        log("   ✅ Berhasil! Jumlah dokumen (limit 3): " + santriSnap.size);
+    } catch (err) {
+        log("   ❌ GAGAL: " + err.code + " - " + err.message);
+    }
+    log("");
+
+    // 5. Test baca collection 'password'
+    log("5. TEST baca collection 'password' (semua dokumen):");
+    try {
+        const passSnap = await db.collection('password').get();
+        log("   ✅ Berhasil akses collection 'password'");
+        log("   Jumlah dokumen: " + passSnap.size);
+        if (passSnap.empty) {
+            log("   ⚠️ COLLECTION KOSONG! Tidak ada dokumen sama sekali.");
+            log("   👉 Kemungkinan: collection 'password' ada di PROJECT LAIN.");
+        } else {
+            passSnap.forEach(d => {
+                log("   📄 Doc ID: '" + d.id + "'");
+                log("      Fields: " + JSON.stringify(d.data()));
+            });
+        }
+    } catch (err) {
+        log("   ❌ GAGAL: " + err.code + " - " + err.message);
+        if (err.code === 'permission-denied') {
+            log("   👉 Rules memblokir. Cek Firestore Rules.");
+        }
+    }
+    log("");
+
+    // 6. Test baca doc spesifik password/utama
+    log("6. TEST baca dokumen 'password/utama':");
+    try {
+        const doc = await db.collection('password').doc('utama').get();
+        log("   doc.exists: " + doc.exists);
+        if (doc.exists) {
+            const data = doc.data();
+            log("   ✅ Data ditemukan:");
+            log("      Field list: " + Object.keys(data).join(", "));
+            log("      password: '" + (data.password || "(KOSONG)") + "'");
+        } else {
+            log("   ❌ Dokumen TIDAK ADA");
+            log("   👉 Cek: Document ID harus 'utama' (huruf kecil, tanpa spasi)");
+        }
+    } catch (err) {
+        log("   ❌ GAGAL: " + err.code + " - " + err.message);
+    }
+    log("");
+
+    log("==================");
+    log("🏁 TEST SELESAI");
+    log("");
+    log("📸 Screenshot halaman ini dan kirim ke developer.");
+})();
+</script>
+
+</body>
+</html>
