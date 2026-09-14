@@ -68,7 +68,8 @@
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Password salah. Silakan coba lagi.</p>
             </div>
             <button id="loginBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-md">Masuk</button>
-            <p class="text-xs text-gray-400 text-center mt-4">* Sistem Keuangan Pesantren Nurmilad</p>
+            <p id="loadingStatus" class="text-xs text-gray-400 text-center mt-3">Memuat sistem keamanan...</p>
+            <p class="text-xs text-gray-400 text-center mt-1">* Sistem Keuangan Pesantren Nurmilad</p>
         </div>
     </div>
 
@@ -223,6 +224,7 @@
                     <button id="statistikLink" class="text-gray-600 hover:text-emerald-600 font-medium transition">Statistik</button>
                     <a href="info.html?mode=informasi" class="text-gray-600 hover:text-emerald-600">Informasi</a>
                     <a href="info.html?mode=bantuan" class="text-gray-600 hover:text-emerald-600">Bantuan</a>
+                    <button onclick="logout()" class="text-gray-600 hover:text-red-600 font-medium transition"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </nav>
                 <div class="md:hidden flex gap-3"><button id="mobileMenuBtn" class="text-gray-600 focus:outline-none"><i class="fas fa-bars text-xl"></i></button></div>
             </div>
@@ -235,6 +237,7 @@
                 <a href="info.html?mode=informasi" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-info-circle text-emerald-600 w-5"></i> Informasi</a>
                 <a href="info.html?mode=bantuan" class="py-2 px-3 rounded-lg hover:bg-emerald-50 flex items-center gap-2"><i class="fas fa-question-circle text-emerald-600 w-5"></i> Bantuan</a>
                 <a href="#" class="py-2 px-3 rounded-lg hover:bg-emerald-50 text-gray-600" id="mobileLaporanLink"><i class="fas fa-chart-simple mr-2"></i> Laporan</a>
+                <button onclick="logout()" class="py-2 px-3 rounded-lg hover:bg-red-50 text-red-600 text-left flex items-center gap-2"><i class="fas fa-sign-out-alt w-5"></i> Logout</button>
             </div>
         </header>
 
@@ -326,22 +329,38 @@
         const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
         const loginError = document.getElementById('loginError');
-        let CORRECT_PASSWORD = null; // akan diisi dari Firebase
+        const loadingStatus = document.getElementById('loadingStatus');
 
-        // ======================= FUNGSI BARU: muat password dari Firebase =======================
+        // Password default (fallback jika Firebase gagal)
+        const DEFAULT_PASSWORD = "270709";
+        let CORRECT_PASSWORD = DEFAULT_PASSWORD; // langsung pakai default dulu
+
+        // ======================= MUAT PASSWORD DARI FIREBASE =======================
         async function loadPassword() {
             try {
+                loadingStatus.innerText = "Menghubungkan ke server...";
                 const doc = await db.collection('password').doc('utama').get();
-                if (doc.exists) {
+                if (doc.exists && doc.data().password) {
                     CORRECT_PASSWORD = doc.data().password;
-                    console.log('Password berhasil dimuat dari Firebase');
+                    loadingStatus.innerText = "✅ Sistem siap";
+                    loadingStatus.classList.remove('text-gray-400');
+                    loadingStatus.classList.add('text-emerald-600');
+                    console.log('✅ Password dimuat dari Firebase:', CORRECT_PASSWORD);
                 } else {
-                    console.error('Dokumen password tidak ditemukan!');
-                    CORRECT_PASSWORD = null;
+                    // Firebase tidak punya dokumen, pakai default
+                    CORRECT_PASSWORD = DEFAULT_PASSWORD;
+                    loadingStatus.innerText = "⚠️ Menggunakan password default";
+                    loadingStatus.classList.remove('text-gray-400');
+                    loadingStatus.classList.add('text-amber-600');
+                    console.warn('⚠️ Dokumen password tidak ada, pakai default:', DEFAULT_PASSWORD);
                 }
             } catch (err) {
-                console.error('Gagal memuat password:', err);
-                CORRECT_PASSWORD = null;
+                // Jika Firebase error, tetap pakai default supaya user bisa login
+                CORRECT_PASSWORD = DEFAULT_PASSWORD;
+                loadingStatus.innerText = "⚠️ Offline mode - password default";
+                loadingStatus.classList.remove('text-gray-400');
+                loadingStatus.classList.add('text-amber-600');
+                console.error('❌ Gagal memuat dari Firebase, pakai default:', err.message);
             }
         }
 
@@ -360,11 +379,6 @@
         }
 
         function login() {
-            if (!CORRECT_PASSWORD) {
-                loginError.innerText = "Sistem sedang memuat, coba lagi sebentar...";
-                loginError.classList.remove('hidden');
-                return;
-            }
             if (passwordInput.value === CORRECT_PASSWORD) {
                 localStorage.setItem('pesantren_logged_in', 'true');
                 loginModal.style.display = 'none';
@@ -381,16 +395,16 @@
                 passwordInput.focus();
             }
         }
-        loginBtn.addEventListener('click', login);
-        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
-        // ======================= FUNGSI LOGOUT =======================
         function logout() {
             if (confirm('Yakin ingin keluar?')) {
                 localStorage.removeItem('pesantren_logged_in');
                 window.location.href = 'index.html';
             }
         }
+
+        loginBtn.addEventListener('click', login);
+        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 
         function formatRupiah(angka) {
             if (!angka && angka !== 0) return '0';
@@ -591,7 +605,6 @@
                     if (t.tipe === 'pengeluaran' || t.pengeluaran > 0) monthlyPengeluaran[month] += t.pengeluaran;
                 }
             });
-            // Hitung saldo kumulatif
             let saldoKumulatif = 0;
             const monthlySaldoKumulatif = [];
             for (let i = 0; i < 12; i++) {
@@ -624,11 +637,11 @@
                 }
             });
 
-            // Detail Pembayaran Santri per Bulan (tetap)
+            // Detail Pembayaran Santri per Bulan
             let totalSantriBayarBulan = new Set();
             let santriKonsumsiBulan = new Set();
             let santriPondokBulan = new Set();
-            const bulanIuranMap = [7,8,9,10,11,12,1,2,3,4,5,6]; // JUL=7, AGU=8, ..., JUN=6
+            const bulanIuranMap = [7,8,9,10,11,12,1,2,3,4,5,6];
             allTransaksi.forEach(t => {
                 if (t.tanggal && t.tanggal.getFullYear() === tahun && (t.tanggal.getMonth() + 1) === bulan) {
                     if (t.santriId && t.bulanIdx !== undefined) {
@@ -681,18 +694,16 @@
         }
 
         document.getElementById('statFilterBtn').addEventListener('click', renderStatistik);
-        document.getElementById('statChartJenings')?.addEventListener('change', () => {
-            if (statModal.classList.contains('active')) renderStatistik();
-        });
         document.getElementById('statChartJenis').addEventListener('change', () => {
             if (statModal.classList.contains('active')) renderStatistik();
         });
 
-        // ======================= START: muat password dulu, baru cek login =======================
-        window.addEventListener('DOMContentLoaded', async () => {
-            await loadPassword();
-            checkLoginStatus();
-        });
+        // ======================= START =======================
+        // Cek login dulu (instan, tidak menunggu Firebase)
+        checkLoginStatus();
+
+        // Muat password dari Firebase di background (untuk update password)
+        loadPassword();
     </script>
 </body>
 </html>
