@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Catatan Pemasukan - Bendahara Pesantren Nurmilad</title>
+
+    <!-- ====== GUARD LOGIN: redirect ke index.html jika belum login ====== -->
+    <script>
+        (function() {
+            if (localStorage.getItem('pesantren_logged_in') !== 'true') {
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
+    <!-- ====== END GUARD ====== -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -249,21 +260,21 @@
                 let santri = extractSantri(row.uraian), isSantri = !!santri, rowClass = row.exported ? 'row-exported' : '', disabled = row.exported ? 'disabled' : '';
                 let rowIdAttr = row.id ? row.id : 'new_' + idx;
                 html += `<tr class="${rowClass}" data-id="${rowIdAttr}">`;
-                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}><\/td>`;
-                html += `<td class="relative"><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" style="min-width:200px;" ${disabled}><div class="autocomplete-items autocomplete-${rowIdAttr}" style="display:none;"></div><\/td>`;
-                if (isSantri) html += `<td><input type="text" class="field-konsumsi" value="${formatRp(row.konsumsi)}" readonly disabled><\/td>`;
-                else html += `<td><input type="text" class="field-konsumsi rupiah-input" value="${formatRp(row.konsumsi)}" ${disabled}><\/td>`;
-                if (isSantri) html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanKonsumsi)}</textarea><\/td>`;
-                else html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" disabled readonly><\/textarea><\/td>`;
-                if (isSantri) html += `<td><input type="text" class="field-pondok" value="${formatRp(row.pondok)}" readonly disabled><\/td>`;
-                else html += `<td><input type="text" class="field-pondok rupiah-input" value="${formatRp(row.pondok)}" ${disabled}><\/td>`;
-                if (isSantri) html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanPondok)}</textarea><\/td>`;
-                else html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" disabled readonly><\/textarea><\/td>`;
-                html += `<td class="text-right font-medium">${formatRp(row.jumlah)}<\/td>`;
+                html += `<td><input type="date" class="field-tanggal" value="${row.tanggal}" ${disabled}></td>`;
+                html += `<td class="relative"><input type="text" class="field-uraian" value="${escapeHtml(row.uraian)}" style="min-width:200px;" ${disabled}><div class="autocomplete-items autocomplete-${rowIdAttr}" style="display:none;"></div></td>`;
+                if (isSantri) html += `<td><input type="text" class="field-konsumsi" value="${formatRp(row.konsumsi)}" readonly disabled></td>`;
+                else html += `<td><input type="text" class="field-konsumsi rupiah-input" value="${formatRp(row.konsumsi)}" ${disabled}></td>`;
+                if (isSantri) html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanKonsumsi)}</textarea></td>`;
+                else html += `<td><textarea class="field-bulanKonsumsi wrap-textarea" rows="2" disabled readonly></textarea></td>`;
+                if (isSantri) html += `<td><input type="text" class="field-pondok" value="${formatRp(row.pondok)}" readonly disabled></td>`;
+                else html += `<td><input type="text" class="field-pondok rupiah-input" value="${formatRp(row.pondok)}" ${disabled}></td>`;
+                if (isSantri) html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" ${disabled}>${escapeHtml(row.bulanPondok)}</textarea></td>`;
+                else html += `<td><textarea class="field-bulanPondok wrap-textarea" rows="2" disabled readonly></textarea></td>`;
+                html += `<td class="text-right font-medium">${formatRp(row.jumlah)}</td>`;
                 html += `<td class="text-center"><button class="hapus-btn text-red-500 mr-2"><i class="fas fa-trash"></i></button>`;
                 if (!row.exported) html += `<button class="import-btn bg-blue-500 text-white px-2 py-1 rounded text-xs"><i class="fas fa-upload"></i> Import</button>`;
                 else html += `<button class="import-btn bg-green-500 text-white px-2 py-1 rounded text-xs" disabled><i class="fas fa-check"></i> Terimport</button>`;
-                html += `<\/td><\/tr>`;
+                html += `</td></tr>`;
             });
             tbody.innerHTML = html;
             // Attach event listeners
