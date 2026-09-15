@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Data Santri - Pondok Pesantren Nurmilad</title>
+
+    <!-- ====== GUARD LOGIN: redirect ke index.html jika belum login ====== -->
+    <script>
+        (function() {
+            if (localStorage.getItem('pesantren_logged_in') !== 'true') {
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
+    <!-- ====== END GUARD ====== -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -284,7 +295,6 @@
             isSaving = true;
             showSaving(true);
             try {
-                // Validasi data
                 for (let i = 0; i < santriList.length; i++) {
                     if (!santriList[i].angkatan || !santriList[i].nis || !santriList[i].nama) {
                         showToast(`Baris ${i+1} belum lengkap, simpan dibatalkan`, true);
@@ -293,8 +303,6 @@
                 }
                 sortSantriByNis();
 
-                // PERBAIKAN: Tidak menghapus semua santri dan iuran
-                // Kita akan update atau insert setiap santri secara individu
                 for (let i = 0; i < santriList.length; i++) {
                     const santri = santriList[i];
                     const data = {
@@ -305,10 +313,8 @@
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     if (santri.firebaseId) {
-                        // Update existing
                         await db.collection('santri').doc(santri.firebaseId).update(data);
                     } else {
-                        // Create new
                         const docRef = await db.collection('santri').add(data);
                         santri.firebaseId = docRef.id;
                     }
@@ -336,19 +342,15 @@
                 showToast("Tidak ada baris yang dipilih", true);
                 return;
             }
-            // Kumpulkan ID yang akan dihapus
             const idsToDelete = [];
             for (let i of selectedRows) {
                 if (santriList[i].firebaseId) idsToDelete.push(santriList[i].firebaseId);
             }
-            // Hapus dari Firestore
             for (const id of idsToDelete) {
                 await db.collection('santri').doc(id).delete();
-                // Hapus juga data iuran terkait (opsional, tapi jika ingin konsisten)
                 await db.collection('iuran_konsumsi').doc(id).delete();
                 await db.collection('iuran_pondok').doc(id).delete();
             }
-            // Hapus dari state lokal
             const newList = [];
             for (let i = 0; i < santriList.length; i++) {
                 if (!selectedRows.has(i)) newList.push(santriList[i]);
@@ -393,7 +395,6 @@
             }
         }
 
-        // Paste Excel
         const pasteModal = document.getElementById('pasteModal');
         const pasteTextarea = document.getElementById('pasteDataText');
         function openPasteModal() {
