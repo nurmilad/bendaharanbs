@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Catatan Pengeluaran - Pondok Pesantren Nurmilad</title>
+
+    <!-- ====== GUARD LOGIN: redirect ke index.html jika belum login ====== -->
+    <script>
+        (function() {
+            if (localStorage.getItem('pesantren_logged_in') !== 'true') {
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
+    <!-- ====== END GUARD ====== -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -241,7 +252,7 @@
             });
             tbody.innerHTML = html;
 
-            // Attach event listeners untuk semua baris (termasuk yang sudah diimport, tapi input disabled tidak perlu event)
+            // Attach event listeners
             for (let row of data) {
                 let tr = tbody.querySelector(`tr[data-id="${row.id}"]`);
                 if (!tr) continue;
@@ -255,7 +266,6 @@
                     if (tanggal) tanggal.addEventListener('change', (e) => { row.tanggal = e.target.value; triggerAutoSave(); });
                     if (uraian) uraian.addEventListener('change', (e) => { row.uraian = e.target.value; triggerAutoSave(); });
                     
-                    // Event untuk satuan dan harga satuan: langsung update jumlah di memory, update tampilan, lalu auto save
                     if (satuan) {
                         satuan.addEventListener('input', (e) => {
                             row.satuan = e.target.value;
@@ -263,7 +273,7 @@
                             let harga = row.hargaSatuan;
                             row.jumlah = satuanVal * harga;
                             jumlahTd.innerText = formatRp(row.jumlah);
-                            updateTotal(); // update total di footer
+                            updateTotal();
                             triggerAutoSave();
                         });
                     }
